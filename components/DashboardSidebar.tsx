@@ -17,6 +17,7 @@ import { FaBagShopping } from "react-icons/fa6";
 import { FaStore } from "react-icons/fa6";
 import { MdCategory } from "react-icons/md";
 import { FaFileUpload } from "react-icons/fa";
+import { FaTicket, FaTrophy } from "react-icons/fa6";
 
 import Link from "next/link";
 
@@ -63,6 +64,24 @@ const DashboardSidebar = () => {
         <div className="flex gap-x-2 w-full hover:bg-blue-600 cursor-pointer items-center py-6 pl-5 text-xl text-white">
           <FaStore className="text-2xl" />{" "}
           <span className="font-normal">Merchant</span>
+        </div>
+      </Link>
+      <Link href="/admin/collector-sets">
+        <div className="flex gap-x-2 w-full hover:bg-blue-600 cursor-pointer items-center py-6 pl-5 text-xl text-white">
+          <FaTrophy className="text-2xl" />{" "}
+          <span className="font-normal">Collector Sets</span>
+        </div>
+      </Link>
+      <Link href="/admin/redemption-codes">
+        <div className="flex gap-x-2 w-full hover:bg-blue-600 cursor-pointer items-center py-6 pl-5 text-xl text-white">
+          <FaTicket className="text-2xl" />{" "}
+          <span className="font-normal">Redemption Codes</span>
+        </div>
+      </Link>
+      <Link href="/admin/set-rewards">
+        <div className="flex gap-x-2 w-full hover:bg-blue-600 cursor-pointer items-center py-6 pl-5 text-xl text-white">
+          <FaTrophy className="text-2xl" />{" "}
+          <span className="font-normal">Set Rewards</span>
         </div>
       </Link>
         <Link href="/admin/settings">

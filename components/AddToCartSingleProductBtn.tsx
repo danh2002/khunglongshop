@@ -14,11 +14,12 @@
 import React from "react";
 import { useProductStore } from "@/app/_zustand/store";
 import toast from "react-hot-toast";
-
+import { useI18n } from "./LanguageProvider";
 
 
 const AddToCartSingleProductBtn = ({ product, quantityCount } : SingleProductBtnProps) => {
   const { addToCart, calculateTotals } = useProductStore();
+  const { t } = useI18n();
 
   const handleAddToCart = () => {
     addToCart({
@@ -29,14 +30,14 @@ const AddToCartSingleProductBtn = ({ product, quantityCount } : SingleProductBtn
       amount: quantityCount
     });
     calculateTotals();
-    toast.success("Product added to the cart");
+    toast.success(t("product.addedToCart"));
   };
   return (
     <button
       onClick={handleAddToCart}
       className="btn w-[200px] text-lg border border-gray-300 border-1 font-normal bg-white text-blue-500 hover:bg-blue-500 hover:text-white hover:border-blue-500 hover:scale-110 transition-all uppercase ease-in max-[500px]:w-full"
     >
-      Add to cart
+      {t("product.addToCart")}
     </button>
   );
 };

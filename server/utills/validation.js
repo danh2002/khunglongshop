@@ -302,7 +302,7 @@ const orderValidation = {
 
   // Validate order status
   validateStatus: (status) => {
-    const validStatuses = ['pending', 'processing', 'shipped', 'delivered', 'cancelled'];
+    const validStatuses = ['pending', 'processing', 'shipped', 'delivered', 'cancelled', 'paid', 'completed'];
     
     if (!status || typeof status !== 'string') {
       throw new ValidationError('Order status is required', 'status');

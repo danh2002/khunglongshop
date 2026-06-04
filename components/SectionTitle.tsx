@@ -1,22 +1,47 @@
-// *********************
-// Role of the component: Section title that can be used on any page
-// Name of the component: SectionTitle.tsx
-// Developer: Aleksandar Kuzmanovic
-// Version: 1.0
-// Component call: <SectionTitle />
-// Input parameters: {title: string; path: string}
-// Output: div containing h1 for page title and p for page location path 
-// *********************
+"use client";
 
-import React from 'react'
+import React from "react";
+import styled from "styled-components";
+import { Eyebrow, SectionHeading, SectionShell } from "./design-system";
 
-const SectionTitle = ({title, path} : {title: string; path: string}) => {
+const TitleShell = styled(SectionShell)`
+  min-height: 260px;
+  display: grid;
+  place-items: center;
+`;
+
+const Inner = styled.div`
+  width: min(100%, 1180px);
+  margin: 0 auto;
+  padding: clamp(3rem, 6vw, 4.5rem) clamp(1rem, 3vw, 2rem);
+  display: grid;
+  justify-items: center;
+  gap: 1rem;
+  text-align: center;
+`;
+
+const Path = styled.p`
+  margin: 0;
+  color: rgba(255, 255, 255, 0.56);
+  font-size: 0.9rem;
+  font-weight: 800;
+  letter-spacing: 0;
+  text-transform: uppercase;
+`;
+
+const SectionTitle = ({ title, path }: { title: string; path: string }) => {
   return (
-    <div className='h-[250px] border-b pt-16 border-white bg-blue-500 mb-2 max-sm:h-[200px] max-sm:pt-16'>
-        <h1 className='section-title-title text-7xl text-center mb-7 max-md:text-7xl max-sm:text-5xl text-white max-sm:mb-2'>{ title }</h1>
-        <p className='section-title-path text-xl text-center max-sm:text-xl text-white'>{ path }</p>
-    </div>
-  )
-}
+    <TitleShell>
+      <Inner>
+        <Eyebrow>{path}</Eyebrow>
+        <SectionHeading>
+          {title.split(" ").slice(0, -1).join(" ")}{" "}
+          <span>{title.split(" ").slice(-1)}</span>
+        </SectionHeading>
+        <Path>{path}</Path>
+      </Inner>
+    </TitleShell>
+  );
+};
 
-export default SectionTitle
+export default SectionTitle;

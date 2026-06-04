@@ -7,6 +7,110 @@ import { useSession } from "next-auth/react";
 import toast from "react-hot-toast";
 import { useRouter } from "next/navigation";
 import apiClient from "@/lib/api";
+import styled from "styled-components";
+import { sectionPattern } from "@/components/design-system";
+
+const CheckoutTheme = styled.div`
+  ${sectionPattern}
+  min-height: 100vh;
+
+  > div:not(:first-child) {
+    background: transparent !important;
+  }
+
+  main {
+    width: min(100%, 1180px);
+    padding: clamp(2.5rem, 6vw, 4rem) clamp(1rem, 3vw, 2rem) clamp(4rem, 8vw, 6.4rem);
+  }
+
+  section,
+  form {
+    color: rgba(255, 255, 255, 0.88);
+  }
+
+  section[aria-labelledby="summary-heading"] > div {
+    padding: 1.4rem;
+    background: rgba(33, 30, 28, 0.58);
+    border: 1px solid rgba(255, 106, 0, 0.22);
+    box-shadow: 0 20px 46px rgba(0, 0, 0, 0.45);
+  }
+
+  h2,
+  h3,
+  label {
+    color: rgba(255, 255, 255, 0.88) !important;
+  }
+
+  h2,
+  h3 {
+    font-style: italic;
+    font-weight: 900 !important;
+    text-transform: uppercase;
+  }
+
+  p,
+  dt,
+  span {
+    color: rgba(255, 255, 255, 0.56);
+  }
+
+  dd,
+  li > p {
+    color: #f47912 !important;
+    font-weight: 900;
+  }
+
+  ul,
+  dl,
+  .border-t,
+  .border-b,
+  .divide-y > :not([hidden]) ~ :not([hidden]) {
+    border-color: rgba(255, 106, 0, 0.12) !important;
+  }
+
+  input,
+  textarea,
+  select {
+    width: 100%;
+    min-height: 48px;
+    padding: 0.8rem 0.95rem;
+    background: rgba(255, 255, 255, 0.04) !important;
+    border: 1px solid rgba(255, 106, 0, 0.22) !important;
+    border-radius: 0 !important;
+    color: rgba(255, 255, 255, 0.88) !important;
+    box-shadow: none !important;
+  }
+
+  textarea {
+    min-height: 140px;
+  }
+
+  input:focus,
+  textarea:focus,
+  select:focus {
+    border-color: #e85d00 !important;
+    outline: none !important;
+    box-shadow: 0 0 0 2px rgba(232, 93, 0, 0.18) !important;
+  }
+
+  button {
+    min-height: 74px;
+    background: #e85d00 !important;
+    border: 0 !important;
+    clip-path: polygon(0 0, calc(100% - 20px) 0, 100% 50%, calc(100% - 20px) 100%, 0 100%);
+    color: #fff !important;
+    font-size: 1.15rem !important;
+    font-style: italic;
+    font-weight: 900 !important;
+    text-transform: uppercase;
+    transition: transform 180ms ease, background 180ms ease;
+  }
+
+  button:hover {
+    background: #ff6a00 !important;
+    transform: translateY(-2px);
+  }
+`;
 
 const CheckoutPage = () => {
   const { data: session } = useSession();
@@ -340,7 +444,7 @@ const CheckoutPage = () => {
   }, []);
 
   return (
-    <div className="bg-white">
+    <CheckoutTheme>
       <SectionTitle title="Checkout" path="Home | Cart | Checkout" />
       
       <div className="hidden h-full w-1/2 bg-white lg:block" aria-hidden="true" />
@@ -757,7 +861,7 @@ const CheckoutPage = () => {
           </div>
         </form>
       </main>
-    </div>
+    </CheckoutTheme>
   );
 };
 

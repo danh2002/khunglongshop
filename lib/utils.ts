@@ -1,63 +1,73 @@
 export const categoryMenuList = [
   {
     id: 1,
-    title: "Smart Phones",
-    src: "/smart phone icon.png",
-    href: "/shop/smart-phones"
+    title: "Móc Khóa",
+    titleEn: "Keychains",
+    src: "/merch/icon-keychain.svg",
+    href: "/shop/moc-khoa"
   },
   {
     id: 2,
-    title: "Tablets",
-    src: "/tablet icon.png",
-    href: "/shop/tablets"
+    title: "Áo Thun",
+    titleEn: "T-Shirts",
+    src: "/merch/icon-shirt.svg",
+    href: "/shop/ao-thun"
   },
   {
     id: 3,
-    title: "Mouses",
-    src: "/mouse icon.png",
-    href: "/shop/mouses"
+    title: "Hoodie",
+    titleEn: "Hoodies",
+    src: "/merch/icon-hoodie.svg",
+    href: "/shop/hoodie"
   },
   {
     id: 4,
-    title: "Cameras",
-    src: "/camera icon.png",
-    href: "/shop/cameras"
+    title: "Mũ Nón",
+    titleEn: "Caps",
+    src: "/merch/icon-cap.svg",
+    href: "/shop/mu-non"
   },
   {
     id: 5,
-    title: "Smart Watches",
-    src: "/smart watch.png",
-    href: "/shop/watches"
+    title: "Sticker",
+    titleEn: "Stickers",
+    src: "/merch/icon-sticker.svg",
+    href: "/shop/sticker"
   },
   {
     id: 6,
-    title: "Laptops",
-    src: "/laptop icon.png",
-    href: "/shop/laptops"
+    title: "Balo Túi",
+    titleEn: "Bags",
+    src: "/merch/icon-bag.svg",
+    href: "/shop/balo-tui"
   },
   {
     id: 7,
-    title: "PCs",
-    src: "/pc icon.png",
-    href: "/shop/computers"
+    title: "Ly Cốc",
+    titleEn: "Mugs",
+    src: "/merch/icon-mug.svg",
+    href: "/shop/ly-coc"
   },
   {
     id: 8,
-    title: "Printers",
-    src: "/printers icon.png",
-    href: "/shop/printers"
+    title: "Poster",
+    titleEn: "Posters",
+    src: "/merch/icon-poster.svg",
+    href: "/shop/poster"
   },
   {
     id: 9,
-    title: "Earbuds",
-    src: "/ear buds icon.png",
-    href: "/shop/earbuds"
+    title: "Figure",
+    titleEn: "Figures",
+    src: "/merch/icon-figure.svg",
+    href: "/shop/figure"
   },
   {
     id: 10,
-    title: "Head Phones",
-    src: "/headphone icon.png",
-    href: "/shop/headphones"
+    title: "Collector Box",
+    titleEn: "Collector Boxes",
+    src: "/merch/icon-box.svg",
+    href: "/shop/collector-box"
   },
 ];
 

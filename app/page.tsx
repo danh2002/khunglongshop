@@ -1,12 +1,18 @@
-import { CategoryMenu, Hero, Incentives, IntroducingSection, Newsletter, ProductsSection } from "@/components";
+import { CategoryMenu, Hero, ProductsSection } from "@/components";
+import { fallbackMerchProducts } from "@/lib/merchCatalog";
 
-export default function Home() {
+const getHomepageProducts = async () => {
+  return { products: fallbackMerchProducts, hasError: false };
+};
+
+export default async function Home() {
+  const { products, hasError } = await getHomepageProducts();
+
   return (
     <>
-    <Hero />
-    <IntroducingSection />
-    <CategoryMenu />
-    <ProductsSection />
+      <Hero products={products} />
+      <CategoryMenu />
+      <ProductsSection initialProducts={products} initialError={hasError} />
     </>
   );
 }

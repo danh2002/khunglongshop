@@ -1,6 +1,10 @@
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 const { asyncHandler, AppError } = require("../utills/errorHandler");
+const { handleOrderCollectorItems } = require("../services/collectorService");
+
+const isCollectorPaymentSuccessStatus = (status) =>
+  ['paid', 'completed'].includes(String(status || '').toLowerCase());
 
 const createOrderProduct = asyncHandler(async (request, response) => {
   const { customerOrderId, productId, quantity } = request.body;
@@ -42,6 +46,21 @@ const createOrderProduct = asyncHandler(async (request, response) => {
       quantity: parseInt(quantity)
     }
   });
+
+  if (isCollectorPaymentSuccessStatus(existingOrder.status)) {
+    try {
+      const user = await prisma.user.findUnique({
+        where: { email: existingOrder.email }
+      });
+
+      if (user) {
+        await handleOrderCollectorItems(existingOrder.id, user.id);
+        console.log(`Collector redemption codes processed for paid order: ${existingOrder.id}`);
+      }
+    } catch (collectorError) {
+      console.error("Failed to process collector items after order product creation:", collectorError);
+    }
+  }
 
   return response.status(201).json(orderProduct);
 });

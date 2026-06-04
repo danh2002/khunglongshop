@@ -1,19 +1,17 @@
-// *********************
-// Role of the component: Simple H2 heading component
-// Name of the component: Heading.tsx
-// Developer: Aleksandar Kuzmanovic
-// Version: 1.0
-// Component call: <Heading title={title} />
-// Input parameters: { title: string }
-// Output: h2 heading title with some styles 
-// *********************
+"use client";
 
-import React from 'react'
+import React from "react";
+import { SectionHeading } from "./design-system";
 
-const Heading = ({ title } : { title: string }) => {
+const Heading = ({ title }: { title: string }) => {
+  const words = title.split(" ");
+  const last = words.pop();
+
   return (
-    <h2 className="text-white text-7xl font-extrabold text-center mt-20 max-lg:text-5xl">{ title }</h2>
-  )
-}
+    <SectionHeading>
+      {words.join(" ")} {last ? <span>{last}</span> : null}
+    </SectionHeading>
+  );
+};
 
-export default Heading
+export default Heading;

@@ -5,14 +5,16 @@ async function createDefaultCategories() {
   console.log("🏗️  Creating default categories...\n");
 
   const categoriesToCreate = [
-    { name: "electronics" },
-    { name: "laptops" },
-    { name: "audio" },
-    { name: "televisions" },
-    { name: "cameras" },
-    { name: "smartphones" },
-    { name: "tablets" },
-    { name: "accessories" },
+    { name: "moc khoa" },
+    { name: "ao thun" },
+    { name: "hoodie" },
+    { name: "mu non" },
+    { name: "sticker" },
+    { name: "balo tui" },
+    { name: "ly coc" },
+    { name: "poster" },
+    { name: "figure" },
+    { name: "collector box" },
   ];
 
   try {

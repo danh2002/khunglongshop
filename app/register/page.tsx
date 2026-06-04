@@ -1,10 +1,62 @@
 "use client";
-import { CustomButton, SectionTitle } from "@/components";
+
+import { SectionTitle } from "@/components";
+import { Field, PrimaryButton, SectionShell, Wrapper } from "@/components/design-system";
 import { useSession } from "next-auth/react";
-import Image from "next/image";
 import { useRouter } from "next/navigation";
 import React, { useEffect, useState } from "react";
 import toast from "react-hot-toast";
+import styled from "styled-components";
+
+const AuthWrap = styled(Wrapper)`
+  min-height: 62vh;
+  display: grid;
+  place-items: center;
+`;
+
+const AuthCard = styled.div`
+  width: min(100%, 440px);
+  padding: clamp(1.4rem, 4vw, 2.2rem);
+  background: rgba(10, 10, 10, 0.92);
+  border: 1px solid rgba(255, 106, 0, 0.16);
+  box-shadow: 0 20px 46px rgba(0, 0, 0, 0.45);
+`;
+
+const Title = styled.h2`
+  margin: 0 0 1.5rem;
+  color: rgba(255, 255, 255, 0.88);
+  font-size: 1.7rem;
+  font-style: italic;
+  font-weight: 900;
+  text-align: center;
+  text-transform: uppercase;
+`;
+
+const Form = styled.form`
+  display: grid;
+  gap: 1rem;
+`;
+
+const Label = styled.label`
+  display: block;
+  margin-bottom: 0.45rem;
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 0.82rem;
+  font-weight: 900;
+  text-transform: uppercase;
+`;
+
+const Terms = styled.label`
+  color: rgba(255, 255, 255, 0.56);
+  font-size: 0.86rem;
+`;
+
+const ErrorText = styled.p`
+  min-height: 1.5rem;
+  margin: 1rem 0 0;
+  color: #ff6a00;
+  text-align: center;
+`;
 
 const RegisterPage = () => {
   const [error, setError] = useState("");
@@ -12,7 +64,6 @@ const RegisterPage = () => {
   const { data: session, status: sessionStatus } = useSession();
 
   useEffect(() => {
-    // chechking if user has already registered redirect to home page
     if (sessionStatus === "authenticated") {
       router.replace("/");
     }
@@ -22,7 +73,7 @@ const RegisterPage = () => {
     const emailRegex = /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i;
     return emailRegex.test(email);
   };
-  
+
   const handleSubmit = async (e: any) => {
     e.preventDefault();
     const email = e.target[2].value;
@@ -48,7 +99,6 @@ const RegisterPage = () => {
     }
 
     try {
-      // sending API request for registering user
       const res = await fetch("/api/register", {
         method: "POST",
         headers: {
@@ -67,14 +117,11 @@ const RegisterPage = () => {
         toast.success("Registration successful");
         router.push("/login");
       } else {
-        // Handle different types of errors
         if (data.details && Array.isArray(data.details)) {
-          // Validation errors
           const errorMessage = data.details.map((err: any) => err.message).join(", ");
           setError(errorMessage);
           toast.error(errorMessage);
         } else if (data.error) {
-          // General errors
           setError(data.error);
           toast.error(data.error);
         } else {
@@ -92,147 +139,44 @@ const RegisterPage = () => {
   if (sessionStatus === "loading") {
     return <h1>Loading...</h1>;
   }
+
   return (
-    <div className="bg-white">
+    <div>
       <SectionTitle title="Register" path="Home | Register" />
-      <div className="flex min-h-full flex-1 flex-col justify-center py-12 sm:px-6 lg:px-8 bg-white">
-        <div className="flex justify-center flex-col items-center">
-          <h2 className="mt-6 text-center text-2xl leading-9 tracking-tight text-gray-900">
-            Sign up on our website
-          </h2>
-        </div>
-
-        <div className="mt-5 sm:mx-auto sm:w-full sm:max-w-[480px]">
-          <div className="bg-white px-6 py-12 shadow sm:rounded-lg sm:px-12">
-            <form className="space-y-6" onSubmit={handleSubmit}>
+      <SectionShell>
+        <AuthWrap>
+          <AuthCard>
+            <Title>Sign up on our website</Title>
+            <Form onSubmit={handleSubmit}>
               <div>
-                <label
-                  htmlFor="name"
-                  className="block text-sm font-medium leading-6 text-gray-900"
-                >
-                  Name
-                </label>
-                <div className="mt-2">
-                  <input
-                    id="name"
-                    name="name"
-                    type="text"
-                    required
-                    className="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
-                  />
-                </div>
+                <Label htmlFor="name">Name</Label>
+                <Field id="name" name="name" type="text" required />
               </div>
-
               <div>
-                <label
-                  htmlFor="lastname"
-                  className="block text-sm font-medium leading-6 text-gray-900"
-                >
-                  Lastname
-                </label>
-                <div className="mt-2">
-                  <input
-                    id="lastname"
-                    name="lastname"
-                    type="text"
-                    required
-                    className="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
-                  />
-                </div>
+                <Label htmlFor="lastname">Lastname</Label>
+                <Field id="lastname" name="lastname" type="text" required />
               </div>
-
               <div>
-                <label
-                  htmlFor="email"
-                  className="block text-sm font-medium leading-6 text-gray-900"
-                >
-                  Email address
-                </label>
-                <div className="mt-2">
-                  <input
-                    id="email"
-                    name="email"
-                    type="email"
-                    autoComplete="email"
-                    required
-                    className="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
-                  />
-                </div>
+                <Label htmlFor="email">Email address</Label>
+                <Field id="email" name="email" type="email" autoComplete="email" required />
               </div>
-
               <div>
-                <label
-                  htmlFor="password"
-                  className="block text-sm font-medium leading-6 text-gray-900"
-                >
-                  Password
-                </label>
-                <div className="mt-2">
-                  <input
-                    id="password"
-                    name="password"
-                    type="password"
-                    autoComplete="current-password"
-                    required
-                    className="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
-                  />
-                </div>
+                <Label htmlFor="password">Password</Label>
+                <Field id="password" name="password" type="password" autoComplete="current-password" required />
               </div>
-
               <div>
-                <label
-                  htmlFor="confirmpassword"
-                  className="block text-sm font-medium leading-6 text-gray-900"
-                >
-                  Confirm password
-                </label>
-                <div className="mt-2">
-                  <input
-                    id="confirmpassword"
-                    name="confirmpassword"
-                    type="password"
-                    autoComplete="current-password"
-                    required
-                    className="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
-                  />
-                </div>
+                <Label htmlFor="confirmpassword">Confirm password</Label>
+                <Field id="confirmpassword" name="confirmpassword" type="password" autoComplete="current-password" required />
               </div>
-
-              <div className="flex items-center justify-between">
-                <div className="flex items-center">
-                  <input
-                    id="remember-me"
-                    name="remember-me"
-                    type="checkbox"
-                    className="h-4 w-4 rounded border-gray-300 text-black focus:ring-black"
-                  />
-                  <label
-                    htmlFor="remember-me"
-                    className="ml-3 block text-sm leading-6 text-gray-900"
-                  >
-                    Accept our terms and privacy policy
-                  </label>
-                </div>
-              </div>
-
-              <div>
-                <CustomButton
-                  buttonType="submit"
-                  text="Sign up"
-                  paddingX={3}
-                  paddingY={1.5}
-                  customWidth="full"
-                  textSize="sm"
-                />
-
-                <p className="text-red-600 text-center text-[16px] my-4">
-                  {error && error}
-                </p>
-              </div>
-            </form>
-          </div>
-        </div>
-      </div>
+              <Terms>
+                <input id="remember-me" name="remember-me" type="checkbox" /> Accept our terms and privacy policy
+              </Terms>
+              <PrimaryButton type="submit">Sign up</PrimaryButton>
+              <ErrorText>{error && error}</ErrorText>
+            </Form>
+          </AuthCard>
+        </AuthWrap>
+      </SectionShell>
     </div>
   );
 };

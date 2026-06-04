@@ -28,3 +28,5 @@
 ::1 - - [05/Oct/2025:13:24:41 +0000] "POST /api/products HTTP/1.1" 400 80 "http://localhost:3000/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36" reqId=snkBG6Zd userId=anonymous
 ::1 - - [05/Oct/2025:13:25:29 +0000] "POST /api/products HTTP/1.1" 500 97 "http://localhost:3000/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36" reqId=aOyqyDpR userId=anonymous
 ::1 - - [05/Oct/2025:13:35:21 +0000] "POST /api/products HTTP/1.1" 400 80 "http://localhost:3000/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36" reqId=j3e6LIZl userId=anonymous
+::1 - - [03/Jun/2026:08:11:56 +0000] "GET /api/products HTTP/1.1" 500 97 "-" "Mozilla/5.0 (Windows NT; Windows NT 10.0; en-US) WindowsPowerShell/5.1.19041.6456" reqId=4-VadlHx userId=anonymous
+::1 - - [03/Jun/2026:08:12:13 +0000] "GET /api/products HTTP/1.1" 500 97 "-" "node" reqId=BOjcVzTE userId=anonymous

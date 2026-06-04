@@ -10,6 +10,8 @@ import {
 } from "@/components";
 import React from "react";
 import { sanitize } from "@/lib/sanitize";
+import { SectionShell, Wrapper } from "@/components/design-system";
+import { getServerTranslator } from "@/lib/i18n-server";
 
 // improve readabillity of category text, for example category text "smart-watches" will be "smart watches"
 const improveCategoryText = (text: string): string => {
@@ -26,19 +28,20 @@ const ShopPage = async ({ params, searchParams }: { params: Promise<{ slug?: str
   // Await both params and searchParams
   const awaitedParams = await params;
   const awaitedSearchParams = await searchParams;
+  const { t } = await getServerTranslator();
   
   return (
-    <div className="text-black bg-white">
-      <div className=" max-w-screen-2xl mx-auto px-10 max-sm:px-5">
+    <SectionShell>
+      <Wrapper>
         <Breadcrumb />
         <div className="grid grid-cols-[200px_1fr] gap-x-10 max-md:grid-cols-1 max-md:gap-y-5">
           <Filters />
           <div>
             <div className="flex justify-between items-center max-lg:flex-col max-lg:gap-y-5">
-              <h2 className="text-2xl font-bold max-sm:text-xl max-[400px]:text-lg uppercase">
+              <h2 className="text-2xl font-bold max-sm:text-xl max-[400px]:text-lg uppercase italic text-white">
                 {awaitedParams?.slug && awaitedParams?.slug[0]?.length > 0
                   ? sanitize(improveCategoryText(awaitedParams?.slug[0]))
-                  : "All products"}
+                  : t("shop.allProducts")}
               </h2>
 
               <SortBy />
@@ -48,8 +51,8 @@ const ShopPage = async ({ params, searchParams }: { params: Promise<{ slug?: str
             <Pagination />
           </div>
         </div>
-      </div>
-    </div>
+      </Wrapper>
+    </SectionShell>
   );
 };
 

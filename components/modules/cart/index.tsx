@@ -1,186 +1,217 @@
-"use client"
+"use client";
 
 import { useProductStore } from "@/app/_zustand/store";
 import toast from "react-hot-toast";
-import Image from "next/image"
+import Image from "next/image";
 import Link from "next/link";
-import { FaCheck, FaCircleQuestion, FaClock, FaXmark } from "react-icons/fa6";
+import { FaCheck, FaCircleQuestion, FaXmark } from "react-icons/fa6";
 import QuantityInputCart from "@/components/QuantityInputCart";
 import { sanitize } from "@/lib/sanitize";
+import styled from "styled-components";
+import { PrimaryLink } from "@/components/design-system";
+
+const CartForm = styled.form`
+  margin-top: 2rem;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 380px;
+  gap: 2rem;
+
+  @media (max-width: 980px) {
+    grid-template-columns: 1fr;
+  }
+`;
+
+const Panel = styled.section`
+  background: rgba(7, 7, 7, 0.96);
+  border: 1px solid rgba(255, 106, 0, 0.22);
+  box-shadow: 0 20px 46px rgba(0, 0, 0, 0.45);
+`;
+
+const CartList = styled.ul`
+  margin: 0;
+  padding: 0;
+  list-style: none;
+`;
+
+const CartRow = styled.li`
+  display: grid;
+  grid-template-columns: 150px 1fr;
+  gap: 1.25rem;
+  padding: 1.2rem;
+  border-bottom: 1px solid rgba(255, 106, 0, 0.08);
+
+  @media (max-width: 620px) {
+    grid-template-columns: 1fr;
+  }
+`;
+
+const ItemBody = styled.div`
+  display: grid;
+  gap: 0.75rem;
+`;
+
+const ItemTop = styled.div`
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+`;
+
+const ItemTitle = styled(Link)`
+  color: rgba(255, 255, 255, 0.88);
+  font-style: italic;
+  font-weight: 900;
+  text-decoration: none;
+  text-transform: uppercase;
+
+  &:hover {
+    color: #e85d00;
+  }
+`;
+
+const Muted = styled.p`
+  margin: 0;
+  color: rgba(255, 255, 255, 0.56);
+  font-size: 0.9rem;
+`;
+
+const Price = styled.p`
+  margin: 0;
+  color: #f47912;
+  font-size: 1.1rem;
+  font-weight: 900;
+`;
+
+const RemoveButton = styled.button`
+  display: inline-grid;
+  width: 36px;
+  height: 36px;
+  place-items: center;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 106, 0, 0.16);
+  color: rgba(255, 255, 255, 0.56);
+  cursor: pointer;
+
+  &:hover {
+    color: #e85d00;
+    border-color: rgba(255, 106, 0, 0.36);
+  }
+`;
+
+const Summary = styled(Panel)`
+  padding: 1.4rem;
+  align-self: start;
+  background: rgba(33, 30, 28, 0.58);
+`;
+
+const SummaryTitle = styled.h2`
+  margin: 0;
+  color: rgba(255, 255, 255, 0.88);
+  font-style: italic;
+  font-weight: 900;
+  text-transform: uppercase;
+`;
+
+const SummaryList = styled.dl`
+  display: grid;
+  gap: 1rem;
+  margin: 1.4rem 0 0;
+
+  div {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid rgba(255, 106, 0, 0.12);
+  }
+
+  dt {
+    color: rgba(255, 255, 255, 0.56);
+  }
+
+  dd {
+    margin: 0;
+    color: rgba(255, 255, 255, 0.88);
+    font-weight: 900;
+  }
+`;
 
 export const CartModule = () => {
-
-  const { products, removeFromCart, calculateTotals, total } =
-    useProductStore();
+  const { products, removeFromCart, calculateTotals, total } = useProductStore();
 
   const handleRemoveItem = (id: string) => {
     removeFromCart(id);
     calculateTotals();
     toast.success("Product removed from the cart");
   };
-  return (
 
-    <form className="mt-12 lg:grid lg:grid-cols-12 lg:items-start lg:gap-x-12 xl:gap-x-16">
-      <section aria-labelledby="cart-heading" className="lg:col-span-7">
+  return (
+    <CartForm>
+      <Panel aria-labelledby="cart-heading">
         <h2 id="cart-heading" className="sr-only">
           Items in your shopping cart
         </h2>
-
-        <ul
-          role="list"
-          className="divide-y divide-gray-200 border-b border-t border-gray-200"
-        >
+        <CartList role="list">
           {products.map((product) => (
-            <li key={product.id} className="flex py-6 sm:py-10">
-              <div className="flex-shrink-0">
-                <Image
-                  width={192}
-                  height={192}
-                  src={product?.image ? `/${product.image}` : "/product_placeholder.jpg"}
-                  alt="laptop image"
-                  className="h-24 w-24 rounded-md object-cover object-center sm:h-48 sm:w-48"
-                />
-              </div>
-
-              <div className="ml-4 flex flex-1 flex-col justify-between sm:ml-6">
-                <div className="relative pr-9 sm:grid sm:grid-cols-2 sm:gap-x-6 sm:pr-0">
+            <CartRow key={product.id}>
+              <Image
+                width={192}
+                height={192}
+                src={product?.image ? `/${product.image}` : "/product_placeholder.jpg"}
+                alt={sanitize(product.title)}
+                style={{ width: "100%", maxHeight: 150, objectFit: "contain", background: "rgba(255,255,255,0.03)" }}
+              />
+              <ItemBody>
+                <ItemTop>
                   <div>
-                    <div className="flex justify-between">
-                      <h3 className="text-sm">
-                        <Link
-                          href={`#`}
-                          className="font-medium text-gray-700 hover:text-gray-800"
-                        >
-                          {sanitize(product.title)}
-                        </Link>
-                      </h3>
-                    </div>
-                    {/* <div className="mt-1 flex text-sm">
-                        <p className="text-gray-500">{product.color}</p>
-                        {product.size ? (
-                          <p className="ml-4 border-l border-gray-200 pl-4 text-gray-500">{product.size}</p>
-                        ) : null}
-                      </div> */}
-                    <p className="mt-1 text-sm font-medium text-gray-900">
-                      ${product.price}
-                    </p>
+                    <ItemTitle href="#">{sanitize(product.title)}</ItemTitle>
+                    <Price>${product.price}</Price>
                   </div>
-
-                  <div className="mt-4 sm:mt-0 sm:pr-9">
-                    <QuantityInputCart product={product} />
-                    <div className="absolute right-0 top-0">
-                      <button
-                        onClick={() => handleRemoveItem(product.id)}
-                        type="button"
-                        className="-m-2 inline-flex p-2 text-gray-400 hover:text-gray-500"
-                      >
-                        <span className="sr-only">Remove</span>
-                        <FaXmark className="h-5 w-5" aria-hidden="true" />
-                      </button>
-                    </div>
-                  </div>
-                </div>
-
-                <p className="mt-4 flex space-x-2 text-sm text-gray-700">
-                  {1 ? (
-                    <FaCheck
-                      className="h-5 w-5 flex-shrink-0 text-green-500"
-                      aria-hidden="true"
-                    />
-                  ) : (
-                    <FaClock
-                      className="h-5 w-5 flex-shrink-0 text-gray-300"
-                      aria-hidden="true"
-                    />
-                  )}
-
-                  <span>{1 ? "In stock" : `Ships in 3 days`}</span>
-                </p>
-              </div>
-            </li>
+                  <RemoveButton onClick={() => handleRemoveItem(product.id)} type="button">
+                    <span className="sr-only">Remove</span>
+                    <FaXmark aria-hidden="true" />
+                  </RemoveButton>
+                </ItemTop>
+                <QuantityInputCart product={product} />
+                <Muted>
+                  <FaCheck style={{ display: "inline", color: "#f47912", marginRight: 8 }} />
+                  In stock
+                </Muted>
+              </ItemBody>
+            </CartRow>
           ))}
-        </ul>
-      </section>
+        </CartList>
+      </Panel>
 
-      {/* Order summary */}
-      <section
-        aria-labelledby="summary-heading"
-        className="mt-16 rounded-lg bg-gray-50 px-4 py-6 sm:p-6 lg:col-span-5 lg:mt-0 lg:p-8"
-      >
-        <h2
-          id="summary-heading"
-          className="text-lg font-medium text-gray-900"
-        >
-          Order summary
-        </h2>
-
-        <dl className="mt-6 space-y-4">
-          <div className="flex items-center justify-between">
-            <dt className="text-sm text-gray-600">Subtotal</dt>
-            <dd className="text-sm font-medium text-gray-900">
-              ${total}
-            </dd>
+      <Summary aria-labelledby="summary-heading">
+        <SummaryTitle id="summary-heading">Order summary</SummaryTitle>
+        <SummaryList>
+          <div>
+            <dt>Subtotal</dt>
+            <dd>${total}</dd>
           </div>
-          <div className="flex items-center justify-between border-t border-gray-200 pt-4">
-            <dt className="flex items-center text-sm text-gray-600">
-              <span>Shipping estimate</span>
-              <a
-                href="#"
-                className="ml-2 flex-shrink-0 text-gray-400 hover:text-gray-500"
-              >
-                <span className="sr-only">
-                  Learn more about how shipping is calculated
-                </span>
-                <FaCircleQuestion
-                  className="h-5 w-5"
-                  aria-hidden="true"
-                />
-              </a>
+          <div>
+            <dt>
+              Shipping estimate <FaCircleQuestion style={{ display: "inline", opacity: 0.55 }} />
             </dt>
-            <dd className="text-sm font-medium text-gray-900">$5.00</dd>
+            <dd>$5.00</dd>
           </div>
-          <div className="flex items-center justify-between border-t border-gray-200 pt-4">
-            <dt className="flex text-sm text-gray-600">
-              <span>Tax estimate</span>
-              <a
-                href="#"
-                className="ml-2 flex-shrink-0 text-gray-400 hover:text-gray-500"
-              >
-                <span className="sr-only">
-                  Learn more about how tax is calculated
-                </span>
-                <FaCircleQuestion
-                  className="h-5 w-5"
-                  aria-hidden="true"
-                />
-              </a>
-            </dt>
-            <dd className="text-sm font-medium text-gray-900">
-              ${total / 5}
-            </dd>
+          <div>
+            <dt>Tax estimate</dt>
+            <dd>${total / 5}</dd>
           </div>
-          <div className="flex items-center justify-between border-t border-gray-200 pt-4">
-            <dt className="text-base font-medium text-gray-900">
-              Order total
-            </dt>
-            <dd className="text-base font-medium text-gray-900">
-              ${total === 0 ? 0 : Math.round(total + total / 5 + 5)}
-            </dd>
+          <div>
+            <dt>Order total</dt>
+            <dd>${total === 0 ? 0 : Math.round(total + total / 5 + 5)}</dd>
           </div>
-        </dl>
+        </SummaryList>
         {products.length > 0 && (
-          <div className="mt-6">
-            <Link
-              href="/checkout"
-              className="block flex justify-center items-center w-full uppercase bg-white px-4 py-3 text-base border border-black border-gray-300 font-bold text-blue-600 shadow-sm hover:bg-black hover:bg-gray-100 focus:outline-none focus:ring-2"
-            >
-              <span>Checkout</span>
-            </Link>
+          <div style={{ marginTop: "1.5rem" }}>
+            <PrimaryLink href="/checkout" style={{ width: "100%" }}>
+              Checkout
+            </PrimaryLink>
           </div>
         )}
-      </section>
-    </form>
-
-  )
-
-}
+      </Summary>
+    </CartForm>
+  );
+};

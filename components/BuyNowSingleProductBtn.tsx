@@ -13,6 +13,7 @@ import { useProductStore } from "@/app/_zustand/store";
 import React from "react";
 import toast from "react-hot-toast";
 import { useRouter } from "next/navigation";
+import { useI18n } from "./LanguageProvider";
 
 const BuyNowSingleProductBtn = ({
   product,
@@ -20,6 +21,7 @@ const BuyNowSingleProductBtn = ({
 }: SingleProductBtnProps) => {
   const router = useRouter();
   const { addToCart, calculateTotals } = useProductStore();
+  const { t } = useI18n();
 
   const handleAddToCart = () => {
     addToCart({
@@ -30,7 +32,7 @@ const BuyNowSingleProductBtn = ({
       amount: quantityCount,
     });
     calculateTotals();
-    toast.success("Product added to the cart");
+    toast.success(t("product.addedToCart"));
     router.push("/checkout");
   };
   return (
@@ -38,7 +40,7 @@ const BuyNowSingleProductBtn = ({
       onClick={handleAddToCart}
       className="btn w-[200px] text-lg border border-blue-500 hover:border-blue-500 border-1 font-normal bg-blue-500 text-white hover:bg-white hover:scale-110 hover:text-blue-500 transition-all uppercase ease-in max-[500px]:w-full"
     >
-      Buy Now
+      {t("product.buyNow")}
     </button>
   );
 };

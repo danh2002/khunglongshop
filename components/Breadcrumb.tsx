@@ -11,22 +11,25 @@
 import Link from "next/link";
 import React from "react";
 import { FaHouse } from "react-icons/fa6";
+import { getServerTranslator } from "@/lib/i18n-server";
 
-const Breadcrumb = () => {
+const Breadcrumb = async () => {
+  const { t } = await getServerTranslator();
+
   return (
     <div className="text-lg breadcrumbs pb-10 py-5 max-sm:text-base">
       <ul>
         <li>
           <Link href="/">
             <FaHouse className="mr-2" />
-            Home
+            {t("common.home")}
           </Link>
         </li>
         <li>
-          <Link href="/shop">Shop</Link>
+          <Link href="/shop">{t("common.collection")}</Link>
         </li>
         <li>
-          <Link href="/shop">All products</Link>
+          <Link href="/shop">{t("shop.allProducts")}</Link>
         </li>
       </ul>
     </div>

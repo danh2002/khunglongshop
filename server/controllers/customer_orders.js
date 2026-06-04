@@ -2,6 +2,10 @@ const { PrismaClient } = require("@prisma/client");
 const prisma = new PrismaClient();
 const { validateOrderData, ValidationError } = require('../utills/validation');
 const { createOrderUpdateNotification } = require('../utills/notificationHelpers');
+const { handleOrderCollectorItems } = require('../services/collectorService');
+
+const isCollectorPaymentSuccessStatus = (status) =>
+  ['paid', 'completed'].includes(String(status || '').toLowerCase());
 
 async function createCustomerOrder(request, response) {
   try {
@@ -252,6 +256,26 @@ async function updateCustomerOrder(request, response) {
         }
       } catch (notificationError) {
         console.error('❌ Failed to create status update notification:', notificationError);
+      }
+    }
+
+    if (
+      existingOrder.status !== validatedData.status &&
+      isCollectorPaymentSuccessStatus(validatedData.status)
+    ) {
+      try {
+        const user = await prisma.user.findUnique({
+          where: { email: validatedData.email }
+        });
+
+        if (user) {
+          await handleOrderCollectorItems(updatedOrder.id, user.id);
+          console.log(`Collector redemption codes processed for order: ${updatedOrder.id}`);
+        } else {
+          console.log(`Collector processing skipped; no user account found for email: ${validatedData.email}`);
+        }
+      } catch (collectorError) {
+        console.error('Failed to process collector items:', collectorError);
       }
     }
 

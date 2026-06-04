@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { Barlow_Condensed, Be_Vietnam_Pro } from "next/font/google";
 import "./globals.css";
 import { getServerSession } from "next-auth/next";
 import 'svgmap/dist/svgMap.min.css';
@@ -8,8 +8,20 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import Providers from "@/Providers";
 import SessionTimeoutWrapper from "@/components/SessionTimeoutWrapper";
+import { LanguageProvider } from "@/components/LanguageProvider";
+import { getServerLocale } from "@/lib/i18n-server";
 
-const inter = Inter({ subsets: ["latin"] });
+const bodyFont = Be_Vietnam_Pro({
+  subsets: ["latin", "vietnamese"],
+  weight: ["400", "500", "600", "700", "800", "900"],
+  variable: "--font-body",
+});
+
+const displayFont = Barlow_Condensed({
+  subsets: ["latin"],
+  weight: ["700", "800", "900"],
+  variable: "--font-display",
+});
 
 export const metadata: Metadata = {
   title: "Create Next App",
@@ -22,16 +34,19 @@ export default async function RootLayout({
   children: React.ReactNode;
 }>) {
   const session = await getServerSession();
+  const locale = await getServerLocale();
   return (
-    <html lang="en" data-theme="light">
-      <body className={inter.className}>
+    <html lang={locale} data-theme="light">
+      <body className={`${bodyFont.variable} ${displayFont.variable}`}>
         <SessionProvider session={session}>
-          <SessionTimeoutWrapper />
-          <Header />
-          <Providers>
-            {children}
-          </Providers>
-          <Footer />
+          <LanguageProvider initialLocale={locale}>
+            <SessionTimeoutWrapper />
+            <Header />
+            <Providers>
+              {children}
+            </Providers>
+            <Footer />
+          </LanguageProvider>
         </SessionProvider>
       </body>
     </html>

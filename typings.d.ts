@@ -10,6 +10,9 @@ interface Product {
   categoryId: string;
   category: {name: string}?;
   inStock: number;
+  setId?: string | null;
+  setSlotNumber?: number | null;
+  isCollector?: boolean;
 }
 
 interface Merchant {

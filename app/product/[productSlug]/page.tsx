@@ -14,6 +14,8 @@ import { FaSquareFacebook } from "react-icons/fa6";
 import { FaSquareXTwitter } from "react-icons/fa6";
 import { FaSquarePinterest } from "react-icons/fa6";
 import { sanitize } from "@/lib/sanitize";
+import { toMerchProduct } from "@/lib/merchCatalog";
+import { getServerTranslator } from "@/lib/i18n-server";
 
 interface ImageItem {
   imageID: string;
@@ -27,6 +29,7 @@ interface SingleProductPageProps {
 
 const SingleProductPage = async ({ params }: SingleProductPageProps) => {
   const paramsAwaited = await params;
+  const { t } = await getServerTranslator();
   // sending API request for a single product with a given product slug
   const data = await apiClient.get(
     `/api/slugs/${paramsAwaited?.productSlug}`
@@ -43,16 +46,18 @@ const SingleProductPage = async ({ params }: SingleProductPageProps) => {
     notFound();
   }
 
+  const displayProduct = product.mainImage?.startsWith("merch/") ? product : toMerchProduct(product);
+
   return (
     <div className="bg-white">
       <div className="max-w-screen-2xl mx-auto">
         <div className="flex justify-center gap-x-16 pt-10 max-lg:flex-col items-center gap-y-5 px-5">
           <div>
             <Image
-              src={product?.mainImage ? `/${product?.mainImage}` : "/product_placeholder.jpg"}
+              src={displayProduct?.mainImage ? `/${displayProduct?.mainImage}` : "/product_placeholder.jpg"}
               width={500}
               height={500}
-              alt="main image"
+              alt={sanitize(displayProduct?.title) || "main image"}
               className="w-auto h-auto"
             />
             <div className="flex justify-around mt-5 flex-wrap gap-y-1 max-[500px]:justify-center max-[500px]:gap-x-1">
@@ -70,17 +75,17 @@ const SingleProductPage = async ({ params }: SingleProductPageProps) => {
           </div>
           <div className="flex flex-col gap-y-7 text-black max-[500px]:text-center">
         
-            <h1 className="text-3xl">{sanitize(product?.title)}</h1>
-            <p className="text-xl font-semibold">${product?.price}</p>
-            <StockAvailabillity stock={94} inStock={product?.inStock} />
-            <SingleProductDynamicFields product={product} />
+            <h1 className="text-3xl">{sanitize(displayProduct?.title)}</h1>
+            <p className="text-xl font-semibold">${displayProduct?.price}</p>
+            <StockAvailabillity stock={94} inStock={displayProduct?.inStock} />
+            <SingleProductDynamicFields product={displayProduct} />
             <div className="flex flex-col gap-y-2 max-[500px]:items-center">
              
               <p className="text-lg">
-                SKU: <span className="ml-1">abccd-18</span>
+                {t("product.sku")}: <span className="ml-1">abccd-18</span>
               </p>
               <div className="text-lg flex gap-x-2">
-                <span>Share:</span>
+                <span>{t("product.share")}:</span>
                 <div className="flex items-center gap-x-1 text-2xl">
                   <FaSquareFacebook />
                   <FaSquareXTwitter />
@@ -135,7 +140,7 @@ const SingleProductPage = async ({ params }: SingleProductPageProps) => {
           </div>
         </div>
         <div className="py-16">
-          <ProductTabs product={product} />
+          <ProductTabs product={displayProduct} />
         </div>
       </div>
     </div>
