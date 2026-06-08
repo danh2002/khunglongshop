@@ -4,6 +4,10 @@ import bcrypt from "bcryptjs";
 import { nanoid } from "nanoid";
 import prisma from "@/utils/db";
 
+function normalizeRole(role: string | null | undefined) {
+  return role === "admin" ? "admin" : "user";
+}
+
 type LoginBucket = {
   count: number;
   resetAt: number;
@@ -64,7 +68,7 @@ export const authOptions: NextAuthOptions = {
         return {
           id: user.id,
           email: user.email,
-          role: user.role ?? "user",
+          role: normalizeRole(user.role),
         };
       },
     }),
@@ -105,7 +109,7 @@ export const authOptions: NextAuthOptions = {
     },
     async jwt({ token, user }) {
       if (user) {
-        token.role = user.role;
+        token.role = normalizeRole(user.role);
         token.id = user.id;
         token.iat = Math.floor(Date.now() / 1000);
       }
@@ -122,7 +126,7 @@ export const authOptions: NextAuthOptions = {
     },
     async session({ session, token }) {
       if (token) {
-        session.user.role = token.role as string;
+        session.user.role = normalizeRole(token.role);
         session.user.id = token.id as string;
       }
 

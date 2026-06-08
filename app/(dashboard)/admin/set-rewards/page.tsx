@@ -1,4 +1,3 @@
-import { DashboardSidebar } from "@/components";
 import prisma from "@/utils/db";
 
 export default async function SetRewardsAdminPage({
@@ -29,7 +28,6 @@ export default async function SetRewardsAdminPage({
 
   return (
     <div className="bg-white flex justify-start max-w-screen-2xl mx-auto h-full max-xl:flex-col">
-      <DashboardSidebar />
       <div className="flex flex-col gap-y-6 xl:ml-5 w-full max-xl:px-5">
         <div className="flex items-center justify-between gap-4">
           <h1 className="text-3xl font-semibold">Set Rewards</h1>

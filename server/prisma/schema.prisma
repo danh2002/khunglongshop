@@ -13,6 +13,11 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum Role {
+  admin
+  user
+}
+
 model Product {
   id             String                   @id @default(uuid())
   slug           String                   @unique
@@ -38,6 +43,10 @@ model Product {
   bulkUploadItems bulk_upload_item[] @relation("ProductBulkItems")
 
   @@unique([setId, setSlotNumber])
+  @@index([categoryId])
+  @@index([merchantId])
+  @@index([setId])
+  @@index([inStock])
   @@index([isCollector])
 }
 
@@ -92,12 +101,14 @@ model User {
   id                String              @id @default(uuid())
   email             String              @unique
   password          String?
-  role              String?             @default("user")
+  role              Role                @default(user)
   orders            Customer_order[]
   Wishlist          Wishlist[]
   notifications     Notification[]
   // Back relation for bulk upload batches
   bulkUploadBatches bulk_upload_batch[] @relation("UserBatches")
+
+  @@index([role])
 }
 
 model Customer_order {

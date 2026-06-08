@@ -1,6 +1,5 @@
 "use client";
 import React, { useEffect, useState, use } from "react";
-import DashboardSidebar from "@/components/DashboardSidebar";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import apiClient from "@/lib/api";
@@ -139,7 +138,6 @@ const handleInputChange = (
   if (loading) {
     return (
       <div className="flex h-screen">
-        <DashboardSidebar />
         <div className="flex-1 p-10 flex items-center justify-center">
           Loading merchant details...
         </div>
@@ -150,7 +148,6 @@ const handleInputChange = (
   if (!merchant) {
     return (
       <div className="flex h-screen">
-        <DashboardSidebar />
         <div className="flex-1 p-10 flex items-center justify-center">
           Merchant not found
         </div>
@@ -160,7 +157,6 @@ const handleInputChange = (
 
   return (
     <div className="flex h-screen">
-      <DashboardSidebar />
       <div className="flex-1 p-10 overflow-y-auto">
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-3xl font-bold">Merchant Details</h1>

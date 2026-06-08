@@ -141,7 +141,7 @@ const NotificationBell: React.FC<NotificationBellProps> = ({ className = "" }) =
               <div className="p-6 text-center">
                 <FaBell className="w-12 h-12 mx-auto text-gray-300 mb-3" />
                 <p className="text-white/60 text-sm">No new notifications</p>
-                <p className="text-white/40 text-xs mt-1">You're all caught up!</p>
+                <p className="text-white/40 text-xs mt-1">You&apos;re all caught up!</p>
               </div>
             ) : (
               <div className="p-4 space-y-3">

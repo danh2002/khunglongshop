@@ -1,5 +1,4 @@
 import AdminConfirmSubmit from "@/components/AdminConfirmSubmit";
-import { DashboardSidebar } from "@/components";
 import prisma from "@/utils/db";
 import Link from "next/link";
 import { revalidatePath } from "next/cache";
@@ -72,7 +71,6 @@ export default async function RedemptionCodesAdminPage({
 
   return (
     <div className="bg-white flex justify-start max-w-screen-2xl mx-auto h-full max-xl:flex-col">
-      <DashboardSidebar />
       <div className="flex flex-col gap-y-6 xl:ml-5 w-full max-xl:px-5">
         <h1 className="text-3xl font-semibold">Redemption Codes</h1>
 

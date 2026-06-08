@@ -9,6 +9,7 @@
     "lint": "next lint",
     "test:collector": "node scripts/verify-collector-unlock.js",
     "test:account": "node scripts/verify-account-auth.js",
+    "test:admin-cms": "node scripts/verify-admin-cms-phase1.js",
     "seed:vanie": "node scripts/seed-vanie-collection.js",
     "db:generate": "prisma generate",
     "db:push": "prisma db push",

@@ -1,6 +1,7 @@
 const express = require('express');
 
 const router = express.Router();
+const { requireAdminSession } = require('../middleware/adminAuth');
 
 const {
     getUser,
@@ -13,12 +14,12 @@ const {
 
   router.route('/')
   .get(getAllUsers)
-  .post(createUser);
+  .post(requireAdminSession, createUser);
 
   router.route('/:id')
   .get(getUser)
-  .put(updateUser) 
-  .delete(deleteUser);
+  .put(requireAdminSession, updateUser)
+  .delete(requireAdminSession, deleteUser);
 
   router.route('/email/:email')
   .get(getUserByEmail);

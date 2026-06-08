@@ -1,178 +1,241 @@
 "use client";
-import DashboardSidebar from "@/components/DashboardSidebar";
-import React, { useEffect, useState, use } from "react";
-import toast from "react-hot-toast";
+
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { isValidEmailAddressFormat } from "@/lib/utils";
-import apiClient from "@/lib/api";
+import { FormEvent, use, useEffect, useMemo, useState } from "react";
+import toast from "react-hot-toast";
+
+type Role = "admin" | "user";
+
+type AdminUserDetail = {
+  id: string;
+  email: string;
+  role: Role;
+  orderCount: number;
+  wishlistCount: number;
+  dependencyCounts: Record<string, number>;
+};
 
 interface DashboardUserDetailsProps {
   params: Promise<{ id: string }>;
 }
 
-const DashboardSingleUserPage = ({ params }: DashboardUserDetailsProps) => {
-  const resolvedParams = use(params);
-  const id = resolvedParams.id;
-
-  const [userInput, setUserInput] = useState<{
-    email: string;
-    newPassword: string;
-    role: string;
-  }>({
-    email: "",
-    newPassword: "",
-    role: "",
-  });
+export default function DashboardSingleUserPage({ params }: DashboardUserDetailsProps) {
+  const { id } = use(params);
   const router = useRouter();
+  const [user, setUser] = useState<AdminUserDetail | null>(null);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [role, setRole] = useState<Role>("user");
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
 
-  const deleteUser = async () => {
-    const requestOptions = {
-      method: "DELETE",
-    };
-    apiClient
-      .delete(`/api/users/${id}`, requestOptions)
-      .then((response) => {
-        if (response.status === 204) {
-          toast.success("User deleted successfully");
-          router.push("/admin/users");
-        } else {
-          throw Error("There was an error while deleting user");
-        }
-      })
-      .catch((error) => {
-        toast.error("There was an error while deleting user");
-      });
-  };
-
-  const updateUser = async () => {
-    if (
-      userInput.email.length > 3 &&
-      userInput.role.length > 0 &&
-      userInput.newPassword.length > 0
-    ) {
-      if (!isValidEmailAddressFormat(userInput.email)) {
-        toast.error("You entered invalid email address format");
-        return;
-      }
-
-      if (userInput.newPassword.length > 7) {
-        try {
-          const response = await apiClient.put(`/api/users/${id}`, {
-            email: userInput.email,
-            password: userInput.newPassword,
-            role: userInput.role,
-          });
-
-          if (response.status === 200) {
-            await response.json();
-            toast.success("User successfully updated");
-          } else {
-            const errorData = await response.json();
-            toast.error(errorData.error || "Error while updating user");
-          }
-        } catch (error) {
-          console.error("Error updating user:", error);
-          toast.error("There was an error while updating user");
-        }
-      } else {
-        toast.error("Password must be longer than 7 characters");
-        return;
-      }
-    } else {
-      toast.error("For updating a user you must enter all values");
-      return;
-    }
-  };
+  const dependencySummary = useMemo(() => {
+    if (!user?.dependencyCounts) return [];
+    return Object.entries(user.dependencyCounts).filter(([, count]) => count > 0);
+  }, [user]);
 
   useEffect(() => {
-    // sending API request for a single user
-    apiClient
-      .get(`/api/users/${id}`)
-      .then((res) => {
-        return res.json();
-      })
-      .then((data) => {
-        setUserInput({
-          email: data?.email,
-          newPassword: "",
-          role: data?.role,
-        });
-      });
+    let mounted = true;
+
+    async function loadUser() {
+      setIsLoading(true);
+
+      try {
+        const response = await fetch(`/api/admin/users/${id}`, { cache: "no-store" });
+
+        if (!response.ok) {
+          throw new Error("Failed to load user");
+        }
+
+        const payload = (await response.json()) as AdminUserDetail;
+
+        if (mounted) {
+          setUser(payload);
+          setEmail(payload.email);
+          setRole(payload.role);
+        }
+      } catch (error) {
+        if (mounted) {
+          toast.error("Không thể tải người dùng");
+        }
+      } finally {
+        if (mounted) {
+          setIsLoading(false);
+        }
+      }
+    }
+
+    loadUser();
+
+    return () => {
+      mounted = false;
+    };
   }, [id]);
 
+  async function updateUser(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (password && password !== confirmPassword) {
+      toast.error("Mật khẩu xác nhận không khớp");
+      return;
+    }
+
+    setIsSaving(true);
+
+    try {
+      const response = await fetch(`/api/admin/users/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email,
+          role,
+          ...(password ? { password } : {}),
+        }),
+      });
+      const payload = await response.json().catch(() => null);
+
+      if (!response.ok) {
+        toast.error(payload?.error?.message || "Không thể cập nhật người dùng");
+        return;
+      }
+
+      toast.success("Đã cập nhật người dùng");
+      setPassword("");
+      setConfirmPassword("");
+      setUser((current) => (current ? { ...current, email: payload.email, role: payload.role } : current));
+    } catch (error) {
+      toast.error("Không thể cập nhật người dùng");
+    } finally {
+      setIsSaving(false);
+    }
+  }
+
+  async function deleteUser() {
+    if (!user) return;
+
+    const confirmed = window.confirm(`Xóa người dùng ${user.email}? Hành động này không thể hoàn tác.`);
+    if (!confirmed) return;
+
+    const response = await fetch(`/api/admin/users/${id}`, { method: "DELETE" });
+
+    if (response.status === 204) {
+      toast.success("Đã xóa người dùng");
+      router.push("/admin/users");
+      return;
+    }
+
+    const payload = await response.json().catch(() => null);
+    toast.error(payload?.error?.message || "Không thể xóa người dùng");
+  }
+
   return (
-    <div className="bg-white flex justify-start max-w-screen-2xl mx-auto xl:h-full max-xl:flex-col max-xl:gap-y-5">
-      <DashboardSidebar />
-      <div className="flex flex-col gap-y-7 xl:pl-5 max-xl:px-5 w-full">
-        <h1 className="text-3xl font-semibold">User details</h1>
-        <div>
-          <label className="form-control w-full max-w-xs">
-            <div className="label">
-              <span className="label-text">Email:</span>
-            </div>
-            <input
-              type="email"
-              className="input input-bordered w-full max-w-xs"
-              value={userInput.email}
-              onChange={(e) =>
-                setUserInput({ ...userInput, email: e.target.value })
-              }
-            />
-          </label>
-        </div>
+    <main className="min-h-screen bg-[#070707] text-white">
+      <div className="mx-auto flex max-w-screen-2xl max-xl:flex-col">
+        <section className="w-full px-5 py-6">
+          <div className="mb-6">
+            <Link href="/admin/users" className="text-sm font-black uppercase text-[#e85d00]">
+              Quay lại danh sách
+            </Link>
+            <h1 className="mt-3 text-3xl font-black uppercase italic">Chi tiết người dùng</h1>
+          </div>
 
-        <div>
-          <label className="form-control w-full max-w-xs">
-            <div className="label">
-              <span className="label-text">New password:</span>
+          {isLoading ? (
+            <div className="border border-[#e85d00]/25 bg-white/[0.03] p-6 text-white/60">Đang tải...</div>
+          ) : !user ? (
+            <div className="border border-[#e85d00]/25 bg-white/[0.03] p-6 text-white/60">
+              Không tìm thấy người dùng
             </div>
-            <input
-              type="password"
-              className="input input-bordered w-full max-w-xs"
-              onChange={(e) =>
-                setUserInput({ ...userInput, newPassword: e.target.value })
-              }
-              value={userInput.newPassword}
-            />
-          </label>
-        </div>
+          ) : (
+            <div className="grid gap-5 lg:grid-cols-[minmax(0,580px)_minmax(280px,360px)]">
+              <form onSubmit={updateUser} className="grid gap-5 border border-[#e85d00]/25 bg-white/[0.03] p-5">
+                <label className="grid gap-2 text-sm font-black uppercase text-white/70">
+                  Email
+                  <input
+                    type="email"
+                    required
+                    value={email}
+                    onChange={(event) => setEmail(event.target.value)}
+                    className="min-h-12 border border-[#e85d00]/40 bg-[#111] px-4 text-white outline-none focus:border-[#e85d00]"
+                  />
+                </label>
 
-        <div>
-          <label className="form-control w-full max-w-xs">
-            <div className="label">
-              <span className="label-text">User role: </span>
+                <label className="grid gap-2 text-sm font-black uppercase text-white/70">
+                  Vai trò
+                  <select
+                    value={role}
+                    onChange={(event) => setRole(event.target.value as Role)}
+                    className="min-h-12 border border-[#e85d00]/40 bg-[#111] px-4 text-white outline-none focus:border-[#e85d00]"
+                  >
+                    <option value="user">user</option>
+                    <option value="admin">admin</option>
+                  </select>
+                </label>
+
+                <div className="border-t border-white/10 pt-5">
+                  <p className="mb-3 text-sm font-black uppercase text-[#e85d00]">Đặt lại mật khẩu</p>
+                  <div className="grid gap-4">
+                    <input
+                      type="password"
+                      value={password}
+                      onChange={(event) => setPassword(event.target.value)}
+                      placeholder="Mật khẩu mới (để trống nếu không đổi)"
+                      className="min-h-12 border border-[#e85d00]/40 bg-[#111] px-4 text-white outline-none focus:border-[#e85d00]"
+                    />
+                    <input
+                      type="password"
+                      value={confirmPassword}
+                      onChange={(event) => setConfirmPassword(event.target.value)}
+                      placeholder="Xác nhận mật khẩu mới"
+                      className="min-h-12 border border-[#e85d00]/40 bg-[#111] px-4 text-white outline-none focus:border-[#e85d00]"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap gap-3">
+                  <button
+                    type="submit"
+                    disabled={isSaving}
+                    className="min-h-12 bg-[#e85d00] px-5 font-black uppercase text-white hover:bg-[#ff7417] disabled:opacity-50"
+                  >
+                    {isSaving ? "Đang lưu..." : "Lưu thay đổi"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={deleteUser}
+                    className="min-h-12 border border-red-500 px-5 font-black uppercase text-red-300 hover:bg-red-500 hover:text-white"
+                  >
+                    Xóa
+                  </button>
+                </div>
+              </form>
+
+              <aside className="border border-[#e85d00]/25 bg-white/[0.03] p-5">
+                <h2 className="text-lg font-black uppercase italic">Dữ liệu liên quan</h2>
+                <div className="mt-4 grid gap-3 text-sm text-white/70">
+                  <p>Đơn hàng: {user.orderCount}</p>
+                  <p>Wishlist: {user.wishlistCount}</p>
+                  {dependencySummary.length > 0 ? (
+                    <div className="border-t border-white/10 pt-3">
+                      <p className="font-bold text-[#e85d00]">Không thể xóa khi còn dữ liệu:</p>
+                      <ul className="mt-2 grid gap-1">
+                        {dependencySummary.map(([key, count]) => (
+                          <li key={key}>
+                            {key}: {count}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  ) : (
+                    <p className="text-green-300">Người dùng đủ điều kiện xóa nếu không phải admin đang đăng nhập.</p>
+                  )}
+                </div>
+              </aside>
             </div>
-            <select
-              className="select select-bordered"
-              value={userInput.role}
-              onChange={(e) =>
-                setUserInput({ ...userInput, role: e.target.value })
-              }
-            >
-              <option value="admin">admin</option>
-              <option value="user">user</option>
-            </select>
-          </label>
-        </div>
-        <div className="flex gap-x-2 max-sm:flex-col">
-          <button
-            type="button"
-            className="uppercase bg-blue-500 px-10 py-5 text-lg border border-black border-gray-300 font-bold text-white shadow-sm hover:bg-blue-600 hover:text-white focus:outline-none focus:ring-2"
-            onClick={updateUser}
-          >
-            Update user
-          </button>
-          <button
-            type="button"
-            className="uppercase bg-red-600 px-10 py-5 text-lg border border-black border-gray-300 font-bold text-white shadow-sm hover:bg-red-700 hover:text-white focus:outline-none focus:ring-2"
-            onClick={deleteUser}
-          >
-            Delete user
-          </button>
-        </div>
+          )}
+        </section>
       </div>
-    </div>
+    </main>
   );
-};
-
-export default DashboardSingleUserPage;
+}

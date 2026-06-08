@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/utils/authOptions";
+import { requireAdminApi } from "@/utils/adminAuth";
 import prisma from "@/utils/db";
 
 function csvEscape(value: unknown) {
@@ -9,11 +8,8 @@ function csvEscape(value: unknown) {
 }
 
 export async function GET() {
-  const session = await getServerSession(authOptions);
-
-  if ((session as any)?.user?.role !== "admin") {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const { response } = await requireAdminApi();
+  if (response) return response;
 
   const rewards = await prisma.setReward.findMany({
     orderBy: { grantedAt: "desc" },

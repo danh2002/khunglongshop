@@ -1,354 +1,164 @@
 "use client";
-import CustomButton from "@/components/CustomButton";
-import DashboardSidebar from "@/components/DashboardSidebar";
-import Image from "next/image";
+
+import AdminProductForm, { ProductFormValues, ProductReferenceData } from "@/components/AdminProductForm";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import React, { useEffect, useState, use } from "react";
+import { FormEvent, use, useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
-import {
-  convertCategoryNameToURLFriendly as convertSlugToURLFriendly,
-  formatCategoryName,
-} from "../../../../../utils/categoryFormating";
-import { nanoid } from "nanoid";
-import apiClient from "@/lib/api";
+
+type ProductDetail = ProductFormValues & {
+  id: string;
+  dependencyCounts: Record<string, number>;
+};
 
 interface DashboardProductDetailsProps {
   params: Promise<{ id: string }>;
 }
 
-const DashboardProductDetails = ({ params }: DashboardProductDetailsProps) => {
-  const resolvedParams = use(params);
-  const id = resolvedParams.id;
+const emptyReferences: ProductReferenceData = {
+  categories: [],
+  merchants: [],
+  collectorSets: [],
+};
 
-  const [product, setProduct] = useState<Product>();
-  const [categories, setCategories] = useState<Category[]>();
-  const [otherImages, setOtherImages] = useState<OtherImages[]>([]);
+export default function DashboardProductDetails({ params }: DashboardProductDetailsProps) {
+  const { id } = use(params);
   const router = useRouter();
+  const [product, setProduct] = useState<ProductDetail | null>(null);
+  const [references, setReferences] = useState<ProductReferenceData>(emptyReferences);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // functionality for deleting product
-  const deleteProduct = async () => {
-    const requestOptions = {
-      method: "DELETE",
-    };
-    apiClient
-      .delete(`/api/products/${id}`, requestOptions)
-      .then((response) => {
-        if (response.status !== 204) {
-          if (response.status === 400) {
-            toast.error(
-              "Cannot delete the product because of foreign key constraint"
-            );
-          } else {
-            throw Error("There was an error while deleting product");
-          }
-        } else {
-          toast.success("Product deleted successfully");
-          router.push("/admin/products");
+  const dependencySummary = useMemo(() => {
+    if (!product?.dependencyCounts) return [];
+    return Object.entries(product.dependencyCounts).filter(([, count]) => count > 0);
+  }, [product]);
+
+  useEffect(() => {
+    let mounted = true;
+
+    async function loadProduct() {
+      setIsLoading(true);
+      try {
+        const [productResponse, referencesResponse] = await Promise.all([
+          fetch(`/api/admin/products/${id}`, { cache: "no-store" }),
+          fetch("/api/admin/products/reference-data", { cache: "no-store" }),
+        ]);
+
+        if (!productResponse.ok || !referencesResponse.ok) throw new Error("Failed to load product");
+
+        const productPayload = (await productResponse.json()) as ProductDetail;
+        const referencesPayload = (await referencesResponse.json()) as ProductReferenceData;
+
+        if (mounted) {
+          setProduct(productPayload);
+          setReferences(referencesPayload);
         }
-      })
-      .catch((error) => {
-        toast.error("There was an error while deleting product");
-      });
-  };
+      } catch (error) {
+        if (mounted) toast.error("Không thể tải sản phẩm");
+      } finally {
+        if (mounted) setIsLoading(false);
+      }
+    }
 
-  // functionality for updating product
-  const updateProduct = async () => {
-    if (
-      product?.title === "" ||
-      product?.slug === "" ||
-      product?.price.toString() === "" ||
-      product?.manufacturer === "" ||
-      product?.description === ""
-    ) {
-      toast.error("You need to enter values in input fields");
+    loadProduct();
+    return () => {
+      mounted = false;
+    };
+  }, [id]);
+
+  async function updateProduct(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!product) return;
+
+    setIsSaving(true);
+    try {
+      const response = await fetch(`/api/admin/products/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(product),
+      });
+      const payload = await response.json().catch(() => null);
+
+      if (!response.ok) {
+        toast.error(payload?.error?.message || "Không thể cập nhật sản phẩm");
+        return;
+      }
+
+      toast.success("Đã cập nhật sản phẩm");
+      setProduct((current) => (current ? { ...current, ...payload } : current));
+    } catch (error) {
+      toast.error("Không thể cập nhật sản phẩm");
+    } finally {
+      setIsSaving(false);
+    }
+  }
+
+  async function deleteProduct() {
+    if (!product) return;
+    if (!window.confirm(`Xóa sản phẩm ${product.title}? Hành động này không thể hoàn tác.`)) return;
+
+    const response = await fetch(`/api/admin/products/${id}`, { method: "DELETE" });
+
+    if (response.status === 204) {
+      toast.success("Đã xóa sản phẩm");
+      router.push("/admin/products");
       return;
     }
 
-    try {
-      const response = await apiClient.put(`/api/products/${id}`, product);
-
-      if (response.status === 200) {
-        await response.json();
-        toast.success("Product successfully updated");
-      } else {
-        const errorData = await response.json();
-        toast.error(
-          errorData.error || "There was an error while updating product"
-        );
-      }
-    } catch (error) {
-      console.error("Error updating product:", error);
-      toast.error("There was an error while updating product");
-    }
-  };
-
-  // functionality for uploading main image file
-  const uploadFile = async (file: any) => {
-    const formData = new FormData();
-    formData.append("uploadedFile", file);
-
-    try {
-      const response = await apiClient.post("/api/main-image", {
-        method: "POST",
-        body: formData,
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-      } else {
-        toast.error("File upload unsuccessful.");
-      }
-    } catch (error) {
-      console.error("There was an error while during request sending:", error);
-      toast.error("There was an error during request sending");
-    }
-  };
-
-  // fetching main product data including other product images
-  const fetchProductData = async () => {
-    apiClient
-      .get(`/api/products/${id}`)
-      .then((res) => {
-        return res.json();
-      })
-      .then((data) => {
-        setProduct(data);
-      });
-
-    const imagesData = await apiClient.get(`/api/images/${id}`, {
-      cache: "no-store",
-    });
-    const images = await imagesData.json();
-    setOtherImages((currentImages) => images);
-  };
-
-  // fetching all product categories. It will be used for displaying categories in select category input
-  const fetchCategories = async () => {
-    apiClient
-      .get(`/api/categories`)
-      .then((res) => {
-        return res.json();
-      })
-      .then((data) => {
-        setCategories(data);
-      });
-  };
-
-  useEffect(() => {
-    fetchCategories();
-    fetchProductData();
-  }, [id]);
+    const payload = await response.json().catch(() => null);
+    toast.error(payload?.error?.message || "Không thể xóa sản phẩm");
+  }
 
   return (
-    <div className="bg-white flex justify-start max-w-screen-2xl mx-auto xl:h-full max-xl:flex-col max-xl:gap-y-5">
-      <DashboardSidebar />
-      <div className="flex flex-col gap-y-7 xl:ml-5 w-full max-xl:px-5">
-        <h1 className="text-3xl font-semibold">Product details</h1>
-        {/* Product name input div - start */}
-        
-        <div>
-          <label className="form-control w-full max-w-xs">
-            <div className="label">
-              <span className="label-text">Product name:</span>
-            </div>
-            <input
-              type="text"
-              className="input input-bordered w-full max-w-xs"
-              value={product?.title || ""}
-              onChange={(e) =>
-                setProduct({ ...product!, title: e.target.value })
-              }
-            />
-          </label>
-        </div>
-        {/* Product name input div - end */}
-        {/* Product price input div - start */}
+    <main className="min-h-screen bg-[#070707] text-white">
+      <div className="mx-auto flex max-w-screen-2xl max-xl:flex-col">
+        <section className="w-full px-5 py-6">
+          <div className="mb-6">
+            <Link href="/admin/products" className="text-sm font-black uppercase text-[#e85d00]">
+              Quay lại danh sách
+            </Link>
+            <h1 className="mt-3 text-3xl font-black uppercase italic">Chi tiết sản phẩm</h1>
+          </div>
 
-        <div>
-          <label className="form-control w-full max-w-xs">
-            <div className="label">
-              <span className="label-text">Product price:</span>
-            </div>
-            <input
-              type="text"
-              className="input input-bordered w-full max-w-xs"
-              value={product?.price || ""}
-              onChange={(e) =>
-                setProduct({ ...product!, price: Number(e.target.value) })
-              }
-            />
-          </label>
-        </div>
-        {/* Product price input div - end */}
-        {/* Product manufacturer input div - start */}
-        <div>
-          <label className="form-control w-full max-w-xs">
-            <div className="label">
-              <span className="label-text">Manufacturer:</span>
-            </div>
-            <input
-              type="text"
-              className="input input-bordered w-full max-w-xs"
-              value={product?.manufacturer || ""}
-              onChange={(e) =>
-                setProduct({ ...product!, manufacturer: e.target.value })
-              }
-            />
-          </label>
-        </div>
-        {/* Product manufacturer input div - end */}
-        {/* Product slug input div - start */}
-
-        <div>
-          <label className="form-control w-full max-w-xs">
-            <div className="label">
-              <span className="label-text">Slug:</span>
-            </div>
-            <input
-              type="text"
-              className="input input-bordered w-full max-w-xs"
-              value={
-                product?.slug ? convertSlugToURLFriendly(product?.slug) : ""
-              }
-              onChange={(e) =>
-                setProduct({
-                  ...product!,
-                  slug: convertSlugToURLFriendly(e.target.value),
-                })
-              }
-            />
-          </label>
-        </div>
-        {/* Product slug input div - end */}
-        {/* Product inStock select input div - start */}
-
-        <div>
-          <label className="form-control w-full max-w-xs">
-            <div className="label">
-              <span className="label-text">Is product in stock?</span>
-            </div>
-            <select
-              className="select select-bordered"
-              value={product?.inStock ?? 1}
-              onChange={(e) => {
-                setProduct({ ...product!, inStock: Number(e.target.value) });
-              }}
-            >
-              <option value={1}>Yes</option>
-              <option value={0}>No</option>
-            </select>
-          </label>
-        </div>
-        {/* Product inStock select input div - end */}
-        {/* Product category select input div - start */}
-        <div>
-          <label className="form-control w-full max-w-xs">
-            <div className="label">
-              <span className="label-text">Category:</span>
-            </div>
-            <select
-              className="select select-bordered"
-              value={product?.categoryId || ""}
-              onChange={(e) =>
-                setProduct({
-                  ...product!,
-                  categoryId: e.target.value,
-                })
-              }
-            >
-              {categories &&
-                categories.map((category: Category) => (
-                  <option key={category?.id} value={category?.id}>
-                    {formatCategoryName(category?.name)}
-                  </option>
-                ))}
-            </select>
-          </label>
-        </div>
-        {/* Product category select input div - end */}
-
-        {/* Main image file upload div - start */}
-        <div>
-          <input
-            type="file"
-            className="file-input file-input-bordered file-input-lg w-full max-w-sm"
-            onChange={(e) => {
-              // @ts-ignore
-              const selectedFile = e.target.files[0];
-
-              if (selectedFile) {
-                uploadFile(selectedFile);
-                setProduct({ ...product!, mainImage: selectedFile.name });
-              }
-            }}
-          />
-          {product?.mainImage && (
-            <Image
-              src={`/` + product?.mainImage}
-              alt={product?.title}
-              className="w-auto h-auto mt-2"
-              width={100}
-              height={100}
-            />
-          )}
-        </div>
-        {/* Main image file upload div - end */}
-        {/* Other images file upload div - start */}
-        <div className="flex gap-x-1">
-          {otherImages &&
-            otherImages.map((image) => (
-              <Image
-                src={`/${image.image}`}
-                key={nanoid()}
-                alt="product image"
-                width={100}
-                height={100}
-                className="w-auto h-auto"
+          {isLoading ? (
+            <div className="border border-[#e85d00]/25 bg-white/[0.03] p-6 text-white/60">Đang tải...</div>
+          ) : !product ? (
+            <div className="border border-[#e85d00]/25 bg-white/[0.03] p-6 text-white/60">Không tìm thấy sản phẩm</div>
+          ) : (
+            <div className="grid gap-5 xl:grid-cols-[minmax(0,760px)_minmax(280px,360px)]">
+              <AdminProductForm
+                value={product}
+                references={references}
+                currentProductId={product.id}
+                isSaving={isSaving}
+                submitLabel="Lưu thay đổi"
+                onChange={(value) => setProduct((current) => (current ? { ...current, ...value } : current))}
+                onSubmit={updateProduct}
               />
-            ))}
-        </div>
-        {/* Other images file upload div - end */}
-        {/* Product description div - start */}
-        <div>
-          <label className="form-control">
-            <div className="label">
-              <span className="label-text">Product description:</span>
+              <aside className="border border-[#e85d00]/25 bg-white/[0.03] p-5">
+                <h2 className="text-lg font-black uppercase italic">Bảo vệ dữ liệu</h2>
+                <div className="mt-4 grid gap-2 text-sm text-white/70">
+                  {dependencySummary.length > 0 ? (
+                    <>
+                      <p className="font-bold text-[#e85d00]">Sản phẩm còn dữ liệu liên quan:</p>
+                      {dependencySummary.map(([key, count]) => (
+                        <p key={key}>{key}: {count}</p>
+                      ))}
+                    </>
+                  ) : (
+                    <p className="text-green-300">Chưa có lịch sử bảo vệ.</p>
+                  )}
+                  {product.setId ? <p className="text-[#e85d00]">Sản phẩm đang nằm trong bộ sưu tập nên không thể xóa trực tiếp.</p> : null}
+                </div>
+                <button type="button" onClick={deleteProduct} className="mt-5 min-h-12 border border-red-500 px-5 font-black uppercase text-red-300 hover:bg-red-500 hover:text-white">
+                  Xóa sản phẩm
+                </button>
+              </aside>
             </div>
-            <textarea
-              className="textarea textarea-bordered h-24"
-              value={product?.description || ""}
-              onChange={(e) =>
-                setProduct({ ...product!, description: e.target.value })
-              }
-            ></textarea>
-          </label>
-        </div>
-        {/* Product description div - end */}
-        {/* Action buttons div - start */}
-        <div className="flex gap-x-2 max-sm:flex-col">
-          <button
-            type="button"
-            onClick={updateProduct}
-            className="uppercase bg-blue-500 px-10 py-5 text-lg border border-black border-gray-300 font-bold text-white shadow-sm hover:bg-blue-600 hover:text-white focus:outline-none focus:ring-2"
-          >
-            Update product
-          </button>
-          <button
-            type="button"
-            className="uppercase bg-red-600 px-10 py-5 text-lg border border-black border-gray-300 font-bold text-white shadow-sm hover:bg-red-700 hover:text-white focus:outline-none focus:ring-2"
-            onClick={deleteProduct}
-          >
-            Delete product
-          </button>
-        </div>
-        {/* Action buttons div - end */}
-        <p className="text-xl max-sm:text-lg text-error">
-          To delete the product you first need to delete all its records in
-          orders (customer_order_product table).
-        </p>
+          )}
+        </section>
       </div>
-    </div>
+    </main>
   );
-};
-
-export default DashboardProductDetails;
+}

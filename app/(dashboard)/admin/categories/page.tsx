@@ -1,6 +1,5 @@
 "use client";
 import CustomButton from "@/components/CustomButton";
-import DashboardSidebar from "@/components/DashboardSidebar";
 import { nanoid } from "nanoid";
 import Link from "next/link";
 import React, { useEffect, useState } from "react";
@@ -23,7 +22,6 @@ const DashboardCategory = () => {
 
   return (
     <div className="bg-white flex justify-start max-w-screen-2xl mx-auto h-full max-xl:flex-col max-xl:h-fit max-xl:gap-y-4">
-      <DashboardSidebar />
       <div className="w-full">
         <h1 className="text-3xl font-semibold text-center mb-5">
           All Categories

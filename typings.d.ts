@@ -1,5 +1,7 @@
 import type { DefaultSession, DefaultUser } from "next-auth";
 
+type AppRole = "admin" | "user";
+
 declare global {
   interface Product {
     id: string;
@@ -66,7 +68,7 @@ declare global {
     id: string;
     email: string;
     password: string | null;
-    role: string;
+    role: AppRole;
   }
 
   interface Order {
@@ -106,19 +108,19 @@ declare module "next-auth" {
     user: DefaultSession["user"] & {
       id: string;
       email: string;
-      role: string;
+      role: AppRole;
     };
   }
 
   interface User extends DefaultUser {
     id: string;
-    role: string;
+    role: AppRole;
   }
 }
 
 declare module "next-auth/jwt" {
   interface JWT {
     id?: string;
-    role?: string;
+    role?: AppRole;
   }
 }

@@ -1,4 +1,3 @@
-import { DashboardSidebar } from "@/components";
 import prisma from "@/utils/db";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
@@ -77,7 +76,6 @@ export default async function CollectorSetDetailPage({ params }: { params: Promi
 
   return (
     <div className="bg-white flex justify-start max-w-screen-2xl mx-auto h-full max-xl:flex-col">
-      <DashboardSidebar />
       <div className="flex flex-col gap-y-7 xl:ml-5 w-full max-xl:px-5">
         <h1 className="text-3xl font-semibold">Collector Set Details</h1>
 

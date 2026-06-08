@@ -9,7 +9,6 @@
 // *********************
 
 "use client";
-import DashboardSidebar from "@/components/DashboardSidebar";
 import BulkUploadHistory from "@/components/BulkUploadHistory";
 import React, { useState, useRef } from "react";
 import toast from "react-hot-toast";
@@ -152,7 +151,6 @@ Another Product,149.99,Another Manufacturer,5,https://example.com/image2.jpg,Ano
 
   return (
     <div className="flex xl:flex-row flex-col justify-start items-start">
-      <DashboardSidebar />
       <div className="w-full xl:p-14 p-4">
         <h1 className="text-4xl font-bold mb-8">Bulk Upload Products</h1>
 

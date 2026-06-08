@@ -7,6 +7,7 @@ export const apiClient = {
     const url = `${this.baseUrl}${endpoint}`;
     
     const defaultOptions: RequestInit = {
+      credentials: 'include',
       headers: {
         'Content-Type': 'application/json',
         ...options.headers,

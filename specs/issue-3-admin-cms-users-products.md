@@ -106,6 +106,14 @@ Suggested Vietnamese copy:
 
 ## Technical Design
 
+### Default Decisions
+
+- Role storage is migrated from nullable `String?` to `Role` enum with values `admin` and `user`, default `user`, non-null. Existing `NULL` or unknown roles are normalized to `user` in the migration.
+- Product images are stored as project-relative strings that reference files under `public/images`, for example `/images/product.png`. Upload is out of scope for this phase.
+- Product price is stored as a VND integer, for example `150000`, and displayed with a `đ` suffix. No unit conversion is performed.
+- CMS list count fields such as `orderCount` and `wishlistCount` must use Prisma `_count`, not one manual count query per row.
+- Phase 1 schema hardening includes `@@index([role])` on `User` and `@@index([categoryId])`, `@@index([merchantId])`, `@@index([setId])`, and `@@index([inStock])` on `Product`.
+
 ### Architecture
 
 Use the existing Next.js App Router admin area as the browser-facing CMS.
@@ -144,7 +152,12 @@ The browser must not call unrestricted Express CRUD endpoints directly. The Next
 - Execute Prisma operations or call a trusted internal service.
 - Return stable typed JSON responses.
 
-If the Express CRUD endpoints remain available for other integrations, they must receive equivalent authentication and authorization before this issue is considered production-ready.
+The existing Express CRUD endpoints are part of the security boundary for this issue. Before this issue can be considered production-ready, every Express create/update/delete endpoint for users and products must either:
+
+- Enforce verified admin authentication and authorization equivalent to the Next.js admin APIs, or
+- Be removed from browser/client use and made unreachable from untrusted clients.
+
+Rate limiting, CORS, hidden UI links, and client-side checks are not sufficient substitutes for server-side admin authorization.
 
 ### Admin Authorization
 
@@ -322,6 +335,7 @@ Rules:
 - Omitted password means no password change.
 - A supplied password must pass the full password policy and be hashed.
 - Prevent demoting the final remaining admin.
+- Final-admin checks must run inside the same transaction as the role update. Re-count admin users immediately before the mutation so two concurrent requests cannot both demote/delete the last admin.
 - Normalize email before checking uniqueness.
 
 #### `DELETE /api/admin/users/:id`
@@ -330,6 +344,7 @@ Rules:
 
 - Reject deleting the current authenticated admin.
 - Reject deleting the final admin.
+- Final-admin checks must run inside the same transaction as the delete. Re-count admin users immediately before deletion.
 - Check related orders, wishlist records, notifications, bulk-upload batches, redemption codes, and set rewards.
 - Preserve order and collector audit history.
 - Initial safe behavior: reject deletion with dependency counts when protected records exist.
@@ -404,6 +419,7 @@ Rules:
 - When `isCollector` is false, force `setId` and `setSlotNumber` to `null`.
 - When `isCollector` is true, require a valid collector set and a slot in `1..totalSlots`.
 - Respect the existing unique constraint on `[setId, setSlotNumber]`.
+- If a product already has any `RedemptionCode` records, do not allow changing `isCollector`, `setId`, or `setSlotNumber`. These fields define collection progress and changing them after code issuance can corrupt user unlock history.
 - Store a project-relative image path or approved remote URL according to the existing image strategy.
 
 #### `GET /api/admin/products/:id`
@@ -414,6 +430,13 @@ Returns the complete editable product plus relation options needed by the form.
 
 Uses the same validation rules as creation and handles unique slug/collector-slot conflicts with `409`.
 
+Additional collector invariants:
+
+- A product with any `RedemptionCode` records may still edit safe display fields such as title, image, description, price, stock, category, or merchant.
+- A product with any `RedemptionCode` records must not change `isCollector`, `setId`, or `setSlotNumber`.
+- A product assigned to a collector set but without codes may move slots only if the destination slot is empty or belongs to the same product.
+- If a collector product needs a destructive reassignment after codes exist, require a separate data-repair workflow outside this issue.
+
 #### `DELETE /api/admin/products/:id`
 
 Rules:
@@ -421,6 +444,7 @@ Rules:
 - Reject deletion when the product appears in order history.
 - Reject deletion when redemption codes exist for the product.
 - Reject deletion when bulk-upload or collector history must be preserved.
+- Reject deletion when `setId` is not `null`, even if no redemption codes exist yet. Deleting a slotted collector product would leave the set below `totalSlots` and make completion impossible.
 - If deletion is allowed, remove dependent wishlist records through the existing cascade behavior.
 - Do not silently delete customer history.
 
@@ -449,9 +473,23 @@ No mandatory new business models are required for the confirmed user/product CRU
 - `RedemptionCode`
 - `SetReward`
 
-Recommended schema hardening:
+Required schema hardening for Phase 1:
 
-1. Confirm indexes for CMS search and filtering:
+1. Migrate user role to a non-null enum:
+
+```prisma
+enum Role {
+  admin
+  user
+}
+
+model User {
+  // Existing fields
+  role Role @default(user)
+}
+```
+
+2. Add indexes for CMS search and filtering:
 
 ```prisma
 model User {
@@ -468,13 +506,13 @@ model Product {
 }
 ```
 
-2. Keep the existing unique constraints:
+3. Keep the existing unique constraints:
 
 - `User.email`
 - `Product.slug`
 - `Product.[setId, setSlotNumber]`
 
-3. Optional follow-up, not required for initial CRUD: add audit logging.
+4. Optional follow-up, not required for initial CRUD: add audit logging.
 
 ```prisma
 model AdminAuditLog {
@@ -601,7 +639,7 @@ All user-facing text should be Vietnamese-first. Add `vi/en/zh` keys if the admi
 - Add `requireAdminApi()` for route handlers.
 - Protect every `/api/admin/**` endpoint.
 - Review existing Express `/api/users` and product mutation endpoints.
-- Either protect those Express mutations with verified admin authentication or stop exposing them to the browser.
+- Treat unprotected Express user/product mutations as release blockers. `POST`, `PUT/PATCH`, and `DELETE` for Express `/api/users` and `/api/products` must require verified admin auth or be made unreachable from untrusted clients.
 - Rate limiting is supplementary and must not be treated as authorization.
 
 ### User Service
@@ -612,7 +650,7 @@ Centralize:
 - Duplicate-email handling.
 - Password hashing.
 - Role validation.
-- Final-admin checks.
+- Final-admin checks inside the same transaction as role changes/deletes.
 - User dependency checks.
 - Password exclusion from responses.
 
@@ -623,10 +661,12 @@ Centralize:
 - Slug normalization.
 - Category and merchant existence checks.
 - Collector set/slot validation.
+- Collector assignment immutability after redemption codes are issued.
 - Unique-conflict translation.
 - Product dependency checks before deletion.
 
 Use Prisma transactions where one mutation requires multiple dependent checks and writes.
+Final-admin checks, dependency checks, collector-slot checks, and their corresponding mutations should be performed in a single transaction when possible.
 
 ### Security Requirements
 
@@ -648,7 +688,7 @@ Use Prisma transactions where one mutation requires multiple dependent checks an
 2. Replace `any`-based admin session access with typed NextAuth session fields.
 3. Add `requireAdminApi()` with consistent `401/403` responses.
 4. Add shared API error and pagination helpers.
-5. Audit Express user/product mutations and close unauthorized access paths.
+5. Audit Express user/product mutations and close unauthorized access paths. This is a release blocker, not optional hardening.
 
 ### Phase 2: User CMS
 
@@ -656,10 +696,11 @@ Use Prisma transactions where one mutation requires multiple dependent checks an
 2. Add `/api/admin/users` list/create handlers.
 3. Add `/api/admin/users/[id]` detail/update/delete handlers.
 4. Implement self-delete and final-admin protection.
-5. Implement dependency-aware deletion.
-6. Rebuild the user list with search, role filter, pagination, and stable keys.
-7. Reuse one `UserForm` for create and edit.
-8. Add loading, empty, success, validation, and conflict states.
+5. Implement final-admin checks transactionally for demotion and deletion.
+6. Implement dependency-aware deletion.
+7. Rebuild the user list with search, role filter, pagination, and stable keys.
+8. Reuse one `UserForm` for create and edit.
+9. Add loading, empty, success, validation, and conflict states.
 
 ### Phase 3: Product CMS
 
@@ -668,9 +709,11 @@ Use Prisma transactions where one mutation requires multiple dependent checks an
 3. Add `/api/admin/products` list/create handlers.
 4. Add `/api/admin/products/[id]` detail/update/delete handlers.
 5. Implement slug and collector-slot conflict handling.
-6. Implement dependency-aware deletion.
-7. Rebuild the product list with server-side filtering and pagination.
-8. Reuse one `ProductForm` for create and edit.
+6. Enforce collector assignment immutability after redemption codes exist.
+7. Reject deletion of products assigned to collector sets unless they are first safely unassigned/replaced.
+8. Implement dependency-aware deletion.
+9. Rebuild the product list with server-side filtering and pagination.
+10. Reuse one `ProductForm` for create and edit.
 
 ### Phase 4: Visual Consistency and Accessibility
 
@@ -698,6 +741,8 @@ Use Prisma transactions where one mutation requires multiple dependent checks an
 4. Normal user calling `/api/admin/products` receives `403`.
 5. Admin can access both pages and APIs.
 6. Supplying `"role": "admin"` in a request does not bypass authorization.
+7. Express `/api/users` create/update/delete rejects unauthenticated and non-admin callers.
+8. Express `/api/products` create/update/delete rejects unauthenticated and non-admin callers.
 
 ### User CRUD
 
@@ -713,8 +758,9 @@ Use Prisma transactions where one mutation requires multiple dependent checks an
 10. Invalid role is rejected.
 11. Admin cannot delete their own account.
 12. Final admin cannot be demoted or deleted.
-13. User with protected business history cannot be hard-deleted.
-14. Eligible user deletion returns `204`.
+13. Two concurrent final-admin demotion/delete attempts cannot leave the system with zero admins.
+14. User with protected business history cannot be hard-deleted.
+15. Eligible user deletion returns `204`.
 
 ### Product CRUD
 
@@ -731,9 +777,11 @@ Use Prisma transactions where one mutation requires multiple dependent checks an
 11. Slot outside `1..totalSlots` is rejected.
 12. Occupied collector slot returns `409`.
 13. Product edit preserves unspecified values.
-14. Product referenced by order history cannot be deleted.
-15. Product with redemption-code history cannot be deleted.
-16. Eligible product deletion returns `204`.
+14. Product with redemption-code history cannot change `isCollector`, `setId`, or `setSlotNumber`.
+15. Product assigned to a collector set cannot be deleted while it occupies a slot.
+16. Product referenced by order history cannot be deleted.
+17. Product with redemption-code history cannot be deleted.
+18. Eligible product deletion returns `204`.
 
 ### UI
 
@@ -787,6 +835,8 @@ Use Prisma transactions where one mutation requires multiple dependent checks an
 Recommended defaults if no clarification is provided:
 
 - Reject hard deletion when protected history exists.
+- Reject deletion of slotted collector products until they are safely unassigned or replaced.
+- Lock collector assignment fields after any redemption code has been issued for a product.
 - Add archive/deactivate behavior in a follow-up issue.
 - Do not add bulk destructive actions in the first release.
 - Reuse the current image path strategy.

@@ -3,7 +3,7 @@ import { authOptions } from "@/utils/authOptions";
 
 export async function isAdmin(): Promise<boolean> {
   const session = await getServerSession(authOptions);
-  return (session as any)?.user?.role === "admin";
+  return session?.user.role === "admin";
 }
 
 export async function requireAdmin() {

@@ -1,96 +1,61 @@
-// *********************
-// Role of the component: Sidebar on admin dashboard page
-// Name of the component: DashboardSidebar.tsx
-// Developer: Aleksandar Kuzmanovic
-// Version: 1.0
-// Component call: <DashboardSidebar />
-// Input parameters: no input parameters
-// Output: sidebar for admin dashboard page
-// *********************
-
-import React from "react";
-import { MdDashboard } from "react-icons/md";
-import { FaTable } from "react-icons/fa6";
-import { FaRegUser } from "react-icons/fa6";
-import { FaGear } from "react-icons/fa6";
-import { FaBagShopping } from "react-icons/fa6";
-import { FaStore } from "react-icons/fa6";
-import { MdCategory } from "react-icons/md";
-import { FaFileUpload } from "react-icons/fa";
-import { FaTicket, FaTrophy } from "react-icons/fa6";
+"use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { FaBagShopping, FaGear, FaRegUser, FaStore, FaTable, FaTicket, FaTrophy, FaUpload } from "react-icons/fa6";
+import { MdCategory, MdDashboard } from "react-icons/md";
+
+const navItems = [
+  { href: "/admin", label: "Tổng quan", icon: MdDashboard },
+  { href: "/admin/orders", label: "Đơn hàng", icon: FaBagShopping },
+  { href: "/admin/products", label: "Sản phẩm", icon: FaTable },
+  { href: "/admin/bulk-upload", label: "Nhập mã", icon: FaUpload },
+  { href: "/admin/categories", label: "Danh mục", icon: MdCategory },
+  { href: "/admin/users", label: "Người dùng", icon: FaRegUser },
+  { href: "/admin/merchant", label: "Merchant", icon: FaStore },
+  { href: "/admin/collector-sets", label: "Bộ sưu tập", icon: FaTrophy },
+  { href: "/admin/redemption-codes", label: "Mã mở khóa", icon: FaTicket },
+  { href: "/admin/set-rewards", label: "Phần thưởng", icon: FaTrophy },
+  { href: "/admin/settings", label: "Cài đặt", icon: FaGear },
+];
+
+function isActive(pathname: string, href: string) {
+  if (href === "/admin") return pathname === href;
+  return pathname === href || pathname.startsWith(`${href}/`);
+}
 
 const DashboardSidebar = () => {
+  const pathname = usePathname();
+
   return (
-    <div className="xl:w-[400px] bg-blue-500 h-full max-xl:w-full">
-      <Link href="/admin">
-        <div className="flex gap-x-2 w-full hover:bg-blue-600 cursor-pointer items-center py-6 pl-5 text-xl text-white">
-          <MdDashboard className="text-2xl" />{" "}
-          <span className="font-normal">Dashboard</span>
-        </div>
-      </Link>
-      <Link href="/admin/orders">
-        <div className="flex gap-x-2 w-full hover:bg-blue-600 cursor-pointer items-center py-6 pl-5 text-xl text-white">
-          <FaBagShopping className="text-2xl" />{" "}
-          <span className="font-normal">Orders</span>
-        </div>
-      </Link>
-      <Link href="/admin/products">
-        <div className="flex gap-x-2 w-full hover:bg-blue-600 cursor-pointer items-center py-6 pl-5 text-xl text-white">
-          <FaTable className="text-2xl" />{" "}
-          <span className="font-normal">Products</span>
-        </div>
-      </Link>
-      <Link href="/admin/bulk-upload">
-        <div className="flex gap-x-2 w-full hover:bg-blue-600 cursor-pointer items-center py-6 pl-5 text-xl text-white">
-          <FaFileUpload className="text-2xl" />{" "}
-          <span className="font-normal">Bulk Upload</span>
-        </div>
-      </Link>
-      <Link href="/admin/categories">
-        <div className="flex gap-x-2 w-full hover:bg-blue-600 cursor-pointer items-center py-6 pl-5 text-xl text-white">
-          <MdCategory className="text-2xl" />{" "}
-          <span className="font-normal">Categories</span>
-        </div>
-      </Link>
-      <Link href="/admin/users">
-        <div className="flex gap-x-2 w-full hover:bg-blue-600 cursor-pointer items-center py-6 pl-5 text-xl text-white">
-          <FaRegUser className="text-2xl" />{" "}
-          <span className="font-normal">Users</span>
-        </div>
-      </Link>
-      <Link href="/admin/merchant">
-        <div className="flex gap-x-2 w-full hover:bg-blue-600 cursor-pointer items-center py-6 pl-5 text-xl text-white">
-          <FaStore className="text-2xl" />{" "}
-          <span className="font-normal">Merchant</span>
-        </div>
-      </Link>
-      <Link href="/admin/collector-sets">
-        <div className="flex gap-x-2 w-full hover:bg-blue-600 cursor-pointer items-center py-6 pl-5 text-xl text-white">
-          <FaTrophy className="text-2xl" />{" "}
-          <span className="font-normal">Collector Sets</span>
-        </div>
-      </Link>
-      <Link href="/admin/redemption-codes">
-        <div className="flex gap-x-2 w-full hover:bg-blue-600 cursor-pointer items-center py-6 pl-5 text-xl text-white">
-          <FaTicket className="text-2xl" />{" "}
-          <span className="font-normal">Redemption Codes</span>
-        </div>
-      </Link>
-      <Link href="/admin/set-rewards">
-        <div className="flex gap-x-2 w-full hover:bg-blue-600 cursor-pointer items-center py-6 pl-5 text-xl text-white">
-          <FaTrophy className="text-2xl" />{" "}
-          <span className="font-normal">Set Rewards</span>
-        </div>
-      </Link>
-        <Link href="/admin/settings">
-            <div className="flex gap-x-2 w-full hover:bg-blue-600 cursor-pointer items-center py-6 pl-5 text-xl text-white">
-                <FaGear className="text-2xl" />{" "}
-                <span className="font-normal">Settings</span>
-            </div>
-        </Link>
-    </div>
+    <aside className="sticky top-0 z-20 h-screen w-[280px] shrink-0 overflow-y-auto border-r border-[#e85d00]/25 bg-[#070707] text-white max-lg:static max-lg:h-auto max-lg:w-full max-lg:border-b max-lg:border-r-0">
+      <div className="border-b border-white/10 px-5 py-5">
+        <p className="text-xs font-black uppercase tracking-[0.24em] text-[#e85d00]">Khủng Long Shop</p>
+        <h2 className="mt-1 text-xl font-black uppercase italic">CMS Admin</h2>
+      </div>
+      <nav className="flex flex-col gap-1 p-3 max-lg:flex-row max-lg:overflow-x-auto" aria-label="Điều hướng quản trị">
+        {navItems.map((item) => {
+          const Icon = item.icon;
+          const active = isActive(pathname, item.href);
+
+          return (
+            <Link
+              key={item.href}
+              href={item.href}
+              aria-current={active ? "page" : undefined}
+              className={`flex min-h-11 items-center gap-3 whitespace-nowrap border px-3 text-sm font-black uppercase transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#e85d00] ${
+                active
+                  ? "border-[#e85d00] bg-[#e85d00] text-white"
+                  : "border-transparent text-white/75 hover:border-[#e85d00]/40 hover:bg-white/5 hover:text-white"
+              }`}
+            >
+              <Icon className="text-lg" aria-hidden="true" />
+              <span>{item.label}</span>
+            </Link>
+          );
+        })}
+      </nav>
+    </aside>
   );
 };
 

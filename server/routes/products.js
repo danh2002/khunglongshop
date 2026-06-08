@@ -1,6 +1,7 @@
 const express = require("express");
 
 const router = express.Router();
+const { requireAdminSession } = require("../middleware/adminAuth");
 const {
   getAllProducts,
   createProduct,
@@ -10,13 +11,13 @@ const {
   getProductById,
 } = require("../controllers/products");
 
-router.route("/").get(getAllProducts).post(createProduct);
+router.route("/").get(getAllProducts).post(requireAdminSession, createProduct);
 
 
 router
   .route("/:id")
   .get(getProductById)
-  .put(updateProduct)
-  .delete(deleteProduct);
+  .put(requireAdminSession, updateProduct)
+  .delete(requireAdminSession, deleteProduct);
 
 module.exports = router;
