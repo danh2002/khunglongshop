@@ -1,5 +1,5 @@
 "use client";
-import { DashboardSidebar } from "@/components";
+import DashboardSidebar from "@/components/DashboardSidebar";
 import apiClient from "@/lib/api";
 import { convertCategoryNameToURLFriendly as convertSlugToURLFriendly } from "@/utils/categoryFormating";
 import { sanitizeFormData } from "@/lib/form-sanitize";

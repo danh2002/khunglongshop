@@ -1,3 +1,5 @@
+"use client";
+
 // *********************
 // Role of the component: Component that displays current page location in the application 
 // Name of the component: Breadcrumb.tsx
@@ -11,10 +13,10 @@
 import Link from "next/link";
 import React from "react";
 import { FaHouse } from "react-icons/fa6";
-import { getServerTranslator } from "@/lib/i18n-server";
+import { useI18n } from "./LanguageProvider";
 
-const Breadcrumb = async () => {
-  const { t } = await getServerTranslator();
+const Breadcrumb = () => {
+  const { t } = useI18n();
 
   return (
     <div className="text-lg breadcrumbs pb-10 py-5 max-sm:text-base">

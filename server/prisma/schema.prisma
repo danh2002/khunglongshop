@@ -36,6 +36,9 @@ model Product {
   merchant        Merchant           @relation(fields: [merchantId], references: [id])
   // Back relation for bulk upload items
   bulkUploadItems bulk_upload_item[] @relation("ProductBulkItems")
+
+  @@unique([setId, setSlotNumber])
+  @@index([isCollector])
 }
 
 model Image {
@@ -66,6 +69,10 @@ model RedemptionCode {
   isUsed    Boolean   @default(false)
   usedAt    DateTime?
   createdAt DateTime  @default(now())
+
+  @@index([userId])
+  @@index([productId])
+  @@index([userId, isUsed])
 }
 
 model SetReward {
@@ -77,6 +84,8 @@ model SetReward {
   grantedAt  DateTime     @default(now())
   isClaimed  Boolean      @default(false)
   claimedAt  DateTime?
+
+  @@unique([userId, setId])
 }
 
 model User {
@@ -84,6 +93,7 @@ model User {
   email             String              @unique
   password          String?
   role              String?             @default("user")
+  orders            Customer_order[]
   Wishlist          Wishlist[]
   notifications     Notification[]
   // Back relation for bulk upload batches
@@ -92,6 +102,8 @@ model User {
 
 model Customer_order {
   id          String                   @id @default(uuid())
+  userId      String?
+  user        User?                    @relation(fields: [userId], references: [id], onDelete: SetNull)
   name        String
   lastname    String
   phone       String
@@ -107,6 +119,10 @@ model Customer_order {
   orderNotice String?
   total       Int
   products    customer_order_product[]
+
+  @@index([userId])
+  @@index([email])
+  @@index([userId, dateTime])
 }
 
 model customer_order_product {

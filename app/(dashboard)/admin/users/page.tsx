@@ -1,5 +1,6 @@
 "use client";
-import { CustomButton, DashboardSidebar } from "@/components";
+import CustomButton from "@/components/CustomButton";
+import DashboardSidebar from "@/components/DashboardSidebar";
 import apiClient from "@/lib/api";
 import { nanoid } from "nanoid";
 import Link from "next/link";

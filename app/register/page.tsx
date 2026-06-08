@@ -1,9 +1,10 @@
 "use client";
 
-import { SectionTitle } from "@/components";
+import SectionTitle from "@/components/SectionTitle";
 import { Field, PrimaryButton, SectionShell, Wrapper } from "@/components/design-system";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
+import type { FormEvent } from "react";
 import React, { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import styled from "styled-components";
@@ -65,7 +66,7 @@ const RegisterPage = () => {
 
   useEffect(() => {
     if (sessionStatus === "authenticated") {
-      router.replace("/");
+      router.replace("/account");
     }
   }, [sessionStatus, router]);
 
@@ -74,27 +75,28 @@ const RegisterPage = () => {
     return emailRegex.test(email);
   };
 
-  const handleSubmit = async (e: any) => {
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    const email = e.target[2].value;
-    const password = e.target[3].value;
-    const confirmPassword = e.target[4].value;
+    const formData = new FormData(e.currentTarget);
+    const email = String(formData.get("email") || "").trim().toLowerCase();
+    const password = String(formData.get("password") || "");
+    const confirmPassword = String(formData.get("confirmpassword") || "");
 
     if (!isValidEmail(email)) {
-      setError("Email is invalid");
-      toast.error("Email is invalid");
+      setError("Email không hợp lệ");
+      toast.error("Email không hợp lệ");
       return;
     }
 
     if (!password || password.length < 8) {
-      setError("Password must be 8 characters long");
-      toast.error("Password must be 8 characters long");
+      setError("Mật khẩu phải có ít nhất 8 ký tự");
+      toast.error("Mật khẩu phải có ít nhất 8 ký tự");
       return;
     }
 
     if (confirmPassword !== password) {
-      setError("Passwords are not equal");
-      toast.error("Passwords are not equal");
+      setError("Mật khẩu xác nhận không khớp");
+      toast.error("Mật khẩu xác nhận không khớp");
       return;
     }
 
@@ -114,7 +116,7 @@ const RegisterPage = () => {
 
       if (res.ok) {
         setError("");
-        toast.success("Registration successful");
+        toast.success("Đăng ký thành công");
         router.push("/login");
       } else {
         if (data.details && Array.isArray(data.details)) {
@@ -125,13 +127,13 @@ const RegisterPage = () => {
           setError(data.error);
           toast.error(data.error);
         } else {
-          setError("Registration failed");
-          toast.error("Registration failed");
+          setError("Đăng ký thất bại");
+          toast.error("Đăng ký thất bại");
         }
       }
     } catch (error) {
-      toast.error("Error, try again");
-      setError("Error, try again");
+      toast.error("Có lỗi xảy ra, vui lòng thử lại");
+      setError("Có lỗi xảy ra, vui lòng thử lại");
       console.log(error);
     }
   };
@@ -142,36 +144,36 @@ const RegisterPage = () => {
 
   return (
     <div>
-      <SectionTitle title="Register" path="Home | Register" />
+      <SectionTitle title="Đăng ký" path="Trang chủ | Đăng ký" />
       <SectionShell>
         <AuthWrap>
           <AuthCard>
-            <Title>Sign up on our website</Title>
+            <Title>Đăng ký tài khoản</Title>
             <Form onSubmit={handleSubmit}>
               <div>
-                <Label htmlFor="name">Name</Label>
+                <Label htmlFor="name">Tên</Label>
                 <Field id="name" name="name" type="text" required />
               </div>
               <div>
-                <Label htmlFor="lastname">Lastname</Label>
+                <Label htmlFor="lastname">Họ</Label>
                 <Field id="lastname" name="lastname" type="text" required />
               </div>
               <div>
-                <Label htmlFor="email">Email address</Label>
+                <Label htmlFor="email">Email</Label>
                 <Field id="email" name="email" type="email" autoComplete="email" required />
               </div>
               <div>
-                <Label htmlFor="password">Password</Label>
+                <Label htmlFor="password">Mật khẩu</Label>
                 <Field id="password" name="password" type="password" autoComplete="current-password" required />
               </div>
               <div>
-                <Label htmlFor="confirmpassword">Confirm password</Label>
+                <Label htmlFor="confirmpassword">Xác nhận mật khẩu</Label>
                 <Field id="confirmpassword" name="confirmpassword" type="password" autoComplete="current-password" required />
               </div>
               <Terms>
-                <input id="remember-me" name="remember-me" type="checkbox" /> Accept our terms and privacy policy
+                <input id="remember-me" name="remember-me" type="checkbox" /> Tôi đồng ý với điều khoản và chính sách riêng tư
               </Terms>
-              <PrimaryButton type="submit">Sign up</PrimaryButton>
+              <PrimaryButton type="submit">Đăng ký</PrimaryButton>
               <ErrorText>{error && error}</ErrorText>
             </Form>
           </AuthCard>

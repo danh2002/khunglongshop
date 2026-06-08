@@ -21,6 +21,8 @@ type ProductCode = {
   orderId: string;
   userId: string;
   isUsed: boolean;
+  canRedeem?: boolean;
+  redeemedAt?: string | null;
   createdAt: string;
   product: {
     id: string;
@@ -283,6 +285,28 @@ const RedeemLink = styled(Link)`
   text-transform: uppercase;
 `;
 
+const RedeemButton = styled.button`
+  min-height: 48px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 1rem;
+  background: #e85d00;
+  border: 0;
+  clip-path: polygon(0 0, calc(100% - 14px) 0, 100% 50%, calc(100% - 14px) 100%, 0 100%);
+  color: #fff;
+  cursor: pointer;
+  font-size: 0.78rem;
+  font-style: italic;
+  font-weight: 900;
+  text-transform: uppercase;
+
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.55;
+  }
+`;
+
 const shimmer = keyframes`
   0% { background-position: 200% 0; }
   100% { background-position: -200% 0; }
@@ -339,6 +363,7 @@ export default function AccountCodesPage() {
   const [activeTab, setActiveTab] = useState<"redemption" | "rewards">("redemption");
   const [data, setData] = useState<CodesResponse>({ redemptionCodes: [], setRewards: [] });
   const [isLoading, setIsLoading] = useState(true);
+  const [redeemingCodeId, setRedeemingCodeId] = useState<string | null>(null);
 
   useEffect(() => {
     let mounted = true;
@@ -381,6 +406,65 @@ export default function AccountCodesPage() {
     () => (activeTab === "redemption" ? data.redemptionCodes : data.setRewards),
     [activeTab, data]
   );
+
+  const redeemProductCode = async (item: ProductCode) => {
+    setRedeemingCodeId(item.id);
+
+    try {
+      const response = await fetch("/api/merch/redeem-code", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ code: item.code }),
+      });
+
+      if (!response.ok) {
+        if (response.status === 409) {
+          toast.error("Mã này đã được sử dụng.");
+        } else if (response.status === 429) {
+          toast.error("Bạn nhập mã quá nhanh. Vui lòng thử lại sau.");
+        } else {
+          toast.error("Mã không hợp lệ hoặc không thuộc tài khoản của bạn.");
+        }
+        return;
+      }
+
+      const payload = await response.json().catch(() => null);
+      toast.success(payload?.setComplete ? "Đã hoàn thành bộ sưu tập!" : "Đã mở khóa vật phẩm!");
+      setData((current) => ({
+        ...current,
+        redemptionCodes: current.redemptionCodes.map((code) =>
+          code.id === item.id
+            ? {
+                ...code,
+                isUsed: true,
+                canRedeem: false,
+                redeemedAt: new Date().toISOString(),
+              }
+            : code
+        ),
+        setRewards: payload?.setReward
+          ? [
+              {
+                id: payload.setReward.rewardCode,
+                userId: item.userId,
+                setId: payload.unlockedSlot.setId,
+                rewardCode: payload.setReward.rewardCode,
+                grantedAt: new Date().toISOString(),
+                isClaimed: payload.setReward.isClaimed,
+                set: item.product?.set ?? null,
+              },
+              ...current.setRewards.filter((reward) => reward.rewardCode !== payload.setReward.rewardCode),
+            ]
+          : current.setRewards,
+      }));
+    } catch (error) {
+      toast.error("Không thể mở khóa mã lúc này");
+    } finally {
+      setRedeemingCodeId(null);
+    }
+  };
 
   return (
     <PageShell>
@@ -449,6 +533,15 @@ export default function AccountCodesPage() {
                         <CopyButton type="button" onClick={() => copyCode(item.code)} aria-label="Sao chép mã">
                           <FaRegCopy />
                         </CopyButton>
+                        {!item.isUsed && (
+                          <RedeemButton
+                            type="button"
+                            onClick={() => redeemProductCode(item)}
+                            disabled={redeemingCodeId === item.id}
+                          >
+                            {redeemingCodeId === item.id ? "ĐANG MỞ" : "MỞ KHÓA"}
+                          </RedeemButton>
+                        )}
                       </CodeArea>
                     </CodeCard>
                   ))

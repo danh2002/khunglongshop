@@ -39,6 +39,7 @@ next-env.d.ts
 # Database backups
 /backups/
 *.sql
+!prisma/migrations/**/*.sql
 *.dump
 *.backup
 

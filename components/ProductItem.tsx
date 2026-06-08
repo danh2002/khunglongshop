@@ -6,7 +6,7 @@ import { FaCartShopping, FaEye, FaHeart } from "react-icons/fa6";
 import { m } from "framer-motion";
 import styled from "styled-components";
 import { sanitize } from "@/lib/sanitize";
-import { toMerchProduct } from "@/lib/merchCatalog";
+import { isMerchTemplateImage, toMerchProduct } from "@/lib/merchCatalog";
 import { useI18n } from "./LanguageProvider";
 
 const ProductCard = styled(m.article)<{ $disabled: boolean }>`
@@ -216,7 +216,7 @@ const QuickButton = styled(Link)`
 const getStockState = (stock: number) => (stock <= 0 ? "out" : stock <= 5 ? "low" : "in");
 const ProductItem = ({ product }: { product: Product; color?: string }) => {
   const { t } = useI18n();
-  const displayProduct = product.mainImage?.startsWith("merch/") ? product : toMerchProduct(product);
+  const displayProduct = isMerchTemplateImage(product.mainImage) ? product : toMerchProduct(product);
   const stockState = getStockState(displayProduct.inStock);
   const productHref = `/product/${displayProduct.slug}`;
   const originalPrice = Math.round(displayProduct.price * 1.12);

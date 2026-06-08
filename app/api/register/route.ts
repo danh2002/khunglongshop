@@ -26,14 +26,15 @@ export const POST = async (request: Request) => {
       throw validationResult.error;
     }
 
-    const { email, password } = validationResult.data;
+    const { password } = validationResult.data;
+    const email = validationResult.data.email.trim().toLowerCase();
 
     const existingUser = await prisma.user.findFirst({ 
       where: { email } 
     });
 
     if (existingUser) {
-      throw new AppError("Email is already in use", 400);
+      throw new AppError("Registration failed", 400);
     }
 
     const hashedPassword = await bcrypt.hash(password, 14);

@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import type { FormEvent } from "react";
 import { useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
 import styled, { keyframes } from "styled-components";
@@ -23,6 +24,7 @@ type CollectionSet = {
     } | null;
     code: string | null;
     isCollected: boolean;
+    isUnlocked: boolean;
   }>;
   isComplete: boolean;
   setReward: {
@@ -94,6 +96,45 @@ const Count = styled.p`
   font-size: 0.9rem;
   font-weight: 900;
   text-transform: uppercase;
+`;
+
+const RedeemForm = styled.form`
+  display: grid;
+  grid-template-columns: minmax(0, 320px) auto;
+  gap: 0.75rem;
+  align-items: end;
+  margin-bottom: 2rem;
+
+  @media (max-width: 620px) {
+    grid-template-columns: 1fr;
+  }
+`;
+
+const RedeemLabel = styled.label`
+  display: grid;
+  gap: 0.45rem;
+  color: rgba(255, 255, 255, 0.68);
+  font-size: 0.72rem;
+  font-weight: 900;
+  text-transform: uppercase;
+`;
+
+const RedeemInput = styled.input`
+  min-width: 0;
+  min-height: 54px;
+  padding: 0 1rem;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 106, 0, 0.28);
+  color: #fff;
+  font-family: "Courier New", monospace;
+  font-weight: 900;
+  letter-spacing: 0.08rem;
+  text-transform: uppercase;
+
+  &:focus {
+    border-color: #e85d00;
+    outline: none;
+  }
 `;
 
 const ProgressBar = styled.div`
@@ -184,23 +225,24 @@ const SlotBadge = styled.span<{ $collected?: boolean }>`
 `;
 
 const UncollectedSlot = styled(SlotCard)`
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
+  display: grid;
+  grid-template-rows: 60% 40%;
   background: rgba(255, 255, 255, 0.02);
   border: 1px dashed rgba(255, 106, 0, 0.18);
 `;
 
-const Unknown = styled.div`
-  color: rgba(255, 255, 255, 0.1);
-  font-size: 2.5rem;
-  font-weight: 900;
+const LockedImageFrame = styled(ImageFrame)`
+  filter: grayscale(1);
+  opacity: 0.3;
+
+  &::after {
+    background: linear-gradient(180deg, rgba(7, 7, 7, 0.18), rgba(7, 7, 7, 0.96));
+  }
 `;
 
 const Locked = styled.div`
-  color: rgba(255, 255, 255, 0.25);
+  margin-top: 0.35rem;
+  color: rgba(255, 255, 255, 0.32);
   font-size: 0.6rem;
   font-weight: 900;
   letter-spacing: 0.1rem;
@@ -339,6 +381,15 @@ const SmallPrimary = styled(PrimaryButton)`
   font-size: 0.9rem;
 `;
 
+const RedeemButton = styled(SmallPrimary)`
+  min-width: 150px;
+
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.55;
+  }
+`;
+
 const SecondaryButton = styled.button`
   min-height: 54px;
   padding: 0 1.4rem;
@@ -377,6 +428,8 @@ const slotMotion = {
 export default function AccountCollectionPage() {
   const [collections, setCollections] = useState<CollectionSet[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [redeemCode, setRedeemCode] = useState("");
+  const [isRedeeming, setIsRedeeming] = useState(false);
   const [completeModal, setCompleteModal] = useState<CollectionSet | null>(null);
 
   useEffect(() => {
@@ -427,6 +480,64 @@ export default function AccountCollectionPage() {
     toast.success("Đã sao chép!");
   };
 
+  const refreshCollection = async () => {
+    const response = await fetch("/api/merch/my-collection", { cache: "no-store" });
+    if (!response.ok) throw new Error("Unable to load collection");
+
+    const payload = await response.json();
+    setCollections(payload);
+    return payload as CollectionSet[];
+  };
+
+  const submitRedeemCode = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const code = redeemCode.trim();
+
+    if (!code) {
+      toast.error("Vui lòng nhập mã mở khóa");
+      return;
+    }
+
+    setIsRedeeming(true);
+
+    try {
+      const response = await fetch("/api/merch/redeem-code", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ code }),
+      });
+      const payload = await response.json().catch(() => null);
+
+      if (!response.ok) {
+        if (response.status === 409) {
+          toast.error("Mã này đã được sử dụng.");
+        } else if (response.status === 429) {
+          toast.error("Bạn nhập mã quá nhanh. Vui lòng thử lại sau.");
+        } else {
+          toast.error("Mã không hợp lệ hoặc không thuộc tài khoản của bạn.");
+        }
+        return;
+      }
+
+      setRedeemCode("");
+      toast.success("Đã mở khóa vật phẩm!");
+      const nextCollections = await refreshCollection();
+
+      if (payload?.setComplete) {
+        const completedSet = nextCollections.find((collection) => collection.set.id === payload.unlockedSlot?.setId);
+        if (completedSet) {
+          setCompleteModal(completedSet);
+        }
+      }
+    } catch (error) {
+      toast.error("Không thể mở khóa mã lúc này");
+    } finally {
+      setIsRedeeming(false);
+    }
+  };
+
   const hasCollections = useMemo(() => collections.length > 0, [collections]);
 
   return (
@@ -437,6 +548,22 @@ export default function AccountCollectionPage() {
             BỘ SƯU TẬP <span>CỦA TÔI</span>
           </PageTitle>
 
+          <RedeemForm onSubmit={submitRedeemCode}>
+            <RedeemLabel>
+              Nhập mã mở khóa
+              <RedeemInput
+                value={redeemCode}
+                onChange={(event) => setRedeemCode(event.target.value)}
+                placeholder="DKL-XXXX-XXXX-XXXX"
+                autoComplete="off"
+                maxLength={64}
+              />
+            </RedeemLabel>
+            <RedeemButton type="submit" disabled={isRedeeming}>
+              {isRedeeming ? "ĐANG MỞ" : "MỞ KHÓA"}
+            </RedeemButton>
+          </RedeemForm>
+
           {isLoading ? (
             <>
               <Skeleton />
@@ -446,7 +573,7 @@ export default function AccountCollectionPage() {
             <Empty>Chưa có bộ sưu tập nào</Empty>
           ) : (
             collections.map((collection) => {
-              const collected = collection.slots.filter((slot) => slot.isCollected).length;
+              const collected = collection.slots.filter((slot) => slot.isUnlocked ?? slot.isCollected).length;
               const percent = collection.set.totalSlots > 0 ? (collected / collection.set.totalSlots) * 100 : 0;
 
               return (
@@ -470,7 +597,7 @@ export default function AccountCollectionPage() {
                   </ProgressBar>
                   <SlotGrid>
                     {collection.slots.map((slot, index) =>
-                      slot.isCollected && slot.product ? (
+                      (slot.isUnlocked ?? slot.isCollected) && slot.product ? (
                         <CollectedSlot
                           key={slot.slotNumber}
                           {...slotMotion}
@@ -504,8 +631,21 @@ export default function AccountCollectionPage() {
                           transition={{ duration: 0.38, delay: index * 0.04, ease: smoothEase }}
                         >
                           <SlotBadge>#{slot.slotNumber}</SlotBadge>
-                          <Unknown>???</Unknown>
-                          <Locked>Chưa mở khóa</Locked>
+                          <LockedImageFrame>
+                            {slot.product?.image ? (
+                              <Image
+                                src={`/${slot.product.image}`}
+                                alt={slot.product.name}
+                                fill
+                                sizes="180px"
+                                style={{ objectFit: "cover" }}
+                              />
+                            ) : null}
+                          </LockedImageFrame>
+                          <SlotBody>
+                            <ProductName>{slot.product?.name || `Vật phẩm ${slot.slotNumber}`}</ProductName>
+                            <Locked>Chưa mở khóa</Locked>
+                          </SlotBody>
                         </UncollectedSlot>
                       )
                     )}

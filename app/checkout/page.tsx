@@ -1,5 +1,5 @@
 "use client";
-import { SectionTitle } from "@/components";
+import SectionTitle from "@/components/SectionTitle";
 import { useProductStore } from "../_zustand/store";
 import Image from "next/image";
 import { useEffect, useState } from "react";

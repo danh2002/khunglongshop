@@ -93,44 +93,8 @@ const handleOrderCollectorItems = async (orderId, userId) => {
     }
   }
 
-  const setIds = [
-    ...new Set(
-      collectorItems
-        .map((item) => item.product.setId)
-        .filter((setId) => Boolean(setId))
-    ),
-  ];
-
-  for (const setId of setIds) {
-    const alreadyRewarded = await prisma.setReward.findFirst({
-      where: {
-        userId,
-        setId,
-      },
-    });
-
-    if (alreadyRewarded) continue;
-
-    const isComplete = await checkSetCompletion(userId, setId);
-    if (!isComplete) continue;
-
-    const rewardCode = await createUniqueSetRewardCode();
-    const reward = await prisma.setReward.create({
-      data: {
-        userId,
-        setId,
-        rewardCode,
-      },
-      include: {
-        set: true,
-      },
-    });
-    const user = await prisma.user.findUnique({ where: { id: userId } });
-
-    if (user && user.email) {
-      await sendSetCompleteEmail(user.email, reward.set.name, rewardCode);
-    }
-  }
+  // Purchase creates redemption codes only. Set rewards are granted after
+  // the customer redeems enough product codes to unlock every set slot.
 };
 
 const checkSetCompletion = async (userId, setId) => {
@@ -157,21 +121,21 @@ const checkSetCompletion = async (userId, setId) => {
     return false;
   }
 
-  for (const product of products) {
-    const code = await prisma.redemptionCode.findFirst({
-      where: {
-        userId,
-        productId: product.id,
-        isUsed: false,
+  const usedCodes = await prisma.redemptionCode.findMany({
+    where: {
+      userId,
+      isUsed: true,
+      productId: {
+        in: products.map((product) => product.id),
       },
-    });
+    },
+    select: {
+      productId: true,
+    },
+  });
+  const unlockedProductIds = new Set(usedCodes.map((code) => code.productId));
 
-    if (!code) {
-      return false;
-    }
-  }
-
-  return true;
+  return products.every((product) => unlockedProductIds.has(product.id));
 };
 
 module.exports = {

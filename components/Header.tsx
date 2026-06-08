@@ -4,7 +4,7 @@ import { AnimatePresence, m } from "framer-motion";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { signOut } from "next-auth/react";
+import { signOut, useSession } from "next-auth/react";
 import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import { FaBars, FaXmark } from "react-icons/fa6";
@@ -19,7 +19,7 @@ import SearchInput from "./SearchInput";
 import LanguageSwitcher from "./LanguageSwitcher";
 import { useI18n } from "./LanguageProvider";
 
-const brandLine = "\u0110\u1EA2O KH\u1EE6NG LONG";
+const brandLine = "KH\u1EE6NG LONG SHOP";
 
 const SiteHeader = styled.header`
   position: sticky;
@@ -61,16 +61,19 @@ const Logo = styled(Link)`
 `;
 
 const LogoMark = styled.span`
-  width: 44px;
-  height: 44px;
-  display: inline-grid;
-  place-items: center;
+  position: relative;
+  width: 48px;
+  height: 48px;
+  display: inline-block;
+  overflow: hidden;
   border-radius: 50%;
-  background: #e85d00;
-  color: #fff;
-  font-size: 1.38rem;
-  line-height: 1;
+  background: #050505;
+  border: 1px solid rgba(255, 255, 255, 0.18);
   box-shadow: 0 0 24px rgba(232, 93, 0, 0.28);
+
+  img {
+    padding: 4px;
+  }
 `;
 
 const LogoText = styled.span`
@@ -204,6 +207,44 @@ const IconButton = styled.button`
   }
 `;
 
+const AuthLink = styled(Link)`
+  min-height: 40px;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 0.85rem;
+  background: rgba(255, 106, 0, 0.12);
+  border: 1px solid rgba(255, 106, 0, 0.24);
+  color: #fff;
+  font-size: 0.72rem;
+  font-style: italic;
+  font-weight: 900;
+  text-decoration: none;
+  text-transform: uppercase;
+
+  &:hover {
+    border-color: #e85d00;
+    color: #f47912;
+  }
+`;
+
+const AuthButton = styled.button`
+  min-height: 40px;
+  padding: 0 0.85rem;
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 0.78);
+  cursor: pointer;
+  font-size: 0.72rem;
+  font-style: italic;
+  font-weight: 900;
+  text-transform: uppercase;
+
+  &:hover {
+    border-color: rgba(255, 106, 0, 0.36);
+    color: #f47912;
+  }
+`;
+
 const DrawerOverlay = styled(m.div)`
   position: fixed;
   inset: 0;
@@ -251,6 +292,24 @@ const DrawerLinks = styled.nav`
   }
 `;
 
+const DrawerAuthButton = styled.button`
+  width: 100%;
+  padding: 0.95rem 0;
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+  color: rgba(255, 255, 255, 0.78);
+  cursor: pointer;
+  font-weight: 800;
+  letter-spacing: 0.08rem;
+  text-align: left;
+  text-transform: uppercase;
+
+  &:hover {
+    color: #e85d00;
+  }
+`;
+
 const AdminWrap = styled.div`
   height: 64px;
   width: min(100%, 1180px);
@@ -277,6 +336,7 @@ const Dropdown = styled.ul`
 
 const Header = () => {
   const pathname = usePathname();
+  const { status } = useSession();
   const { wishQuantity } = useWishlistStore();
   const [drawerOpen, setDrawerOpen] = useState(false);
   const { t } = useI18n();
@@ -288,8 +348,8 @@ const Header = () => {
   ];
 
   const handleLogout = () => {
-    setTimeout(() => signOut(), 1000);
-    toast.success("Logout successful!");
+    signOut({ callbackUrl: "/" });
+    toast.success("Đã đăng xuất!");
   };
 
   useEffect(() => {
@@ -304,8 +364,10 @@ const Header = () => {
       <HeaderTop />
       {!isAdmin ? (
         <NavWrap>
-          <Logo href="/" aria-label="Dao Khung Long Merch home">
-            <LogoMark aria-hidden="true">{"\uD83E\uDD96"}</LogoMark>
+          <Logo href="/" aria-label="Khủng Long Shop home">
+            <LogoMark aria-hidden="true">
+              <Image src="/images/logo.png" alt="" fill sizes="48px" style={{ objectFit: "contain" }} priority />
+            </LogoMark>
             <LogoText>
               <strong>{brandLine}</strong>
               <span>Merch</span>
@@ -323,6 +385,16 @@ const Header = () => {
           </NavLinks>
           <DesktopActions>
             <LanguageSwitcher />
+            {status === "authenticated" ? (
+              <>
+                <AuthLink href="/account">Tài khoản</AuthLink>
+                <AuthButton type="button" onClick={handleLogout}>
+                  Đăng xuất
+                </AuthButton>
+              </>
+            ) : (
+              <AuthLink href="/login">Đăng nhập</AuthLink>
+            )}
             <HeartElement wishQuantity={wishQuantity} />
             <CartElement />
           </DesktopActions>
@@ -335,8 +407,10 @@ const Header = () => {
         </NavWrap>
       ) : (
         <AdminWrap>
-          <Logo href="/" aria-label="Dao Khung Long Merch home">
-            <LogoMark aria-hidden="true">{"\uD83E\uDD96"}</LogoMark>
+          <Logo href="/" aria-label="Khủng Long Shop home">
+            <LogoMark aria-hidden="true">
+              <Image src="/images/logo.png" alt="" fill sizes="48px" style={{ objectFit: "contain" }} priority />
+            </LogoMark>
             <LogoText>
               <strong>{brandLine}</strong>
               <span>Merch</span>
@@ -375,8 +449,10 @@ const Header = () => {
             <DrawerOverlay initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setDrawerOpen(false)} />
             <Drawer initial={{ x: "100%" }} animate={{ x: 0 }} exit={{ x: "100%" }} transition={{ duration: 0.24, ease: smoothEase }}>
               <DrawerTop>
-                <Logo href="/" aria-label="Dao Khung Long Merch home">
-                  <LogoMark aria-hidden="true">{"\uD83E\uDD96"}</LogoMark>
+                <Logo href="/" aria-label="Khủng Long Shop home">
+                  <LogoMark aria-hidden="true">
+                    <Image src="/images/logo.png" alt="" fill sizes="48px" style={{ objectFit: "contain" }} priority />
+                  </LogoMark>
                   <LogoText>
                     <strong>{brandLine}</strong>
                     <span>Merch</span>
@@ -393,6 +469,16 @@ const Header = () => {
                     {link.label}
                   </Link>
                 ))}
+                {status === "authenticated" ? (
+                  <>
+                    <Link href="/account">Tài khoản</Link>
+                    <DrawerAuthButton type="button" onClick={handleLogout}>
+                      Đăng xuất
+                    </DrawerAuthButton>
+                  </>
+                ) : (
+                  <Link href="/login">Đăng nhập</Link>
+                )}
               </DrawerLinks>
               <Actions>
                 <LanguageSwitcher />

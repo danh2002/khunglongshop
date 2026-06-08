@@ -7,6 +7,23 @@ const { handleOrderCollectorItems } = require('../services/collectorService');
 const isCollectorPaymentSuccessStatus = (status) =>
   ['paid', 'completed'].includes(String(status || '').toLowerCase());
 
+async function resolveOrderUserId(userId, email) {
+  if (!userId) {
+    return null;
+  }
+
+  const user = await prisma.user.findUnique({
+    where: { id: String(userId) },
+    select: { id: true, email: true },
+  });
+
+  if (!user || user.email.toLowerCase() !== email.toLowerCase()) {
+    throw new ValidationError('Authenticated user does not match order email', 'userId');
+  }
+
+  return user.id;
+}
+
 async function createCustomerOrder(request, response) {
   try {
     console.log("=== ORDER CREATION REQUEST ===");
@@ -35,6 +52,19 @@ async function createCustomerOrder(request, response) {
 
     const validatedData = validation.validatedData;
     console.log("✅ Validation passed, validated data:", validatedData);
+
+    let orderUserId = null;
+    try {
+      orderUserId = await resolveOrderUserId(request.body.userId, validatedData.email);
+    } catch (ownershipError) {
+      if (ownershipError instanceof ValidationError) {
+        return response.status(403).json({
+          error: "Order ownership validation failed",
+          details: [{ field: ownershipError.field, message: ownershipError.message }]
+        });
+      }
+      throw ownershipError;
+    }
 
     // Additional business logic validation
     if (validatedData.total < 0.01) {
@@ -82,6 +112,7 @@ async function createCustomerOrder(request, response) {
         country: validatedData.country,
         orderNotice: validatedData.orderNotice,
         total: validatedData.total,
+        userId: orderUserId,
         dateTime: new Date()
       },
     });

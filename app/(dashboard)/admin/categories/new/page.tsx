@@ -1,5 +1,5 @@
 "use client";
-import { DashboardSidebar } from "@/components";
+import DashboardSidebar from "@/components/DashboardSidebar";
 import React, { useState } from "react";
 import toast from "react-hot-toast";
 import { convertCategoryNameToURLFriendly } from "../../../../../utils/categoryFormating";

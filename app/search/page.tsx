@@ -7,7 +7,7 @@ import { getServerTranslator } from "@/lib/i18n-server";
 import { toMerchProduct } from "@/lib/merchCatalog";
 
 interface Props {
-  searchParams: { search: string };
+  searchParams: Promise<{ search?: string }>;
 }
 
 // sending api request for search results for a given search text

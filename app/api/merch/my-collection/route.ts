@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { authOptions } from "@/utils/authOptions";
 import prisma from "@/utils/db";
 
 export async function GET() {
   const session = await getServerSession(authOptions);
-  const userId = (session as any)?.user?.id;
+  const userId = session?.user?.id;
 
   if (!userId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -36,11 +36,11 @@ export async function GET() {
     }),
   ]);
 
-  const codesByProductId = new Map<string, (typeof redemptionCodes)[number]>();
+  const usedCodesByProductId = new Map<string, (typeof redemptionCodes)[number]>();
 
   for (const code of redemptionCodes) {
-    if (!codesByProductId.has(code.productId) || !code.isUsed) {
-      codesByProductId.set(code.productId, code);
+    if (code.isUsed && !usedCodesByProductId.has(code.productId)) {
+      usedCodesByProductId.set(code.productId, code);
     }
   }
 
@@ -57,7 +57,8 @@ export async function GET() {
       const slots = Array.from({ length: collectorSet.totalSlots }, (_, index) => {
         const slotNumber = index + 1;
         const product = productsBySlot.get(slotNumber);
-        const code = product ? codesByProductId.get(product.id) : null;
+        const code = product ? usedCodesByProductId.get(product.id) : null;
+        const isUnlocked = Boolean(code);
 
         return {
           slotNumber,
@@ -69,7 +70,8 @@ export async function GET() {
               }
             : null,
           code: code?.code ?? null,
-          isCollected: Boolean(code),
+          isUnlocked,
+          isCollected: isUnlocked,
         };
       });
       const setReward = rewardBySetId.get(collectorSet.id);
@@ -82,7 +84,7 @@ export async function GET() {
           totalSlots: collectorSet.totalSlots,
         },
         slots,
-        isComplete: slots.length === collectorSet.totalSlots && slots.every((slot) => slot.isCollected),
+        isComplete: slots.length === collectorSet.totalSlots && slots.every((slot) => slot.isUnlocked),
         setReward: setReward
           ? {
               rewardCode: setReward.rewardCode,

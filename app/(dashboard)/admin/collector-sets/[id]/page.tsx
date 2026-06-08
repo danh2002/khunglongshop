@@ -7,12 +7,14 @@ async function updateCollectorSet(formData: FormData) {
   "use server";
 
   const id = String(formData.get("id") || "");
+  const totalSlots = Number(formData.get("totalSlots") || 10);
+
   await prisma.collectorSet.update({
     where: { id },
     data: {
       name: String(formData.get("name") || ""),
       description: String(formData.get("description") || "") || null,
-      totalSlots: Number(formData.get("totalSlots") || 0),
+      totalSlots: totalSlots === 10 ? 10 : 10,
       rewardDescription: String(formData.get("rewardDescription") || "") || null,
       rewardCodeTemplate: String(formData.get("rewardCodeTemplate") || "") || null,
     },
@@ -26,6 +28,7 @@ async function saveSlots(formData: FormData) {
 
   const setId = String(formData.get("setId") || "");
   const totalSlots = Number(formData.get("totalSlots") || 0);
+  const selectedProductIds = new Set<string>();
 
   await prisma.product.updateMany({
     where: { setId },
@@ -35,6 +38,10 @@ async function saveSlots(formData: FormData) {
   for (let slotNumber = 1; slotNumber <= totalSlots; slotNumber += 1) {
     const productId = String(formData.get(`slot-${slotNumber}`) || "");
     if (!productId) continue;
+    if (selectedProductIds.has(productId)) {
+      throw new Error("A product can only be assigned to one collector slot");
+    }
+    selectedProductIds.add(productId);
 
     await prisma.product.update({
       where: { id: productId },
@@ -78,7 +85,7 @@ export default async function CollectorSetDetailPage({ params }: { params: Promi
           <input type="hidden" name="id" value={collectorSet.id} />
           <input name="name" defaultValue={collectorSet.name} required className="input input-bordered w-full" />
           <textarea name="description" defaultValue={collectorSet.description || ""} className="textarea textarea-bordered w-full" />
-          <input name="totalSlots" defaultValue={collectorSet.totalSlots} min={1} type="number" required className="input input-bordered w-full" />
+          <input name="totalSlots" defaultValue={10} min={10} max={10} type="number" required className="input input-bordered w-full" />
           <input name="rewardDescription" defaultValue={collectorSet.rewardDescription || ""} className="input input-bordered w-full" />
           <input name="rewardCodeTemplate" defaultValue={collectorSet.rewardCodeTemplate || ""} className="input input-bordered w-full" />
           <button className="uppercase bg-blue-500 px-6 py-3 text-white font-bold hover:bg-blue-600" type="submit">

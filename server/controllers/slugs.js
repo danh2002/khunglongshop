@@ -7,7 +7,8 @@ async function getProductBySlug(request, response) {
       slug: slug,
     },
     include: {
-      category: true
+      category: true,
+      set: true
     },
   });
 

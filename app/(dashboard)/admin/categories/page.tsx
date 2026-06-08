@@ -1,5 +1,6 @@
 "use client";
-import { CustomButton, DashboardSidebar } from "@/components";
+import CustomButton from "@/components/CustomButton";
+import DashboardSidebar from "@/components/DashboardSidebar";
 import { nanoid } from "nanoid";
 import Link from "next/link";
 import React, { useEffect, useState } from "react";

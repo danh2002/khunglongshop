@@ -1,5 +1,5 @@
 "use client";
-import { DashboardSidebar } from "@/components";
+import DashboardSidebar from "@/components/DashboardSidebar";
 import { useRouter } from "next/navigation";
 import React, { useEffect, useState, use } from "react";
 import toast from "react-hot-toast";

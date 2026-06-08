@@ -1,5 +1,6 @@
 "use client";
-import { AdminOrders, DashboardSidebar } from "@/components";
+import AdminOrders from "@/components/AdminOrders";
+import DashboardSidebar from "@/components/DashboardSidebar";
 import React from "react";
 
 const DashboardOrdersPage = () => {

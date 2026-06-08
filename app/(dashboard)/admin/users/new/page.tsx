@@ -1,5 +1,5 @@
 "use client";
-import { DashboardSidebar } from "@/components";
+import DashboardSidebar from "@/components/DashboardSidebar";
 import { isValidEmailAddressFormat } from "@/lib/utils";
 import React, { useState } from "react";
 import toast from "react-hot-toast";
@@ -41,8 +41,8 @@ const DashboardCreateNewUser = () => {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(sanitizedUserInput),
         };
-        ap(`/api/users`, requestOptions)
-          .then((response) => {
+        fetch(`/api/users`, requestOptions)
+          .then((response: Response) => {
             if(response.status === 201){
               return response.json();
 
@@ -51,14 +51,14 @@ const DashboardCreateNewUser = () => {
               throw Error("Error while creating user");
             }
           })
-          .then((data) => {
+          .then(() => {
             toast.success("User added successfully");
             setUserInput({
               email: "",
               password: "",
               role: "user",
             });
-          }).catch(error => {
+          }).catch(() => {
             toast.error("Error while creating user");
           });
       } else {

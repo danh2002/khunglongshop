@@ -6,11 +6,13 @@ import { revalidatePath } from "next/cache";
 async function createCollectorSet(formData: FormData) {
   "use server";
 
+  const totalSlots = Number(formData.get("totalSlots") || 10);
+
   await prisma.collectorSet.create({
     data: {
       name: String(formData.get("name") || ""),
       description: String(formData.get("description") || "") || null,
-      totalSlots: Number(formData.get("totalSlots") || 0),
+      totalSlots: totalSlots === 10 ? 10 : 10,
       rewardDescription: String(formData.get("rewardDescription") || "") || null,
       rewardCodeTemplate: String(formData.get("rewardCodeTemplate") || "") || null,
     },
@@ -68,7 +70,7 @@ export default async function CollectorSetsAdminPage() {
             <form action={createCollectorSet} className="absolute right-0 z-10 mt-3 grid w-[420px] gap-3 bg-white border shadow-lg p-5">
               <input name="name" required placeholder="Name" className="input input-bordered w-full" />
               <textarea name="description" placeholder="Description" className="textarea textarea-bordered w-full" />
-              <input name="totalSlots" required min={1} type="number" placeholder="Total slots" className="input input-bordered w-full" />
+              <input name="totalSlots" required min={10} max={10} type="number" placeholder="Total slots" defaultValue={10} className="input input-bordered w-full" />
               <input name="rewardDescription" placeholder="Reward description" className="input input-bordered w-full" />
               <input name="rewardCodeTemplate" placeholder="Reward code template" className="input input-bordered w-full" />
               <button className="uppercase bg-blue-500 px-6 py-3 text-white font-bold hover:bg-blue-600" type="submit">

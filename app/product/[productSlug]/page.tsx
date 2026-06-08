@@ -14,7 +14,7 @@ import { FaSquareFacebook } from "react-icons/fa6";
 import { FaSquareXTwitter } from "react-icons/fa6";
 import { FaSquarePinterest } from "react-icons/fa6";
 import { sanitize } from "@/lib/sanitize";
-import { toMerchProduct } from "@/lib/merchCatalog";
+import { fallbackMerchProducts, isMerchTemplateImage, toMerchProduct } from "@/lib/merchCatalog";
 import { getServerTranslator } from "@/lib/i18n-server";
 
 interface ImageItem {
@@ -24,29 +24,47 @@ interface ImageItem {
 }
 
 interface SingleProductPageProps {
-  params: Promise<{  productSlug: string, id: string }>;
+  params: Promise<{ productSlug: string }>;
 }
 
 const SingleProductPage = async ({ params }: SingleProductPageProps) => {
   const paramsAwaited = await params;
   const { t } = await getServerTranslator();
-  // sending API request for a single product with a given product slug
-  const data = await apiClient.get(
-    `/api/slugs/${paramsAwaited?.productSlug}`
-  );
-  const product = await data.json();
+  let product: Product | null = null;
+  let images: ImageItem[] = [];
 
-  // sending API request for more than 1 product image if it exists
-  const imagesData = await apiClient.get(
-    `/api/images/${paramsAwaited?.id}`
-  );
-  const images = await imagesData.json();
+  try {
+    const data = await apiClient.get(`/api/slugs/${paramsAwaited.productSlug}`, {
+      cache: "no-store",
+    });
 
-  if (!product || product.error) {
+    if (data.ok) {
+      product = await data.json();
+    }
+  } catch (error) {
+    console.error("Error fetching product by slug:", error);
+  }
+
+  if (!product) {
+    product = fallbackMerchProducts.find((item) => item.slug === paramsAwaited.productSlug) ?? null;
+  }
+
+  if (!product) {
     notFound();
   }
 
-  const displayProduct = product.mainImage?.startsWith("merch/") ? product : toMerchProduct(product);
+  const displayProduct = isMerchTemplateImage(product.mainImage) ? product : toMerchProduct(product);
+
+  if (!product.id.startsWith("fallback-merch-")) {
+    try {
+      const imagesData = await apiClient.get(`/api/images/${product.id}`, {
+        cache: "no-store",
+      });
+      images = imagesData.ok ? await imagesData.json() : [];
+    } catch (error) {
+      console.error("Error fetching product images:", error);
+    }
+  }
 
   return (
     <div className="bg-white">
@@ -78,6 +96,16 @@ const SingleProductPage = async ({ params }: SingleProductPageProps) => {
             <h1 className="text-3xl">{sanitize(displayProduct?.title)}</h1>
             <p className="text-xl font-semibold">${displayProduct?.price}</p>
             <StockAvailabillity stock={94} inStock={displayProduct?.inStock} />
+            {displayProduct?.isCollector && displayProduct.set ? (
+              <div className="rounded-none border border-orange-600/40 bg-black px-4 py-3 text-white">
+                <p className="text-sm font-black uppercase text-orange-500">
+                  Bộ sưu tập: {displayProduct.set.name}
+                </p>
+                <p className="mt-1 text-sm">
+                  Slot {displayProduct.setSlotNumber ?? "-"} / {displayProduct.set.totalSlots}. Sau khi mua, bạn sẽ nhận mã để mở khóa vật phẩm này trong bộ sưu tập.
+                </p>
+              </div>
+            ) : null}
             <SingleProductDynamicFields product={displayProduct} />
             <div className="flex flex-col gap-y-2 max-[500px]:items-center">
              

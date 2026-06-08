@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { authOptions } from "@/utils/authOptions";
 import prisma from "@/utils/db";
 
 export async function GET() {
   const session = await getServerSession(authOptions);
-  const userId = (session as any)?.user?.id;
+  const userId = session?.user?.id;
 
   if (!userId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -59,6 +59,8 @@ export async function GET() {
   return NextResponse.json({
     redemptionCodes: redemptionCodes.map((code) => ({
       ...code,
+      canRedeem: !code.isUsed,
+      redeemedAt: code.usedAt,
       product: productById.get(code.productId)
         ? {
             ...productById.get(code.productId),

@@ -1,5 +1,6 @@
 "use client";
-import { CustomButton, DashboardSidebar, SectionTitle } from "@/components";
+import CustomButton from "@/components/CustomButton";
+import DashboardSidebar from "@/components/DashboardSidebar";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import React, { useEffect, useState, use } from "react";
