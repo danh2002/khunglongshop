@@ -30,6 +30,7 @@ export default function DashboardSingleUserPage({ params }: DashboardUserDetails
   const [role, setRole] = useState<Role>("user");
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [passwordError, setPasswordError] = useState("");
 
   const dependencySummary = useMemo(() => {
     if (!user?.dependencyCounts) return [];
@@ -78,10 +79,18 @@ export default function DashboardSingleUserPage({ params }: DashboardUserDetails
     event.preventDefault();
 
     if (password && password !== confirmPassword) {
+      setPasswordError("Mật khẩu xác nhận không khớp.");
       toast.error("Mật khẩu xác nhận không khớp");
       return;
     }
 
+    if (password && password.length < 6) {
+      setPasswordError("Mật khẩu mới phải có ít nhất 6 ký tự.");
+      toast.error("Mật khẩu mới phải có ít nhất 6 ký tự");
+      return;
+    }
+
+    setPasswordError("");
     setIsSaving(true);
 
     try {
@@ -97,7 +106,9 @@ export default function DashboardSingleUserPage({ params }: DashboardUserDetails
       const payload = await response.json().catch(() => null);
 
       if (!response.ok) {
-        toast.error(payload?.error?.message || "Không thể cập nhật người dùng");
+        const fieldMessage = payload?.error?.fieldErrors?.password?.[0];
+        if (fieldMessage) setPasswordError(fieldMessage);
+        toast.error(fieldMessage || payload?.error?.message || "Không thể cập nhật người dùng");
         return;
       }
 
@@ -178,18 +189,31 @@ export default function DashboardSingleUserPage({ params }: DashboardUserDetails
                   <div className="grid gap-4">
                     <input
                       type="password"
+                      minLength={6}
+                      maxLength={128}
                       value={password}
-                      onChange={(event) => setPassword(event.target.value)}
+                      onChange={(event) => {
+                        setPassword(event.target.value);
+                        setPasswordError("");
+                      }}
                       placeholder="Mật khẩu mới (để trống nếu không đổi)"
                       className="min-h-12 border border-[#e85d00]/40 bg-[#111] px-4 text-white outline-none focus:border-[#e85d00]"
                     />
                     <input
                       type="password"
+                      minLength={6}
+                      maxLength={128}
                       value={confirmPassword}
-                      onChange={(event) => setConfirmPassword(event.target.value)}
+                      onChange={(event) => {
+                        setConfirmPassword(event.target.value);
+                        setPasswordError("");
+                      }}
                       placeholder="Xác nhận mật khẩu mới"
                       className="min-h-12 border border-[#e85d00]/40 bg-[#111] px-4 text-white outline-none focus:border-[#e85d00]"
                     />
+                    <p className={passwordError ? "text-sm text-red-300" : "text-xs text-white/45"}>
+                      {passwordError || "Mật khẩu mới cần ít nhất 6 ký tự."}
+                    </p>
                   </div>
                 </div>
 

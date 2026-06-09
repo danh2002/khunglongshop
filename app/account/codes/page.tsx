@@ -18,9 +18,9 @@ type ProductCode = {
   id: string;
   code: string;
   productId: string;
-  orderId: string;
-  userId: string;
-  isUsed: boolean;
+  orderId: string | null;
+  userId: string | null;
+  status: "ACTIVE" | "REDEEMED" | "DISABLED";
   canRedeem?: boolean;
   redeemedAt?: string | null;
   createdAt: string;
@@ -438,7 +438,7 @@ export default function AccountCodesPage() {
           code.id === item.id
             ? {
                 ...code,
-                isUsed: true,
+                status: "REDEEMED",
                 canRedeem: false,
                 redeemedAt: new Date().toISOString(),
               }
@@ -448,7 +448,7 @@ export default function AccountCodesPage() {
           ? [
               {
                 id: payload.setReward.rewardCode,
-                userId: item.userId,
+                userId: item.userId ?? "",
                 setId: payload.unlockedSlot.setId,
                 rewardCode: payload.setReward.rewardCode,
                 grantedAt: new Date().toISOString(),
@@ -505,8 +505,8 @@ export default function AccountCodesPage() {
               {activeTab === "redemption"
                 ? data.redemptionCodes.map((item, index) => (
                     <CodeCard key={item.id} {...cardMotion(index)}>
-                      <StatusBadge $tone={item.isUsed ? "used" : "active"}>
-                        {item.isUsed ? "ĐÃ DÙNG" : "ACTIVE"}
+                      <StatusBadge $tone={item.status === "REDEEMED" ? "used" : "active"}>
+                        {item.status === "REDEEMED" ? "ĐÃ DÙNG" : item.status}
                       </StatusBadge>
                       <Thumbnail>
                         {item.product?.mainImage ? (
@@ -533,7 +533,7 @@ export default function AccountCodesPage() {
                         <CopyButton type="button" onClick={() => copyCode(item.code)} aria-label="Sao chép mã">
                           <FaRegCopy />
                         </CopyButton>
-                        {!item.isUsed && (
+                        {item.status === "ACTIVE" && (
                           <RedeemButton
                             type="button"
                             onClick={() => redeemProductCode(item)}

@@ -1,5 +1,6 @@
 const express = require("express");
 const router = express.Router();
+const { requireAdminSession } = require("../middleware/adminAuth");
 const {
   getAllMerchants,
   getMerchantById,
@@ -15,12 +16,12 @@ router.get("/", getAllMerchants);
 router.get("/:id", getMerchantById);
 
 // Create a new merchant
-router.post("/", createMerchant);
+router.post("/", requireAdminSession, createMerchant);
 
 // Update a merchant
-router.put("/:id", updateMerchant);
+router.put("/:id", requireAdminSession, updateMerchant);
 
 // Delete a merchant
-router.delete("/:id", deleteMerchant);
+router.delete("/:id", requireAdminSession, deleteMerchant);
 
 module.exports = router;

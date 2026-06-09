@@ -1,97 +1,53 @@
-"use client";
-import CustomButton from "@/components/CustomButton";
-import { nanoid } from "nanoid";
 import Link from "next/link";
-import React, { useEffect, useState } from "react";
-import { formatCategoryName } from "../../../../utils/categoryFormating";
-import apiClient from "@/lib/api";
+import {
+  AdminActionLink,
+  AdminEmptyState,
+  AdminPage,
+  AdminPageHeader,
+  AdminTable,
+  AdminTd,
+  AdminTh,
+} from "@/components/admin/AdminUi";
+import prisma from "@/utils/db";
 
-const DashboardCategory = () => {
-  const [categories, setCategories] = useState<Category[]>([]);
-
-  // getting all categories to be displayed on the all categories page
-  useEffect(() => {
-    apiClient.get("/api/categories")
-      .then((res) => {
-        return res.json();
-      })
-      .then((data) => {
-        setCategories(data);
-      });
-  }, []);
-
+export default async function CategoriesPage() {
+  const categories = await prisma.category.findMany({
+    orderBy: { name: "asc" },
+    include: { _count: { select: { products: true } } },
+  });
   return (
-    <div className="bg-white flex justify-start max-w-screen-2xl mx-auto h-full max-xl:flex-col max-xl:h-fit max-xl:gap-y-4">
-      <div className="w-full">
-        <h1 className="text-3xl font-semibold text-center mb-5">
-          All Categories
-        </h1>
-        <div className="flex justify-end mb-5">
-          <Link href="/admin/categories/new">
-            <CustomButton
-              buttonType="button"
-              customWidth="110px"
-              paddingX={10}
-              paddingY={5}
-              textSize="base"
-              text="Add new category"
-            />
-          </Link>
-        </div>
-        <div className="xl:ml-5 w-full max-xl:mt-5 overflow-auto w-full h-[80vh]">
-          <table className="table table-md table-pin-cols">
-            {/* head */}
-            <thead>
-              <tr>
-                <th>
-                  <label>
-                    <input type="checkbox" className="checkbox" />
-                  </label>
-                </th>
-                <th>Name</th>
-                <th></th>
+    <AdminPage>
+      <AdminPageHeader
+        title="Danh mục"
+        description="Tên tiếng Việt được lưu nguyên bản; danh mục có sản phẩm không thể xóa."
+        action={<AdminActionLink href="/admin/categories/new">Tạo danh mục</AdminActionLink>}
+      />
+      {categories.length ? (
+        <AdminTable>
+          <thead>
+            <tr>
+              <AdminTh>Tên</AdminTh>
+              <AdminTh>Sản phẩm</AdminTh>
+              <AdminTh />
+            </tr>
+          </thead>
+          <tbody>
+            {categories.map((category) => (
+              <tr key={category.id}>
+                <AdminTd>{category.name}</AdminTd>
+                <AdminTd>{category._count.products}</AdminTd>
+                <AdminTd>
+                  <Link className="font-bold text-[#e85d00]" href={`/admin/categories/${category.id}`}>
+                    Chỉnh sửa
+                  </Link>
+                </AdminTd>
               </tr>
-            </thead>
-            <tbody>
-              {categories &&
-                categories.map((category: Category) => (
-                  <tr key={nanoid()}>
-                    <th>
-                      <label>
-                        <input type="checkbox" className="checkbox" />
-                      </label>
-                    </th>
-
-                    <td>
-                      <div>
-                        <p>{formatCategoryName(category?.name)}</p>
-                      </div>
-                    </td>
-
-                    <th>
-                      <Link
-                        href={`/admin/categories/${category?.id}`}
-                        className="btn btn-ghost btn-xs"
-                      >
-                        details
-                      </Link>
-                    </th>
-                  </tr>
-                ))}
-            </tbody>
-            {/* foot */}
-            <tfoot>
-              <tr>
-                <th></th>
-                <th>Name</th>
-                <th></th>
-              </tr>
-            </tfoot>
-          </table>
-        </div>
-      </div>
-    </div>
+            ))}
+          </tbody>
+        </AdminTable>
+      ) : (
+        <AdminEmptyState>Chưa có danh mục.</AdminEmptyState>
+      )}
+    </AdminPage>
   );
-};
-
-export default DashboardCategory;
+}

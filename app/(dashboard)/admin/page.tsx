@@ -1,68 +1,139 @@
-import { StatsElement } from "@/components";
+import Link from "next/link";
+import {
+  AdminMetric,
+  AdminPage,
+  AdminPageHeader,
+  AdminStatusBadge,
+  AdminTable,
+  AdminTd,
+  AdminTh,
+} from "@/components/admin/AdminUi";
 import prisma from "@/utils/db";
-import React from "react";
-import { FaArrowUp } from "react-icons/fa6";
 
-const CollectorStatsCard = ({ title, value }: { title: string; value: number }) => {
-  return (
-    <div className="w-80 h-32 bg-blue-500 text-white flex flex-col justify-center items-center rounded-md max-md:w-full">
-      <h4 className="text-xl text-white text-center">{title}</h4>
-      <p className="text-2xl font-bold">{value}</p>
-      <p className="text-green-300 flex gap-x-1 items-center">
-        <FaArrowUp />
-        Collector system
-      </p>
-    </div>
-  );
-};
-
-const AdminDashboardPage = async () => {
+export default async function AdminDashboardPage() {
   const startOfMonth = new Date();
   startOfMonth.setDate(1);
   startOfMonth.setHours(0, 0, 0, 0);
 
-  const [monthlyCodes, completedSets, claimedRewards] = await Promise.all([
-    prisma.redemptionCode.count({
-      where: {
-        createdAt: {
-          gte: startOfMonth,
-        },
-      },
+  const [
+    orderCount,
+    revenue,
+    userCount,
+    productCount,
+    redeemedCodeCount,
+    completedSetCount,
+    recentOrders,
+    recentRewards,
+  ] = await Promise.all([
+    prisma.customer_order.count({ where: { dateTime: { gte: startOfMonth } } }),
+    prisma.customer_order.aggregate({
+      where: { dateTime: { gte: startOfMonth } },
+      _sum: { total: true },
     }),
-    prisma.setReward.count(),
-    prisma.setReward.count({
-      where: {
-        isClaimed: true,
-      },
+    prisma.user.count({ where: { role: "user", isActive: true } }),
+    prisma.product.count(),
+    prisma.redemptionCode.count({
+      where: { status: "REDEEMED", usedAt: { gte: startOfMonth } },
+    }),
+    prisma.setReward.count({ where: { grantedAt: { gte: startOfMonth } } }),
+    prisma.customer_order.findMany({ orderBy: { dateTime: "desc" }, take: 5 }),
+    prisma.setReward.findMany({
+      orderBy: { grantedAt: "desc" },
+      take: 5,
+      include: { set: true, user: { select: { email: true } } },
     }),
   ]);
 
   return (
-    <div className="bg-white flex justify-start max-w-screen-2xl mx-auto max-xl:flex-col">
-      <div className="flex flex-col items-center ml-5 gap-y-4 w-full max-xl:ml-0 max-xl:px-2 max-xl:mt-5 max-md:gap-y-1">
-        <div className="flex justify-between w-full max-md:flex-col max-md:w-full max-md:gap-y-1">
-          <StatsElement />
-          <StatsElement />
-          <StatsElement />
-        </div>
-        <div className="flex justify-between w-full gap-4 max-md:flex-col max-md:w-full max-md:gap-y-1">
-          <CollectorStatsCard title="Mã phát tháng này" value={monthlyCodes} />
-          <CollectorStatsCard title="Bộ sưu tập hoàn chỉnh" value={completedSets} />
-          <CollectorStatsCard title="Đã đổi vào game" value={claimedRewards} />
-        </div>
-        <div className="w-full bg-blue-500 text-white h-40 flex flex-col justify-center items-center gap-y-2">
-          <h4 className="text-3xl text-gray-100 max-[400px]:text-2xl">
-            Number of visitors today
-          </h4>
-          <p className="text-3xl font-bold">1200</p>
-          <p className="text-green-300 flex gap-x-1 items-center">
-            <FaArrowUp />
-            12.5% Since last month
-          </p>
-        </div>
-      </div>
-    </div>
-  );
-};
+    <AdminPage>
+      <AdminPageHeader
+        title="Tổng quan"
+        description="Tình hình vận hành trong tháng hiện tại."
+      />
+      <section className="grid grid-cols-2 gap-3 xl:grid-cols-3">
+        <AdminMetric label="Đơn hàng" value={orderCount} hint="Tháng hiện tại" />
+        <AdminMetric
+          label="Doanh thu"
+          value={`${(revenue._sum.total ?? 0).toLocaleString("vi-VN")}đ`}
+          hint="Theo tổng đơn hàng"
+        />
+        <AdminMetric label="Khách hàng" value={userCount} />
+        <AdminMetric label="Sản phẩm" value={productCount} />
+        <AdminMetric label="Mã đã mở" value={redeemedCodeCount} hint="Tháng hiện tại" />
+        <AdminMetric label="Bộ hoàn thành" value={completedSetCount} hint="Tháng hiện tại" />
+      </section>
 
-export default AdminDashboardPage;
+      <section className="mt-8">
+        <div className="mb-3 flex items-center justify-between">
+          <h2 className="text-lg font-black uppercase">Đơn hàng mới</h2>
+          <Link className="text-sm font-bold text-[#e85d00]" href="/admin/orders">
+            Xem tất cả
+          </Link>
+        </div>
+        <AdminTable>
+          <thead>
+            <tr>
+              <AdminTh>Mã</AdminTh>
+              <AdminTh>Khách hàng</AdminTh>
+              <AdminTh>Trạng thái</AdminTh>
+              <AdminTh>Tổng</AdminTh>
+              <AdminTh>Ngày</AdminTh>
+            </tr>
+          </thead>
+          <tbody>
+            {recentOrders.map((order) => (
+              <tr key={order.id}>
+                <AdminTd>
+                  <Link className="font-mono text-[#e85d00]" href={`/admin/orders/${order.id}`}>
+                    #{order.id.slice(0, 8)}
+                  </Link>
+                </AdminTd>
+                <AdminTd>{order.email}</AdminTd>
+                <AdminTd>
+                  <AdminStatusBadge tone={order.status === "CANCELLED" ? "danger" : "warning"}>
+                    {order.status}
+                  </AdminStatusBadge>
+                </AdminTd>
+                <AdminTd>{order.total.toLocaleString("vi-VN")}đ</AdminTd>
+                <AdminTd>{order.dateTime?.toLocaleDateString("vi-VN") ?? "-"}</AdminTd>
+              </tr>
+            ))}
+          </tbody>
+        </AdminTable>
+      </section>
+
+      <section className="mt-8">
+        <div className="mb-3 flex items-center justify-between">
+          <h2 className="text-lg font-black uppercase">Phần thưởng mới</h2>
+          <Link className="text-sm font-bold text-[#e85d00]" href="/admin/set-rewards">
+            Xem tất cả
+          </Link>
+        </div>
+        <AdminTable>
+          <thead>
+            <tr>
+              <AdminTh>Mã thưởng</AdminTh>
+              <AdminTh>Người dùng</AdminTh>
+              <AdminTh>Bộ sưu tập</AdminTh>
+              <AdminTh>Trạng thái</AdminTh>
+            </tr>
+          </thead>
+          <tbody>
+            {recentRewards.map((reward) => (
+              <tr key={reward.id}>
+                <AdminTd className="font-mono">{reward.rewardCode}</AdminTd>
+                <AdminTd>{reward.user.email}</AdminTd>
+                <AdminTd>{reward.set.name}</AdminTd>
+                <AdminTd>
+                  <AdminStatusBadge tone={reward.isClaimed ? "success" : "warning"}>
+                    {reward.isClaimed ? "Đã nhận" : "Chờ nhận"}
+                  </AdminStatusBadge>
+                </AdminTd>
+              </tr>
+            ))}
+          </tbody>
+        </AdminTable>
+      </section>
+    </AdminPage>
+  );
+}

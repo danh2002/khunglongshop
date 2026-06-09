@@ -30,7 +30,7 @@ export async function GET() {
     prisma.redemptionCode.findMany({
       where: {
         userId: user.id,
-        isUsed: true,
+        status: "REDEEMED",
       },
       select: {
         productId: true,

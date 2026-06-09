@@ -2,26 +2,15 @@ import { NextRequest, NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
+import { adminUserUpdateSchema } from "@/lib/adminUserValidation";
 import { requireAdminApi } from "@/utils/adminAuth";
 import prisma from "@/utils/db";
-import { commonValidations } from "@/utils/validation";
 
 type RouteContext = {
   params: Promise<{ id: string }>;
 };
 
-const roleSchema = z.enum(["admin", "user"]);
 type PrismaLike = typeof prisma | Prisma.TransactionClient;
-
-const updateUserSchema = z
-  .object({
-    email: commonValidations.email.optional(),
-    password: commonValidations.password.optional().or(z.literal("")),
-    role: roleSchema.optional(),
-  })
-  .refine((value) => value.email || value.password || value.role, {
-    message: "At least one field is required",
-  });
 
 function validationError(error: z.ZodError) {
   return NextResponse.json(
@@ -44,6 +33,7 @@ async function getDependencyCounts(userId: string, client: PrismaLike = prisma) 
     bulkUploadBatchCount,
     redemptionCodeCount,
     setRewardCount,
+    adminAuditLogCount,
   ] = await Promise.all([
     client.customer_order.count({ where: { userId } }),
     client.wishlist.count({ where: { userId } }),
@@ -51,6 +41,7 @@ async function getDependencyCounts(userId: string, client: PrismaLike = prisma) 
     client.bulk_upload_batch.count({ where: { userId } }),
     client.redemptionCode.count({ where: { userId } }),
     client.setReward.count({ where: { userId } }),
+    client.adminAuditLog.count({ where: { actorId: userId } }),
   ]);
 
   return {
@@ -60,6 +51,7 @@ async function getDependencyCounts(userId: string, client: PrismaLike = prisma) 
     bulkUploadBatchCount,
     redemptionCodeCount,
     setRewardCount,
+    adminAuditLogCount,
   };
 }
 
@@ -92,6 +84,8 @@ export async function GET(_request: NextRequest, context: RouteContext) {
       id: true,
       email: true,
       role: true,
+      isActive: true,
+      deactivatedAt: true,
       _count: {
         select: {
           orders: true,
@@ -114,6 +108,8 @@ export async function GET(_request: NextRequest, context: RouteContext) {
     id: user.id,
     email: user.email,
     role: user.role,
+    isActive: user.isActive,
+    deactivatedAt: user.deactivatedAt,
     orderCount: user._count.orders,
     wishlistCount: user._count.Wishlist,
     dependencyCounts,
@@ -126,7 +122,7 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
 
   const { id } = await context.params;
   const body = await request.json().catch(() => null);
-  const parsed = updateUserSchema.safeParse(body);
+  const parsed = adminUserUpdateSchema.safeParse(body);
 
   if (!parsed.success) {
     return validationError(parsed.error);
@@ -136,7 +132,7 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
     const updatedUser = await prisma.$transaction(async (tx) => {
       const existingUser = await tx.user.findUnique({
         where: { id },
-        select: { id: true, email: true, role: true },
+        select: { id: true, email: true, role: true, isActive: true },
       });
 
       if (!existingUser) {
@@ -154,8 +150,14 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
         }
       }
 
-      if (existingUser.role === "admin" && parsed.data.role === "user") {
-        const adminCount = await tx.user.count({ where: { role: "admin" } });
+      const removesAdminAccess =
+        existingUser.role === "admin" &&
+        (parsed.data.role === "user" || parsed.data.isActive === false);
+
+      if (removesAdminAccess) {
+        const adminCount = await tx.user.count({
+          where: { role: "admin", isActive: true },
+        });
 
         if (adminCount <= 1) {
           throw new Error("LAST_ADMIN_FORBIDDEN");
@@ -166,16 +168,28 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
         email?: string;
         password?: string;
         role?: "admin" | "user";
+        isActive?: boolean;
+        deactivatedAt?: Date | null;
       } = {};
 
       if (parsed.data.email) data.email = parsed.data.email;
       if (parsed.data.role) data.role = parsed.data.role;
       if (parsed.data.password) data.password = await bcrypt.hash(parsed.data.password, 14);
+      if (parsed.data.isActive !== undefined) {
+        data.isActive = parsed.data.isActive;
+        data.deactivatedAt = parsed.data.isActive ? null : new Date();
+      }
 
       return tx.user.update({
         where: { id },
         data,
-        select: { id: true, email: true, role: true },
+        select: {
+          id: true,
+          email: true,
+          role: true,
+          isActive: true,
+          deactivatedAt: true,
+        },
       });
     });
 
@@ -246,6 +260,10 @@ export async function DELETE(_request: NextRequest, context: RouteContext) {
 
       const dependencyCounts = await getDependencyCounts(id, tx);
 
+      if (dependencyCounts.adminAuditLogCount > 0) {
+        throw new Error("USER_HAS_AUDIT_HISTORY");
+      }
+
       if (hasDependencies(dependencyCounts)) {
         throw new Error(`USER_HAS_DEPENDENCIES:${JSON.stringify(dependencyCounts)}`);
       }
@@ -266,6 +284,18 @@ export async function DELETE(_request: NextRequest, context: RouteContext) {
     if (message === "LAST_ADMIN_FORBIDDEN") {
       return NextResponse.json(
         { error: { code: "LAST_ADMIN_FORBIDDEN", message: "Không thể xóa admin cuối cùng" } },
+        { status: 409 }
+      );
+    }
+
+    if (message === "USER_HAS_AUDIT_HISTORY") {
+      return NextResponse.json(
+        {
+          error: {
+            code: "USER_HAS_AUDIT_HISTORY",
+            message: "Tài khoản có lịch sử audit; hãy vô hiệu hóa thay vì xóa.",
+          },
+        },
         { status: 409 }
       );
     }

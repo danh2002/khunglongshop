@@ -39,7 +39,7 @@ export async function GET() {
   const usedCodesByProductId = new Map<string, (typeof redemptionCodes)[number]>();
 
   for (const code of redemptionCodes) {
-    if (code.isUsed && !usedCodesByProductId.has(code.productId)) {
+    if (code.status === "REDEEMED" && !usedCodesByProductId.has(code.productId)) {
       usedCodesByProductId.set(code.productId, code);
     }
   }

@@ -58,19 +58,22 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Code not found" }, { status: 404 });
   }
 
-  if (setReward.isClaimed) {
+  const claimed = await prisma.setReward.updateMany({
+    where: { id: setReward.id, isClaimed: false },
+    data: {
+      isClaimed: true,
+      claimedAt: new Date(),
+    },
+  });
+  if (claimed.count !== 1) {
     return NextResponse.json(
       { error: "Code already claimed", claimedAt: setReward.claimedAt },
       { status: 409 }
     );
   }
 
-  const updatedReward = await prisma.setReward.update({
+  const updatedReward = await prisma.setReward.findUniqueOrThrow({
     where: { id: setReward.id },
-    data: {
-      isClaimed: true,
-      claimedAt: new Date(),
-    },
     include: { set: true },
   });
 

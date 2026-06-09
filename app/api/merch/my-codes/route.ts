@@ -59,7 +59,7 @@ export async function GET() {
   return NextResponse.json({
     redemptionCodes: redemptionCodes.map((code) => ({
       ...code,
-      canRedeem: !code.isUsed,
+      canRedeem: code.status === "ACTIVE",
       redeemedAt: code.usedAt,
       product: productById.get(code.productId)
         ? {

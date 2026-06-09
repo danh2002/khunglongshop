@@ -65,6 +65,8 @@ export async function GET(request: NextRequest) {
         id: true,
         email: true,
         role: true,
+        isActive: true,
+        deactivatedAt: true,
         _count: {
           select: {
             orders: true,
@@ -81,6 +83,8 @@ export async function GET(request: NextRequest) {
       id: user.id,
       email: user.email,
       role: user.role,
+      isActive: user.isActive,
+      deactivatedAt: user.deactivatedAt,
       orderCount: user._count.orders,
       wishlistCount: user._count.Wishlist,
     })),

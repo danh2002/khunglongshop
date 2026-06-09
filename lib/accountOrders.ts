@@ -47,15 +47,15 @@ export function getAccountOrderOwnershipWhere(user: SessionUser) {
 export function getStatusRawValues(status: string | null) {
   switch (status) {
     case "placed":
-      return ["pending", "confirmed", "processing", "paid"];
+      return ["PENDING", "PROCESSING"] satisfies OrderStatus[];
     case "packed":
-      return ["packed", "packaged"];
+      return ["PROCESSING"] satisfies OrderStatus[];
     case "shipping":
-      return ["shipping", "shipped", "in_transit"];
+      return ["SHIPPED"] satisfies OrderStatus[];
     case "delivered":
-      return ["delivered", "completed"];
+      return ["DELIVERED"] satisfies OrderStatus[];
     case "canceled":
-      return ["canceled", "cancelled"];
+      return ["CANCELLED"] satisfies OrderStatus[];
     default:
       return null;
   }
@@ -65,3 +65,4 @@ export function toIsoDate(value: Date | string | null | undefined) {
   if (!value) return null;
   return value instanceof Date ? value.toISOString() : new Date(value).toISOString();
 }
+import type { OrderStatus } from "@prisma/client";

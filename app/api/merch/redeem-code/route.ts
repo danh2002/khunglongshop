@@ -70,8 +70,11 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     if (error instanceof CollectorRedeemError) {
-      if (error.code === "ALREADY_USED") {
-        return NextResponse.json({ error: "Code already used" }, { status: 409 });
+      if (error.code === "ALREADY_USED_OR_NOT_OWNED") {
+        return NextResponse.json(
+          { error: "Code already used, disabled, or owned by another user" },
+          { status: 409 }
+        );
       }
 
       if (error.code === "INVALID_COLLECTOR_ITEM") {

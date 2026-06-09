@@ -1,6 +1,7 @@
 const express = require('express');
 
 const router = express.Router();
+const { requireAdminSession } = require('../middleware/adminAuth');
 
 const {
     getCustomerOrder,
@@ -16,8 +17,8 @@ const {
 
   router.route('/:id')
   .get(getCustomerOrder)
-  .put(updateCustomerOrder) 
-  .delete(deleteCustomerOrder); 
+  .put(requireAdminSession, updateCustomerOrder)
+  .delete(requireAdminSession, deleteCustomerOrder);
 
 
   module.exports = router;

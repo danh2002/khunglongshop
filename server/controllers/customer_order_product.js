@@ -43,7 +43,11 @@ const createOrderProduct = asyncHandler(async (request, response) => {
     data: {
       customerOrderId: customerOrderId,
       productId: productId,
-      quantity: parseInt(quantity)
+      quantity: parseInt(quantity),
+      productTitle: existingProduct.title,
+      productSlug: existingProduct.slug,
+      unitPrice: existingProduct.price,
+      snapshotSource: "CHECKOUT"
     }
   });
 
@@ -88,14 +92,27 @@ const updateProductOrder = asyncHandler(async (request, response) => {
     throw new AppError("Quantity must be greater than 0", 400);
   }
 
+  const nextProductId = productId || existingOrder.productId;
+  const nextProduct = productId
+    ? await prisma.product.findUnique({ where: { id: nextProductId } })
+    : null;
+
   const updatedOrder = await prisma.customer_order_product.update({
     where: {
       id: existingOrder.id
     },
     data: {
       customerOrderId: customerOrderId || existingOrder.customerOrderId,
-      productId: productId || existingOrder.productId,
-      quantity: quantity !== undefined ? quantity : existingOrder.quantity
+      productId: nextProductId,
+      quantity: quantity !== undefined ? quantity : existingOrder.quantity,
+      ...(nextProduct
+        ? {
+            productTitle: nextProduct.title,
+            productSlug: nextProduct.slug,
+            unitPrice: nextProduct.price,
+            snapshotSource: "CHECKOUT"
+          }
+        : {})
     }
   });
 

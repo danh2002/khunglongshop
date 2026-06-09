@@ -1,6 +1,7 @@
 const express = require("express");
 
 const router = express.Router();
+const { requireAdminSession } = require("../middleware/adminAuth");
 
 const {
   getCategory,
@@ -10,12 +11,12 @@ const {
   getAllCategories,
 } = require("../controllers/category");
 
-router.route("/").get(getAllCategories).post(createCategory);
+router.route("/").get(getAllCategories).post(requireAdminSession, createCategory);
 
 router
   .route("/:id")
   .get(getCategory)
-  .put(updateCategory)
-  .delete(deleteCategory);
+  .put(requireAdminSession, updateCategory)
+  .delete(requireAdminSession, deleteCategory);
 
 module.exports = router;

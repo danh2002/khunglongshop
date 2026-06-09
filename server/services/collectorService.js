@@ -88,6 +88,8 @@ const handleOrderCollectorItems = async (orderId, userId) => {
           productId: item.productId,
           orderId,
           userId,
+          status: "ACTIVE",
+          isUsed: false,
         },
       });
     }
@@ -106,36 +108,30 @@ const checkSetCompletion = async (userId, setId) => {
     return false;
   }
 
-  const products = await prisma.product.findMany({
-    where: {
-      setId,
-      isCollector: true,
-    },
-    select: {
-      id: true,
-      setSlotNumber: true,
-    },
-  });
-
-  if (products.length !== collectorSet.totalSlots) {
-    return false;
-  }
-
   const usedCodes = await prisma.redemptionCode.findMany({
     where: {
       userId,
-      isUsed: true,
-      productId: {
-        in: products.map((product) => product.id),
+      status: "REDEEMED",
+      product: {
+        setId,
+        isCollector: true,
       },
     },
     select: {
-      productId: true,
+      product: {
+        select: {
+          setSlotNumber: true,
+        },
+      },
     },
   });
-  const unlockedProductIds = new Set(usedCodes.map((code) => code.productId));
+  const unlockedSlots = new Set(
+    usedCodes
+      .map((code) => code.product.setSlotNumber)
+      .filter((slot) => slot !== null)
+  );
 
-  return products.every((product) => unlockedProductIds.has(product.id));
+  return unlockedSlots.size >= collectorSet.totalSlots;
 };
 
 module.exports = {

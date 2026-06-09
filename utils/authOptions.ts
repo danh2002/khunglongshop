@@ -55,7 +55,7 @@ export const authOptions: NextAuthOptions = {
           },
         });
 
-        if (!user?.password) {
+        if (!user?.password || !user.isActive) {
           return null;
         }
 
@@ -86,6 +86,10 @@ export const authOptions: NextAuthOptions = {
               email: user.email!,
             },
           });
+
+          if (existingUser && !existingUser.isActive) {
+            return false;
+          }
 
           if (!existingUser) {
             await prisma.user.create({

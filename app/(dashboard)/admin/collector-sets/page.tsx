@@ -1,122 +1,43 @@
-import prisma from "@/utils/db";
 import Link from "next/link";
-import { revalidatePath } from "next/cache";
+import {
+  AdminEmptyState,
+  AdminPage,
+  AdminPageHeader,
+  AdminTable,
+  AdminTd,
+  AdminTh,
+} from "@/components/admin/AdminUi";
+import CollectorSetCreateForm from "@/components/admin/CollectorSetCreateForm";
+import prisma from "@/utils/db";
 
-async function createCollectorSet(formData: FormData) {
-  "use server";
-
-  const totalSlots = Number(formData.get("totalSlots") || 10);
-
-  await prisma.collectorSet.create({
-    data: {
-      name: String(formData.get("name") || ""),
-      description: String(formData.get("description") || "") || null,
-      totalSlots: totalSlots === 10 ? 10 : 10,
-      rewardDescription: String(formData.get("rewardDescription") || "") || null,
-      rewardCodeTemplate: String(formData.get("rewardCodeTemplate") || "") || null,
-    },
-  });
-
-  revalidatePath("/admin/collector-sets");
-}
-
-async function deleteCollectorSet(formData: FormData) {
-  "use server";
-
-  const id = String(formData.get("id") || "");
-  const blockingOrderItems = await prisma.customer_order_product.count({
-    where: {
-      product: {
-        setId: id,
-      },
-    },
-  });
-
-  if (blockingOrderItems > 0) {
-    throw new Error("Cannot delete collector set with ordered products");
-  }
-
-  await prisma.product.updateMany({
-    where: { setId: id },
-    data: { setId: null, setSlotNumber: null },
-  });
-  await prisma.collectorSet.delete({ where: { id } });
-  revalidatePath("/admin/collector-sets");
-}
-
-export default async function CollectorSetsAdminPage() {
+export default async function CollectorSetsPage() {
   const sets = await prisma.collectorSet.findMany({
     orderBy: { createdAt: "desc" },
-    include: {
-      _count: {
-        select: {
-          products: true,
-        },
-      },
-    },
+    include: { _count: { select: { products: true, setRewards: true } } },
   });
-
   return (
-    <div className="bg-white flex justify-start max-w-screen-2xl mx-auto h-full max-xl:flex-col">
-      <div className="flex flex-col gap-y-6 xl:ml-5 w-full max-xl:px-5">
-        <div className="flex items-center justify-between gap-4">
-          <h1 className="text-3xl font-semibold">Collector Sets</h1>
-          <details className="relative">
-            <summary className="cursor-pointer uppercase bg-blue-500 px-6 py-3 text-white font-bold hover:bg-blue-600">
-              TẠO MỚI
-            </summary>
-            <form action={createCollectorSet} className="absolute right-0 z-10 mt-3 grid w-[420px] gap-3 bg-white border shadow-lg p-5">
-              <input name="name" required placeholder="Name" className="input input-bordered w-full" />
-              <textarea name="description" placeholder="Description" className="textarea textarea-bordered w-full" />
-              <input name="totalSlots" required min={10} max={10} type="number" placeholder="Total slots" defaultValue={10} className="input input-bordered w-full" />
-              <input name="rewardDescription" placeholder="Reward description" className="input input-bordered w-full" />
-              <input name="rewardCodeTemplate" placeholder="Reward code template" className="input input-bordered w-full" />
-              <button className="uppercase bg-blue-500 px-6 py-3 text-white font-bold hover:bg-blue-600" type="submit">
-                Save
-              </button>
-            </form>
-          </details>
-        </div>
-
-        <div className="overflow-x-auto bg-white shadow-md">
-          <table className="table w-full">
-            <thead>
-              <tr>
-                <th>Name</th>
-                <th>Total Slots</th>
-                <th>Assigned Products</th>
-                <th>Created At</th>
-                <th>Actions</th>
+    <AdminPage>
+      <AdminPageHeader
+        title="Bộ sưu tập"
+        description="Mỗi bộ có đúng 10 slot; bộ có lịch sử không thể xóa."
+        action={<CollectorSetCreateForm />}
+      />
+      {sets.length ? (
+        <AdminTable>
+          <thead><tr><AdminTh>Tên</AdminTh><AdminTh>Đã gán</AdminTh><AdminTh>Hoàn thành</AdminTh><AdminTh>Ngày tạo</AdminTh><AdminTh /></tr></thead>
+          <tbody>
+            {sets.map((set) => (
+              <tr key={set.id}>
+                <AdminTd>{set.name}</AdminTd>
+                <AdminTd>{set._count.products}/{set.totalSlots}</AdminTd>
+                <AdminTd>{set._count.setRewards} người dùng</AdminTd>
+                <AdminTd>{set.createdAt.toLocaleDateString("vi-VN")}</AdminTd>
+                <AdminTd><Link className="font-bold text-[#e85d00]" href={`/admin/collector-sets/${set.id}`}>Chi tiết</Link></AdminTd>
               </tr>
-            </thead>
-            <tbody>
-              {sets.map((set) => (
-                <tr key={set.id}>
-                  <td>
-                    <Link href={`/admin/collector-sets/${set.id}`} className="text-blue-600 hover:underline font-semibold">
-                      {set.name}
-                    </Link>
-                  </td>
-                  <td>{set.totalSlots}</td>
-                  <td>{set._count.products}</td>
-                  <td>{set.createdAt.toLocaleDateString()}</td>
-                  <td className="flex gap-2">
-                    <Link href={`/admin/collector-sets/${set.id}`} className="text-blue-600 hover:underline">
-                      SỬA
-                    </Link>
-                    <form action={deleteCollectorSet}>
-                      <input type="hidden" name="id" value={set.id} />
-                      <button className="text-red-600 hover:underline" type="submit">
-                        XÓA
-                      </button>
-                    </form>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
+            ))}
+          </tbody>
+        </AdminTable>
+      ) : <AdminEmptyState>Chưa có bộ sưu tập.</AdminEmptyState>}
+    </AdminPage>
   );
 }

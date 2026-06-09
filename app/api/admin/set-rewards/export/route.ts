@@ -3,7 +3,8 @@ import { requireAdminApi } from "@/utils/adminAuth";
 import prisma from "@/utils/db";
 
 function csvEscape(value: unknown) {
-  const text = String(value ?? "");
+  const raw = String(value ?? "");
+  const text = /^[=+\-@]/.test(raw) ? `'${raw}` : raw;
   return `"${text.replace(/"/g, '""')}"`;
 }
 

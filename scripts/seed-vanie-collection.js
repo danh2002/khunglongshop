@@ -112,6 +112,7 @@ async function main() {
           orderId: "vanie-test-seed",
           userId: user.id,
           isUsed: false,
+          status: "ACTIVE",
           usedAt: null,
         },
         create: {
