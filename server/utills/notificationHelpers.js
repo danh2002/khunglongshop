@@ -16,11 +16,22 @@ const generateId = async () => {
   }
 };
 
+const createNotificationWithLogging = async (createNotification, errorMessage) => {
+  try {
+    const { result, successMessage } = await createNotification();
+    console.log(successMessage);
+    return result;
+  } catch (error) {
+    console.error(errorMessage, error);
+    throw error;
+  }
+};
+
 /**
  * Create an order update notification
  */
 const createOrderUpdateNotification = async (userId, orderStatus, orderId, totalAmount = null) => {
-  try {
+  return createNotificationWithLogging(async () => {
     const statusMessages = {
       'pending': {
         title: 'Order Received',
@@ -79,19 +90,18 @@ const createOrderUpdateNotification = async (userId, orderStatus, orderId, total
       }
     });
 
-    console.log(`✅ Notification created for user ${userId}: ${statusInfo.title}`);
-    return notification;
-  } catch (error) {
-    console.error('❌ Error creating order notification:', error);
-    throw error;
-  }
+    return {
+      result: notification,
+      successMessage: `✅ Notification created for user ${userId}: ${statusInfo.title}`
+    };
+  }, '❌ Error creating order notification:');
 };
 
 /**
  * Create a payment status notification
  */
 const createPaymentNotification = async (userId, paymentStatus, amount, orderId) => {
-  try {
+  return createNotificationWithLogging(async () => {
     const statusMessages = {
       'success': {
         title: 'Payment Successful',
@@ -135,19 +145,18 @@ const createPaymentNotification = async (userId, paymentStatus, amount, orderId)
       }
     });
 
-    console.log(`✅ Payment notification created for user ${userId}: ${statusInfo.title}`);
-    return notification;
-  } catch (error) {
-    console.error('❌ Error creating payment notification:', error);
-    throw error;
-  }
+    return {
+      result: notification,
+      successMessage: `✅ Payment notification created for user ${userId}: ${statusInfo.title}`
+    };
+  }, '❌ Error creating payment notification:');
 };
 
 /**
  * Create a promotional notification
  */
 const createPromotionNotification = async (userId, title, message, promoCode = null, discount = null) => {
-  try {
+  return createNotificationWithLogging(async () => {
     const notificationId = await generateId();
 
     const notification = await prisma.notification.create({
@@ -166,19 +175,18 @@ const createPromotionNotification = async (userId, title, message, promoCode = n
       }
     });
 
-    console.log(`✅ Promotion notification created for user ${userId}: ${title}`);
-    return notification;
-  } catch (error) {
-    console.error('❌ Error creating promotion notification:', error);
-    throw error;
-  }
+    return {
+      result: notification,
+      successMessage: `✅ Promotion notification created for user ${userId}: ${title}`
+    };
+  }, '❌ Error creating promotion notification:');
 };
 
 /**
  * Create a system alert notification
  */
 const createSystemAlertNotification = async (userId, title, message, priority = 'HIGH') => {
-  try {
+  return createNotificationWithLogging(async () => {
     const notificationId = await generateId();
 
     const notification = await prisma.notification.create({
@@ -196,19 +204,18 @@ const createSystemAlertNotification = async (userId, title, message, priority = 
       }
     });
 
-    console.log(`✅ System alert notification created for user ${userId}: ${title}`);
-    return notification;
-  } catch (error) {
-    console.error('❌ Error creating system alert notification:', error);
-    throw error;
-  }
+    return {
+      result: notification,
+      successMessage: `✅ System alert notification created for user ${userId}: ${title}`
+    };
+  }, '❌ Error creating system alert notification:');
 };
 
 /**
  * Bulk create notifications for multiple users
  */
 const createBulkNotifications = async (userIds, title, message, type = 'SYSTEM_ALERT', priority = 'NORMAL', metadata = {}) => {
-  try {
+  return createNotificationWithLogging(async () => {
     // Generate all IDs first
     const notificationData = await Promise.all(
       userIds.map(async (userId) => {
@@ -230,12 +237,11 @@ const createBulkNotifications = async (userIds, title, message, type = 'SYSTEM_A
       data: notificationData
     });
 
-    console.log(`✅ Bulk notifications created for ${userIds.length} users: ${title}`);
-    return notificationData.length;
-  } catch (error) {
-    console.error('❌ Error creating bulk notifications:', error);
-    throw error;
-  }
+    return {
+      result: notificationData.length,
+      successMessage: `✅ Bulk notifications created for ${userIds.length} users: ${title}`
+    };
+  }, '❌ Error creating bulk notifications:');
 };
 
 module.exports = {

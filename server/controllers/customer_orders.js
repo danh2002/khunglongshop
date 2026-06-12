@@ -24,14 +24,11 @@ async function resolveOrderUserId(userId, email) {
   return user.id;
 }
 
+// TODO(manual-review): Split this oversized handler into validation, persistence, and notification orchestration.
 async function createCustomerOrder(request, response) {
   try {
-    console.log("=== ORDER CREATION REQUEST ===");
-    console.log("Request body:", JSON.stringify(request.body, null, 2));
-    
     // Validate request body
     if (!request.body || typeof request.body !== 'object') {
-      console.log("❌ Invalid request body");
       return response.status(400).json({ 
         error: "Invalid request body",
         details: "Request body must be a valid JSON object"
@@ -40,10 +37,7 @@ async function createCustomerOrder(request, response) {
 
     // Server-side validation
     const validation = validateOrderData(request.body);
-    console.log("Validation result:", validation);
-    
     if (!validation.isValid) {
-      console.log("❌ Validation failed:", validation.errors);
       return response.status(400).json({
         error: "Validation failed",
         details: validation.errors
@@ -51,7 +45,6 @@ async function createCustomerOrder(request, response) {
     }
 
     const validatedData = validation.validatedData;
-    console.log("✅ Validation passed, validated data:", validatedData);
 
     let orderUserId = null;
     try {
@@ -68,7 +61,6 @@ async function createCustomerOrder(request, response) {
 
     // Additional business logic validation
     if (validatedData.total <= 0) {
-      console.log("❌ Invalid total amount");
       return response.status(400).json({
         error: "Tổng giá trị đơn hàng không hợp lệ",
         details: [{ field: 'total', message: 'Tổng giá trị đơn hàng phải lớn hơn 0đ' }]
@@ -88,14 +80,12 @@ async function createCustomerOrder(request, response) {
     });
 
     if (duplicateOrder) {
-      console.log("❌ Duplicate order detected (same email, amount, within 1 minute)");
       return response.status(409).json({
         error: "Đơn hàng bị trùng",
         details: "Một đơn hàng giống hệt vừa được tạo. Vui lòng chờ trước khi đặt lại."
       });
     }
 
-    console.log("Creating order in database...");
     // Create the order with validated data
     const corder = await prisma.customer_order.create({
       data: {
@@ -117,35 +107,22 @@ async function createCustomerOrder(request, response) {
       },
     });
 
-    console.log("✅ Order created successfully:", corder);
-    console.log("Order ID:", corder.id);
-
     // Create notification for the user if they have an account
     try {
       let user = null;
       
       // First, try to use userId if provided (from logged-in user)
       if (request.body.userId) {
-        console.log(`🔍 Using provided userId: ${request.body.userId}`);
         user = await prisma.user.findUnique({
           where: { id: request.body.userId }
         });
-        if (user) {
-          console.log(`✅ Found user by ID: ${user.email}`);
-        } else {
-          console.log(`❌ User not found with ID: ${request.body.userId}`);
-        }
       }
       
       // Fallback: search by email if no userId or user not found
       if (!user) {
-        console.log(`🔍 Searching user by email: ${validatedData.email}`);
         user = await prisma.user.findUnique({
           where: { email: validatedData.email }
         });
-        if (user) {
-          console.log(`✅ Found user by email: ${user.email}`);
-        }
       }
       
       if (user) {
@@ -155,17 +132,11 @@ async function createCustomerOrder(request, response) {
           corder.id,
           validatedData.total
         );
-        console.log(`📧 Order confirmation notification sent to user: ${user.email}`);
-      } else {
-        console.log(`ℹ️  No user account found for email: ${validatedData.email} - notification skipped`);
       }
     } catch (notificationError) {
       console.error('❌ Failed to create order notification:', notificationError);
       // Don't fail the order if notification fails
     }
-
-    // Log successful order creation (for monitoring)
-    console.log(`Order created successfully: ID ${corder.id}, Email: ${validatedData.email}, Total: $${validatedData.total}`);
 
     const responseData = {
       id: corder.id,
@@ -173,7 +144,6 @@ async function createCustomerOrder(request, response) {
       orderNumber: corder.id
     };
     
-    console.log("Sending response:", responseData);
     return response.status(201).json(responseData);
 
   } catch (error) {
@@ -203,6 +173,7 @@ async function createCustomerOrder(request, response) {
   }
 }
 
+// TODO(manual-review): Split this oversized handler into validation, persistence, notification, and collector processing.
 async function updateCustomerOrder(request, response) {
   try {
     const { id } = request.params;
@@ -283,7 +254,6 @@ async function updateCustomerOrder(request, response) {
             updatedOrder.id,
             validatedData.total
           );
-          console.log(`📧 Status update notification sent to user: ${user.email} - Status: ${validatedData.status}`);
         }
       } catch (notificationError) {
         console.error('❌ Failed to create status update notification:', notificationError);
@@ -301,9 +271,6 @@ async function updateCustomerOrder(request, response) {
 
         if (user) {
           await handleOrderCollectorItems(updatedOrder.id, user.id);
-          console.log(`Collector redemption codes processed for order: ${updatedOrder.id}`);
-        } else {
-          console.log(`Collector processing skipped; no user account found for email: ${validatedData.email}`);
         }
       } catch (collectorError) {
         console.error('Failed to process collector items:', collectorError);
@@ -312,8 +279,6 @@ async function updateCustomerOrder(request, response) {
     if (existingOrder.userId !== request.user.id) {
       return response.status(403).json({ error: "FORBIDDEN" });
     }
-
-    console.log(`Order updated successfully: ID ${updatedOrder.id}`);
 
     return response.status(200).json(updatedOrder);
   } catch (error) {
@@ -340,6 +305,7 @@ async function updateCustomerOrder(request, response) {
   }
 }
 
+// TODO(manual-review): Split this oversized handler into validation, authorization, and deletion orchestration.
 async function deleteCustomerOrder(request, response) {
   try {
     const { id } = request.params;
@@ -371,7 +337,6 @@ async function deleteCustomerOrder(request, response) {
       },
     });
 
-    console.log(`Order deleted successfully: ID ${id}`);
     return response.status(204).send();
   } catch (error) {
     console.error("Error deleting order:", error);
@@ -427,6 +392,7 @@ async function getCustomerOrder(request, response) {
   }
 }
 
+// TODO(manual-review): Split this oversized handler into pagination validation, querying, and response formatting.
 async function getAllOrders(request, response) {
   try {
     // Add pagination and filtering for better performance

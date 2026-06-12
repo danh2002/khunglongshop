@@ -11,6 +11,48 @@ class ValidationError extends Error {
   }
 }
 
+const SUSPICIOUS_INPUT_PATTERNS = [
+  /<script/i,
+  /javascript:/i,
+  /on\w+\s*=/i,
+  /data:/i,
+];
+
+const DANGEROUS_NAME_PATTERNS = [
+  ...SUSPICIOUS_INPUT_PATTERNS,
+  /<\w+[^>]*>/,
+];
+
+const containsPattern = (value, patterns) =>
+  patterns.some(pattern => pattern.test(value));
+
+const collectValidationError = (errors, error) => {
+  if (!(error instanceof ValidationError)) {
+    return false;
+  }
+
+  errors.push({
+    field: error.field,
+    message: error.message
+  });
+  return true;
+};
+
+const createSafeValidator = (errors, unexpectedErrorMessage, getArguments) =>
+  (validationFn, value, fieldName) => {
+    try {
+      return validationFn(...getArguments(value, fieldName));
+    } catch (error) {
+      if (!collectValidationError(errors, error)) {
+        errors.push({
+          field: fieldName,
+          message: unexpectedErrorMessage
+        });
+      }
+      return null;
+    }
+  };
+
 // Payment validation utilities
 const paymentValidation = {
   // Validate credit card number using Luhn algorithm
@@ -143,14 +185,7 @@ const orderValidation = {
     const trimmedEmail = email.trim().toLowerCase();
     
     // Check for suspicious patterns FIRST (before format validation)
-    const suspiciousPatterns = [
-      /<script/i,
-      /javascript:/i,
-      /on\w+\s*=/i,
-      /data:/i,
-    ];
-    
-    if (suspiciousPatterns.some(pattern => pattern.test(trimmedEmail))) {
+    if (containsPattern(trimmedEmail, SUSPICIOUS_INPUT_PATTERNS)) {
       throw new ValidationError('Email contains invalid characters', 'email');
     }
     
@@ -184,15 +219,7 @@ const orderValidation = {
     }
 
     // Check for dangerous patterns first
-    const dangerousPatterns = [
-      /<script/i,
-      /javascript:/i,
-      /on\w+\s*=/i,
-      /data:/i,
-      /<\w+[^>]*>/,
-    ];
-    
-    if (dangerousPatterns.some(pattern => pattern.test(trimmedName))) {
+    if (containsPattern(trimmedName, DANGEROUS_NAME_PATTERNS)) {
       throw new ValidationError(`${fieldName} contains invalid characters`, fieldName);
     }
 
@@ -244,14 +271,7 @@ const orderValidation = {
     }
 
     // Check for suspicious patterns
-    const suspiciousPatterns = [
-      /<script/i,
-      /javascript:/i,
-      /on\w+\s*=/i,
-      /data:/i,
-    ];
-    
-    if (suspiciousPatterns.some(pattern => pattern.test(trimmedAddress))) {
+    if (containsPattern(trimmedAddress, SUSPICIOUS_INPUT_PATTERNS)) {
       throw new ValidationError(`${fieldName} contains invalid characters`, fieldName);
     }
 
@@ -321,26 +341,11 @@ const validateOrderData = (orderData) => {
   const errors = [];
   const validatedData = {};
 
-  // Helper function to safely validate a field
-  const safeValidate = (validationFn, value, fieldName) => {
-    try {
-      return validationFn(value, fieldName);
-    } catch (error) {
-      if (error instanceof ValidationError) {
-        errors.push({
-          field: error.field,
-          message: error.message
-        });
-        return null;
-      } else {
-        errors.push({
-          field: fieldName,
-          message: 'Validation error occurred'
-        });
-        return null;
-      }
-    }
-  };
+  const safeValidate = createSafeValidator(
+    errors,
+    'Validation error occurred',
+    (value, fieldName) => [value, fieldName]
+  );
 
   // Validate all required fields - ALL will be checked regardless of previous errors
   validatedData.name = safeValidate(orderValidation.validateName, orderData.name, 'name');
@@ -372,26 +377,11 @@ const validatePaymentData = (paymentData) => {
   const errors = [];
   const validatedData = {};
 
-  // Helper function to safely validate payment fields
-  const safeValidatePayment = (validationFn, value, fieldName) => {
-    try {
-      return validationFn(value, paymentData.cardNumber);
-    } catch (error) {
-      if (error instanceof ValidationError) {
-        errors.push({
-          field: error.field,
-          message: error.message
-        });
-        return null;
-      } else {
-        errors.push({
-          field: fieldName,
-          message: 'Payment validation error occurred'
-        });
-        return null;
-      }
-    }
-  };
+  const safeValidatePayment = createSafeValidator(
+    errors,
+    'Payment validation error occurred',
+    (value) => [value, paymentData.cardNumber]
+  );
 
   if (paymentData.cardNumber) {
     validatedData.cardNumber = safeValidatePayment(paymentValidation.validateCardNumber, paymentData.cardNumber, 'cardNumber');
@@ -405,12 +395,7 @@ const validatePaymentData = (paymentData) => {
     try {
       validatedData.expDate = paymentValidation.validateExpirationDate(paymentData.expDate);
     } catch (error) {
-      if (error instanceof ValidationError) {
-        errors.push({
-          field: error.field,
-          message: error.message
-        });
-      }
+      collectValidationError(errors, error);
     }
   }
   
@@ -418,12 +403,7 @@ const validatePaymentData = (paymentData) => {
     try {
       validatedData.cardholderName = paymentValidation.validateCardholderName(paymentData.cardholderName);
     } catch (error) {
-      if (error instanceof ValidationError) {
-        errors.push({
-          field: error.field,
-          message: error.message
-        });
-      }
+      collectValidationError(errors, error);
     }
   }
 

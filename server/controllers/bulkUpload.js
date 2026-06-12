@@ -14,7 +14,6 @@ const {
 const uploadCsvAndCreateBatch = asyncHandler(async (req, res) => {
   console.log("📦 Bulk upload request received");
   console.log("Files:", req.files);
-  console.log("Body:", req.body);
   console.log("Headers:", req.headers);
 
   const csvFile = req.files?.file;
@@ -160,6 +159,87 @@ const updateBatchItems = asyncHandler(async (req, res) => {
   return res.json({ updatedCount: updated.length, items: updated });
 });
 
+async function findBatchOrThrow(batchId) {
+  const batch = await prisma.bulk_upload_batch.findUnique({
+    where: { id: batchId },
+  });
+
+  if (!batch) {
+    throw new AppError("Batch not found", 404);
+  }
+
+  return batch;
+}
+
+async function ensureBatchProductsCanBeDeleted(batchId) {
+  console.log("🔍 Checking if products can be deleted...");
+  const check = await canDeleteProductsForBatch(prisma, batchId);
+  console.log("Check result:", check);
+
+  if (check.canDelete) {
+    return;
+  }
+
+  const errorMsg =
+    check.blockedProductIds && check.blockedProductIds.length > 0
+      ? `Cannot delete products: ${
+          check.reason
+        }. Products in orders: ${check.blockedProductIds.join(", ")}`
+      : `Cannot delete products: ${check.reason || "Unknown error"}`;
+
+  throw new AppError(errorMsg, 409);
+}
+
+async function findProductIdsForBatch(tx, batchId) {
+  const items = await tx.bulk_upload_item.findMany({
+    where: { batchId, productId: { not: null } },
+    select: { productId: true },
+  });
+
+  return items.map((item) => item.productId).filter(Boolean);
+}
+
+async function deleteBatchProducts(tx, productIds) {
+  console.log(`🗑️ Deleting ${productIds.length} products`);
+
+  if (productIds.length > 0) {
+    const deletedProducts = await tx.product.deleteMany({
+      where: { id: { in: productIds } },
+    });
+    console.log(`✅ Deleted ${deletedProducts.count} products`);
+  }
+}
+
+async function deleteBatchItems(tx, batchId) {
+  const deletedItems = await tx.bulk_upload_item.deleteMany({
+    where: { batchId },
+  });
+  console.log(`✅ Deleted ${deletedItems.count} items`);
+}
+
+async function deleteBatchRecord(tx, batchId) {
+  await tx.bulk_upload_batch.delete({
+    where: { id: batchId },
+  });
+  console.log(`✅ Deleted batch`);
+}
+
+async function deleteBatchAndProducts(batchId) {
+  await prisma.$transaction(async (tx) => {
+    const productIds = await findProductIdsForBatch(tx, batchId);
+    await deleteBatchProducts(tx, productIds);
+    await deleteBatchItems(tx, batchId);
+    await deleteBatchRecord(tx, batchId);
+  });
+}
+
+async function deleteBatchWhileKeepingProducts(batchId) {
+  await prisma.$transaction(async (tx) => {
+    await deleteBatchItems(tx, batchId);
+    await deleteBatchRecord(tx, batchId);
+  });
+}
+
 // DELETE /api/bulk-upload/:batchId?deleteProducts=true/false
 const deleteBatch = asyncHandler(async (req, res) => {
   const { batchId } = req.params;
@@ -171,62 +251,11 @@ const deleteBatch = asyncHandler(async (req, res) => {
     `🗑️ Deleting batch ${batchId}, deleteProducts: ${deleteProducts}`
   );
 
-  // Check if batch exists
-  const batch = await prisma.bulk_upload_batch.findUnique({
-    where: { id: batchId },
-  });
-
-  if (!batch) {
-    throw new AppError("Batch not found", 404);
-  }
+  await findBatchOrThrow(batchId);
 
   if (deleteProducts) {
-    // Check if products can be deleted (not in orders)
-    console.log("🔍 Checking if products can be deleted...");
-    const check = await canDeleteProductsForBatch(prisma, batchId);
-    console.log("Check result:", check);
-
-    if (!check.canDelete) {
-      const errorMsg =
-        check.blockedProductIds && check.blockedProductIds.length > 0
-          ? `Cannot delete products: ${
-              check.reason
-            }. Products in orders: ${check.blockedProductIds.join(", ")}`
-          : `Cannot delete products: ${check.reason || "Unknown error"}`;
-
-      throw new AppError(errorMsg, 409);
-    }
-
-    // Delete batch + items + products
-    await prisma.$transaction(async (tx) => {
-      const items = await tx.bulk_upload_item.findMany({
-        where: { batchId, productId: { not: null } },
-        select: { productId: true },
-      });
-
-      const productIds = items.map((i) => i.productId).filter(Boolean);
-      console.log(`🗑️ Deleting ${productIds.length} products`);
-
-      if (productIds.length > 0) {
-        // Delete products
-        const deletedProducts = await tx.product.deleteMany({
-          where: { id: { in: productIds } },
-        });
-        console.log(`✅ Deleted ${deletedProducts.count} products`);
-      }
-
-      // Delete bulk_upload_items (cascade will handle this, but explicit is better)
-      const deletedItems = await tx.bulk_upload_item.deleteMany({
-        where: { batchId },
-      });
-      console.log(`✅ Deleted ${deletedItems.count} items`);
-
-      // Delete batch
-      await tx.bulk_upload_batch.delete({
-        where: { id: batchId },
-      });
-      console.log(`✅ Deleted batch`);
-    });
+    await ensureBatchProductsCanBeDeleted(batchId);
+    await deleteBatchAndProducts(batchId);
 
     console.log(`✅ Batch and products deleted successfully`);
     return res.status(200).json({
@@ -235,20 +264,7 @@ const deleteBatch = asyncHandler(async (req, res) => {
       deletedProducts: true,
     });
   } else {
-    // Delete batch + items only, keep products
-    await prisma.$transaction(async (tx) => {
-      // Delete items
-      const deletedItems = await tx.bulk_upload_item.deleteMany({
-        where: { batchId },
-      });
-      console.log(`✅ Deleted ${deletedItems.count} items`);
-
-      // Delete batch
-      await tx.bulk_upload_batch.delete({
-        where: { id: batchId },
-      });
-      console.log(`✅ Deleted batch`);
-    });
+    await deleteBatchWhileKeepingProducts(batchId);
 
     console.log(`✅ Batch deleted (products kept)`);
     return res.status(200).json({

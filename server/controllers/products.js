@@ -23,6 +23,40 @@ function parseProductImages(images) {
   }
 }
 
+// Response formatting
+function formatProductWithImages(product) {
+  return {
+    ...product,
+    images: parseProductImages(product.images),
+  };
+}
+
+function formatPublicProduct(product) {
+  return {
+    id: product.id,
+    slug: product.slug,
+    title: product.title,
+    price: product.price,
+    mainImage: product.mainImage.startsWith("/")
+      ? product.mainImage
+      : `/${product.mainImage}`,
+    inStock: product.inStock > 0,
+    categoryId: product.categoryId,
+    setId: product.setId,
+    rarityTier: null,
+  };
+}
+
+function formatPublicProductList(products, page, total, pageSize) {
+  return {
+    products: products.map(formatPublicProduct),
+    page,
+    total,
+    totalPages: Math.ceil(total / pageSize),
+    pageSize,
+  };
+}
+
 // Security: Input validation functions
 function validateFilterType(filterType) {
   return ALLOWED_FILTER_TYPES.includes(filterType);
@@ -86,6 +120,81 @@ function buildSafeFilterObject(filterArray) {
   return filterObj;
 }
 
+// Database queries
+function findPublicProducts(where, page, pageSize) {
+  return Promise.all([
+    prisma.product.findMany({
+      where,
+      orderBy: [{ title: "asc" }, { id: "asc" }],
+      skip: (page - 1) * pageSize,
+      take: pageSize,
+    }),
+    prisma.product.count({ where }),
+  ]);
+}
+
+function findAllProductsWithCategory() {
+  return prisma.product.findMany({
+    include: {
+      category: {
+        select: {
+          name: true,
+        },
+      },
+    },
+  });
+}
+
+function createProductRecord(productData) {
+  return prisma.product.create({ data: productData });
+}
+
+function findProductById(id, includeCategory = false) {
+  return prisma.product.findUnique({
+    where: { id },
+    ...(includeCategory && { include: { category: true } }),
+  });
+}
+
+function updateProductRecord(id, productData) {
+  return prisma.product.update({
+    where: { id },
+    data: productData,
+  });
+}
+
+function findOrderItemsByProductId(productId) {
+  return prisma.customer_order_product.findMany({
+    where: { productId },
+  });
+}
+
+function deleteProductRecord(id) {
+  return prisma.product.delete({
+    where: { id },
+  });
+}
+
+function findProductsBySearchQuery(query) {
+  return prisma.product.findMany({
+    where: {
+      OR: [
+        {
+          title: {
+            contains: query,
+          },
+        },
+        {
+          description: {
+            contains: query,
+          },
+        },
+      ],
+    },
+  });
+}
+
+// TODO(manual-review): Handles query validation, pagination, catalog policy, and response orchestration.
 const getAllProducts = asyncHandler(async (request, response) => {
   if (Object.prototype.hasOwnProperty.call(request.query, "mode")) {
     return response.status(400).json({ error: "UNSUPPORTED_QUERY_PARAMETER" });
@@ -99,55 +208,22 @@ const getAllProducts = asyncHandler(async (request, response) => {
     isCollector: false,
     slug: "vanie-blind-box",
   };
-  const [products, total] = await Promise.all([
-    prisma.product.findMany({
-      where,
-      orderBy: [{ title: "asc" }, { id: "asc" }],
-      skip: (page - 1) * pageSize,
-      take: pageSize,
-    }),
-    prisma.product.count({ where }),
-  ]);
+  const [products, total] = await findPublicProducts(where, page, pageSize);
 
-  return response.json({
-    products: products.map((product) => ({
-      id: product.id,
-      slug: product.slug,
-      title: product.title,
-      price: product.price,
-      mainImage: product.mainImage.startsWith("/")
-        ? product.mainImage
-        : `/${product.mainImage}`,
-      inStock: product.inStock > 0,
-      categoryId: product.categoryId,
-      setId: product.setId,
-      rarityTier: null,
-    })),
-    page,
-    total,
-    totalPages: Math.ceil(total / pageSize),
-    pageSize,
-  });
-});
-
-const getAllProductsOld = asyncHandler(async (request, response) => {
-  const products = await prisma.product.findMany({
-    include: {
-      category: {
-        select: {
-          name: true,
-        },
-      },
-    },
-  });
-  response.status(200).json(
-    products.map((product) => ({
-      ...product,
-      images: parseProductImages(product.images),
-    }))
+  return response.json(
+    formatPublicProductList(products, page, total, pageSize)
   );
 });
 
+// TODO(manual-review): Confirm consumers, then retire this legacy unexported handler.
+const getAllProductsOld = asyncHandler(async (request, response) => {
+  const products = await findAllProductsWithCategory();
+  response.status(200).json(
+    products.map(formatProductWithImages)
+  );
+});
+
+// TODO(manual-review): Handles request validation, persistence, and response formatting.
 const createProduct = asyncHandler(async (request, response) => {
   const {
     merchantId,
@@ -183,28 +259,24 @@ const createProduct = asyncHandler(async (request, response) => {
     throw new AppError("Missing required field: categoryId", 400);
   }
 
-  const product = await prisma.product.create({
-    data: {
-      merchantId,
-      slug,
-      title,
-      mainImage,
-      images: serializeProductImages(images),
-      price,
-      rating: 5,
-      description,
-      manufacturer,
-      categoryId,
-      inStock,
-    },
+  const product = await createProductRecord({
+    merchantId,
+    slug,
+    title,
+    mainImage,
+    images: serializeProductImages(images),
+    price,
+    rating: 5,
+    description,
+    manufacturer,
+    categoryId,
+    inStock,
   });
-  return response.status(201).json({
-    ...product,
-    images: parseProductImages(product.images),
-  });
+  return response.status(201).json(formatProductWithImages(product));
 });
 
 // Method for updating existing product
+// TODO(manual-review): Handles validation, existence checks, persistence, and response formatting.
 const updateProduct = asyncHandler(async (request, response) => {
   const { id } = request.params;
   const {
@@ -227,45 +299,34 @@ const updateProduct = asyncHandler(async (request, response) => {
   }
 
   // Finding a product by id
-  const existingProduct = await prisma.product.findUnique({
-    where: {
-      id,
-    },
-  });
+  const existingProduct = await findProductById(id);
 
   if (!existingProduct) {
     throw new AppError("Product not found", 404);
   }
 
   // Updating found product
-  const updatedProduct = await prisma.product.update({
-    where: {
-      id,
-    },
-    data: {
-      merchantId: merchantId,
-      title: title,
-      mainImage: mainImage,
-      images: Array.isArray(images)
-        ? serializeProductImages(images)
-        : existingProduct.images,
-      slug: slug,
-      price: price,
-      rating: rating,
-      description: description,
-      manufacturer: manufacturer,
-      categoryId: categoryId,
-      inStock: inStock,
-    },
+  const updatedProduct = await updateProductRecord(id, {
+    merchantId: merchantId,
+    title: title,
+    mainImage: mainImage,
+    images: Array.isArray(images)
+      ? serializeProductImages(images)
+      : existingProduct.images,
+    slug: slug,
+    price: price,
+    rating: rating,
+    description: description,
+    manufacturer: manufacturer,
+    categoryId: categoryId,
+    inStock: inStock,
   });
 
-  return response.status(200).json({
-    ...updatedProduct,
-    images: parseProductImages(updatedProduct.images),
-  });
+  return response.status(200).json(formatProductWithImages(updatedProduct));
 });
 
 // Method for deleting a product
+// TODO(manual-review): Handles validation, relationship checks, deletion, and response orchestration.
 const deleteProduct = asyncHandler(async (request, response) => {
   const { id } = request.params;
 
@@ -274,24 +335,17 @@ const deleteProduct = asyncHandler(async (request, response) => {
   }
 
   // Check for related records in order_product table
-  const relatedOrderProductItems = await prisma.customer_order_product.findMany({
-    where: {
-      productId: id,
-    },
-  });
+  const relatedOrderProductItems = await findOrderItemsByProductId(id);
   
   if(relatedOrderProductItems.length > 0){
     throw new AppError("Cannot delete product because of foreign key constraint", 400);
   }
 
-  await prisma.product.delete({
-    where: {
-      id,
-    },
-  });
+  await deleteProductRecord(id);
   return response.status(204).send();
 });
 
+// TODO(manual-review): Handles query validation, search construction, and response orchestration.
 const searchProducts = asyncHandler(async (request, response) => {
   const { query } = request.query;
   
@@ -299,26 +353,12 @@ const searchProducts = asyncHandler(async (request, response) => {
     throw new AppError("Query parameter is required", 400);
   }
 
-  const products = await prisma.product.findMany({
-    where: {
-      OR: [
-        {
-          title: {
-            contains: query,
-          },
-        },
-        {
-          description: {
-            contains: query,
-          },
-        },
-      ],
-    },
-  });
+  const products = await findProductsBySearchQuery(query);
 
   return response.json(products);
 });
 
+// TODO(manual-review): Handles validation, lookup, storefront policy, and response formatting.
 const getProductById = asyncHandler(async (request, response) => {
   const { id } = request.params;
   
@@ -326,12 +366,7 @@ const getProductById = asyncHandler(async (request, response) => {
     throw new AppError("Product ID is required", 400);
   }
 
-  const product = await prisma.product.findUnique({
-    where: { id },
-    include: {
-      category: true,
-    },
-  });
+  const product = await findProductById(id, true);
   
   if (!product) {
     throw new AppError("Product not found", 404);
@@ -345,10 +380,7 @@ const getProductById = asyncHandler(async (request, response) => {
     throw new AppError("Product not found", 404);
   }
   
-  return response.status(200).json({
-    ...product,
-    images: parseProductImages(product.images),
-  });
+  return response.status(200).json(formatProductWithImages(product));
 });
 
 module.exports = {
