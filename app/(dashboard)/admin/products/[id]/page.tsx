@@ -25,14 +25,22 @@ export default function DashboardProductDetails({ params }: DashboardProductDeta
   const { id } = use(params);
   const router = useRouter();
   const [product, setProduct] = useState<ProductDetail | null>(null);
+  const [savedProduct, setSavedProduct] = useState<ProductFormValues | null>(null);
   const [references, setReferences] = useState<ProductReferenceData>(emptyReferences);
   const [isSaving, setIsSaving] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
   const dependencySummary = useMemo(() => {
     if (!product?.dependencyCounts) return [];
     return Object.entries(product.dependencyCounts).filter(([, count]) => count > 0);
   }, [product]);
+  const hasUnsavedChanges = useMemo(() => {
+    if (!product || !savedProduct) return false;
+
+    const { id: _id, dependencyCounts: _dependencyCounts, ...formValues } = product;
+    return JSON.stringify(formValues) !== JSON.stringify(savedProduct);
+  }, [product, savedProduct]);
 
   useEffect(() => {
     let mounted = true;
@@ -51,7 +59,13 @@ export default function DashboardProductDetails({ params }: DashboardProductDeta
         const referencesPayload = (await referencesResponse.json()) as ProductReferenceData;
 
         if (mounted) {
-          setProduct(productPayload);
+          const normalizedProduct = {
+            ...productPayload,
+            images: Array.isArray(productPayload.images) ? productPayload.images : [],
+          };
+          const { id: _id, dependencyCounts: _dependencyCounts, ...formValues } = normalizedProduct;
+          setProduct(normalizedProduct);
+          setSavedProduct(formValues);
           setReferences(referencesPayload);
         }
       } catch (error) {
@@ -69,7 +83,7 @@ export default function DashboardProductDetails({ params }: DashboardProductDeta
 
   async function updateProduct(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!product) return;
+    if (!product || isUploading) return;
 
     setIsSaving(true);
     try {
@@ -81,12 +95,21 @@ export default function DashboardProductDetails({ params }: DashboardProductDeta
       const payload = await response.json().catch(() => null);
 
       if (!response.ok) {
-        toast.error(payload?.error?.message || "Không thể cập nhật sản phẩm");
+        const firstFieldError = Object.values(
+          (payload?.error?.fieldErrors ?? {}) as Record<string, string[]>
+        ).flat()[0];
+        toast.error(firstFieldError || payload?.error?.message || "Không thể cập nhật sản phẩm");
         return;
       }
 
-      toast.success("Đã cập nhật sản phẩm");
-      setProduct((current) => (current ? { ...current, ...payload } : current));
+      toast.success("Đã lưu sản phẩm");
+      setProduct((current) => {
+        if (!current) return current;
+        const updatedProduct = { ...current, ...payload, images: Array.isArray(payload.images) ? payload.images : [] };
+        const { id: _id, dependencyCounts: _dependencyCounts, ...formValues } = updatedProduct;
+        setSavedProduct(formValues);
+        return updatedProduct;
+      });
     } catch (error) {
       toast.error("Không thể cập nhật sản phẩm");
     } finally {
@@ -118,7 +141,14 @@ export default function DashboardProductDetails({ params }: DashboardProductDeta
             <Link href="/admin/products" className="text-sm font-black uppercase text-[#e85d00]">
               Quay lại danh sách
             </Link>
-            <h1 className="mt-3 text-3xl font-black uppercase italic">Chi tiết sản phẩm</h1>
+            <div className="mt-3 flex flex-wrap items-center gap-3">
+              <h1 className="text-3xl font-black uppercase italic">Chi tiết sản phẩm</h1>
+              {hasUnsavedChanges ? (
+                <span className="border border-[#e85d00]/50 bg-[#e85d00]/10 px-3 py-1 text-xs font-black uppercase text-[#e85d00]">
+                  ● Chưa lưu
+                </span>
+              ) : null}
+            </div>
           </div>
 
           {isLoading ? (
@@ -135,6 +165,7 @@ export default function DashboardProductDetails({ params }: DashboardProductDeta
                 submitLabel="Lưu thay đổi"
                 onChange={(value) => setProduct((current) => (current ? { ...current, ...value } : current))}
                 onSubmit={updateProduct}
+                onUploadingChange={setIsUploading}
               />
               <aside className="border border-[#e85d00]/25 bg-white/[0.03] p-5">
                 <h2 className="text-lg font-black uppercase italic">Bảo vệ dữ liệu</h2>

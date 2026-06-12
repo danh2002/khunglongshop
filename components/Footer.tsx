@@ -1,161 +1,101 @@
 "use client";
 
 import Link from "next/link";
-import React from "react";
 import styled from "styled-components";
-import { useI18n } from "./LanguageProvider";
+import LanguageSwitcher from "./LanguageSwitcher";
 
 const FooterShell = styled.footer`
-  position: relative;
-  overflow: hidden;
-  background: #070707;
-  border-top: 1px solid rgba(255, 106, 0, 0.22);
+  border-top: 1px solid #1a1a1a;
+  background: #050505;
+  padding: 64px 48px 32px;
 
-  &::before {
-    content: "";
-    position: absolute;
-    inset: 0;
-    pointer-events: none;
-    background:
-      radial-gradient(circle at 16% 0%, rgba(255, 106, 0, 0.16), transparent 30%),
-      linear-gradient(180deg, rgba(255, 106, 0, 0.06), transparent 34%);
+  @media (max-width: 768px) {
+    padding: 56px 24px 28px;
   }
 `;
 
 const Inner = styled.div`
-  position: relative;
-  width: min(100%, 1180px);
+  width: min(100%, 1440px);
   margin: 0 auto;
-  padding: clamp(3rem, 6vw, 5rem) clamp(1rem, 3vw, 2rem) 2rem;
 `;
 
-const Top = styled.div`
+const Columns = styled.div`
   display: grid;
-  grid-template-columns: minmax(260px, 0.95fr) 2fr;
-  gap: clamp(2rem, 5vw, 4.5rem);
+  grid-template-columns: 1.35fr 0.8fr 0.8fr 1fr;
+  gap: 48px;
 
-  @media (max-width: 820px) {
+  @media (max-width: 920px) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  @media (max-width: 560px) {
     grid-template-columns: 1fr;
   }
 `;
 
-const BrandBlock = styled.div`
-  display: grid;
-  gap: 1rem;
-  align-content: start;
-`;
-
 const Brand = styled(Link)`
-  color: #e85d00;
-  font-size: clamp(1.65rem, 3.4vw, 2.65rem);
-  font-style: italic;
+  color: #ffffff;
+  font-size: 22px;
   font-weight: 900;
-  line-height: 0.95;
+  letter-spacing: 1px;
   text-decoration: none;
   text-transform: uppercase;
-
-  span {
-    display: block;
-    color: rgba(255, 255, 255, 0.9);
-  }
-
-  &:focus-visible {
-    outline: 2px solid #f47912;
-    outline-offset: 5px;
-  }
 `;
 
-const Description = styled.p`
-  max-width: 29rem;
-  margin: 0;
-  color: rgba(255, 255, 255, 0.56);
-  font-size: 0.92rem;
+const Tagline = styled.p`
+  max-width: 360px;
+  margin: 16px 0 0;
+  color: #666666;
+  font-size: 13px;
   line-height: 1.8;
 `;
 
 const Socials = styled.div`
   display: flex;
   flex-wrap: wrap;
-  gap: 0.65rem;
-  margin-top: 0.25rem;
-`;
+  gap: 16px;
+  margin-top: 22px;
 
-const SocialLink = styled.a`
-  display: inline-grid;
-  min-width: 42px;
-  height: 42px;
-  place-items: center;
-  padding: 0 0.8rem;
-  background: rgba(255, 255, 255, 0.035);
-  border: 1px solid rgba(255, 106, 0, 0.16);
-  color: rgba(255, 255, 255, 0.72);
-  font-size: 0.68rem;
-  font-style: italic;
-  font-weight: 900;
-  text-decoration: none;
-  text-transform: uppercase;
-  transition: transform 180ms ease, border-color 180ms ease, color 180ms ease, background 180ms ease;
-
-  &:hover {
-    background: rgba(232, 93, 0, 0.1);
-    border-color: rgba(255, 106, 0, 0.38);
-    color: #f47912;
-    transform: translateY(-2px);
+  a {
+    color: #777777;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-decoration: none;
+    text-transform: uppercase;
   }
 
-  &:focus-visible {
-    outline: 2px solid #f47912;
-    outline-offset: 4px;
+  a:hover {
+    color: #ffffff;
   }
 `;
 
-const Columns = styled.nav`
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: clamp(1rem, 3vw, 2rem);
-
-  @media (max-width: 820px) {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  @media (max-width: 460px) {
-    grid-template-columns: 1fr;
-  }
-`;
-
-const ColumnTitle = styled.h3`
-  margin: 0 0 1rem;
-  color: rgba(255, 255, 255, 0.9);
-  font-size: 0.76rem;
-  font-style: italic;
-  font-weight: 900;
-  letter-spacing: 0.04rem;
+const Heading = styled.h3`
+  margin: 0 0 20px;
+  color: #e85d00;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 3px;
   text-transform: uppercase;
 `;
 
-const LinkList = styled.ul`
+const List = styled.ul`
   display: grid;
-  gap: 0.72rem;
+  gap: 0;
   margin: 0;
   padding: 0;
   list-style: none;
 
-  a {
-    color: rgba(255, 255, 255, 0.46);
-    font-size: 0.88rem;
+  a,
+  span {
+    color: #666666;
+    font-size: 14px;
+    line-height: 2.2;
     text-decoration: none;
-    transition: color 160ms ease, padding-left 160ms ease;
   }
 
   a:hover {
-    color: #e85d00;
-    padding-left: 0.25rem;
-  }
-
-  a:focus-visible {
-    color: #f47912;
-    outline: 2px solid #f47912;
-    outline-offset: 4px;
+    color: #ffffff;
   }
 `;
 
@@ -163,105 +103,72 @@ const Bottom = styled.div`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 1rem;
-  margin-top: clamp(2rem, 4vw, 3.25rem);
-  padding-top: 1.25rem;
-  border-top: 1px solid rgba(255, 106, 0, 0.16);
-  color: rgba(255, 255, 255, 0.34);
-  font-size: 0.76rem;
+  gap: 24px;
+  margin-top: 54px;
+  border-top: 1px solid #1a1a1a;
+  padding-top: 24px;
+  color: #555555;
+  font-size: 12px;
 
-  @media (max-width: 680px) {
+  @media (max-width: 600px) {
     align-items: flex-start;
     flex-direction: column;
   }
 `;
 
-const Footer = () => {
-  const { t } = useI18n();
-  const groups = [
-    [
-      t("footer.sale"),
-      [
-        { name: t("products.title2"), href: "/shop" },
-        { name: t("product.collectorSet"), href: "/account/collection" },
-        { name: t("common.codes"), href: "/account/codes" },
-      ],
-    ],
-    [
-      t("footer.about"),
-      [
-        { name: t("common.about"), href: "/about" },
-        { name: t("hero.title1"), href: "/" },
-        { name: t("common.collection"), href: "/shop" },
-      ],
-    ],
-    [
-      t("footer.buying"),
-      [
-        { name: t("common.cart"), href: "/cart" },
-        { name: t("common.wishlist"), href: "/wishlist" },
-        { name: t("common.loginRegister"), href: "/login" },
-      ],
-    ],
-    [
-      t("footer.support"),
-      [
-        { name: t("common.search"), href: "/search" },
-        { name: t("products.retry"), href: "/" },
-        { name: t("footer.secure"), href: "#" },
-      ],
-    ],
-  ] as const;
-
+export default function Footer() {
   return (
-    <FooterShell aria-labelledby="footer-heading">
+    <FooterShell>
       <Inner>
-        <h2 id="footer-heading" className="sr-only">
-          Footer
-        </h2>
-        <Top>
-          <BrandBlock>
-            <Brand href="/">
-              {"\u0110\u1EA2O KH\u1EE6NG LONG"}
-              <span>MERCH</span>
-            </Brand>
-            <Description>{t("footer.description")}</Description>
-            <Socials aria-label="Social links">
-              <SocialLink href="#" aria-label="Facebook">
-                FB
-              </SocialLink>
-              <SocialLink href="#" aria-label="Instagram">
-                IG
-              </SocialLink>
-              <SocialLink href="#" aria-label="YouTube">
-                YT
-              </SocialLink>
+        <Columns>
+          <div>
+            <Brand href="/">Đảo Khủng Long</Brand>
+            <Tagline>
+              Merch giới hạn, blind box và vật phẩm collector dành cho cộng đồng Đảo Khủng Long.
+            </Tagline>
+            <Socials aria-label="Mạng xã hội">
+              <a href="#" aria-label="Instagram">Instagram</a>
+              <a href="#" aria-label="TikTok">TikTok</a>
+              <a href="#" aria-label="Facebook">Facebook</a>
+              <a href="#" aria-label="YouTube">YouTube</a>
             </Socials>
-          </BrandBlock>
+          </div>
 
-          <Columns aria-label="Footer navigation">
-            {groups.map(([title, items]) => (
-              <div key={title}>
-                <ColumnTitle>{title}</ColumnTitle>
-                <LinkList>
-                  {items.map((item) => (
-                    <li key={item.name}>
-                      <Link href={item.href}>{item.name}</Link>
-                    </li>
-                  ))}
-                </LinkList>
-              </div>
-            ))}
-          </Columns>
-        </Top>
+          <div>
+            <Heading>Khám phá</Heading>
+            <List>
+              <li><Link href="/">Trang chủ</Link></li>
+              <li><Link href="/account/collection">Bộ sưu tập</Link></li>
+              <li><Link href="/shop?type=blind-box">Túi mù</Link></li>
+              <li><Link href="/account/codes">Mã của tôi</Link></li>
+            </List>
+          </div>
+
+          <div>
+            <Heading>Hỗ trợ</Heading>
+            <List>
+              <li><Link href="/about">Giới thiệu</Link></li>
+              <li><Link href="/about">Liên hệ</Link></li>
+              <li><Link href="/about">Chính sách đổi trả</Link></li>
+              <li><Link href="/about">FAQs</Link></li>
+            </List>
+          </div>
+
+          <div>
+            <Heading>Liên hệ</Heading>
+            <List>
+              <li><a href="mailto:support@khunglongshop.vn">support@khunglongshop.vn</a></li>
+              <li><a href="tel:+84901234567">090 123 4567</a></li>
+              <li><span>Việt Nam</span></li>
+            </List>
+          </div>
+        </Columns>
 
         <Bottom>
-          <span>© {new Date().getFullYear()} {"\u0110\u1EA3o Kh\u1EE7ng Long Merch"}. {t("footer.rights")}</span>
-          <span>{t("footer.secure")}</span>
+          <span>© {new Date().getFullYear()} Đảo Khủng Long · All rights reserved</span>
+          <LanguageSwitcher />
         </Bottom>
       </Inner>
     </FooterShell>
   );
-};
-
-export default Footer;
+}

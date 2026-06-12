@@ -8,14 +8,23 @@ import { adminInputClass, adminSecondaryButtonClass } from "./AdminUi";
 export default function CategoryForm({
   id,
   initialName = "",
+  initialSlug = "",
+  initialIcon = "",
+  initialDescription = "",
   productCount = 0,
 }: {
   id?: string;
   initialName?: string;
+  initialSlug?: string;
+  initialIcon?: string;
+  initialDescription?: string;
   productCount?: number;
 }) {
   const router = useRouter();
   const [name, setName] = useState(initialName);
+  const [slug, setSlug] = useState(initialSlug);
+  const [icon, setIcon] = useState(initialIcon);
+  const [description, setDescription] = useState(initialDescription);
   const [saving, setSaving] = useState(false);
 
   async function save() {
@@ -23,7 +32,7 @@ export default function CategoryForm({
     const response = await fetch(id ? `/api/admin/categories/${id}` : "/api/admin/categories", {
       method: id ? "PATCH" : "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name }),
+      body: JSON.stringify({ name, slug, icon, description }),
     });
     const body = await response.json().catch(() => null);
     setSaving(false);
@@ -58,6 +67,36 @@ export default function CategoryForm({
           maxLength={100}
           value={name}
           onChange={(event) => setName(event.target.value)}
+        />
+      </label>
+      <label className="mt-4 grid gap-2 text-sm font-bold text-white/70">
+        Slug
+        <input
+          className={adminInputClass}
+          maxLength={120}
+          value={slug}
+          onChange={(event) => setSlug(event.target.value)}
+          placeholder="tu-dong-tu-ten-neu-de-trong"
+        />
+      </label>
+      <label className="mt-4 grid gap-2 text-sm font-bold text-white/70">
+        Icon
+        <input
+          className={adminInputClass}
+          maxLength={500}
+          value={icon}
+          onChange={(event) => setIcon(event.target.value)}
+          placeholder="Emoji hoặc đường dẫn ảnh"
+        />
+      </label>
+      <label className="mt-4 grid gap-2 text-sm font-bold text-white/70">
+        Mô tả
+        <textarea
+          className={adminInputClass}
+          maxLength={1000}
+          rows={4}
+          value={description}
+          onChange={(event) => setDescription(event.target.value)}
         />
       </label>
       <div className="mt-5 flex flex-wrap gap-3">

@@ -1,496 +1,472 @@
 "use client";
 
-import { AnimatePresence, m } from "framer-motion";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { signOut, useSession } from "next-auth/react";
-import { useEffect, useState } from "react";
-import toast from "react-hot-toast";
-import { FaBars, FaXmark } from "react-icons/fa6";
+import { useSession } from "next-auth/react";
+import { useEffect, useRef, useState } from "react";
+import {
+  FaBagShopping,
+  FaBars,
+  FaChevronDown,
+  FaHeart,
+  FaMagnifyingGlass,
+  FaRegUser,
+  FaXmark,
+} from "react-icons/fa6";
 import styled from "styled-components";
+import { useProductStore } from "@/app/_zustand/store";
 import { useWishlistStore } from "@/app/_zustand/wishlistStore";
-import { smoothEase } from "./design-system";
-import CartElement from "./CartElement";
-import HeaderTop from "./HeaderTop";
-import HeartElement from "./HeartElement";
+import type {
+  NavigationCategory,
+  NavigationCollectorSet,
+} from "@/lib/navigation";
 import NotificationBell from "./NotificationBell";
-import SearchInput from "./SearchInput";
-import LanguageSwitcher from "./LanguageSwitcher";
-import { useI18n } from "./LanguageProvider";
 
-const brandLine = "KH\u1EE6NG LONG SHOP";
-
-const SiteHeader = styled.header`
+const HeaderShell = styled.header`
   position: sticky;
   top: 0;
   z-index: 1000;
-  background: rgba(10, 10, 10, 0.95);
-  border-bottom: 1px solid rgba(255, 106, 0, 0.15);
+  height: 64px;
+  border-bottom: 1px solid #1a1a1a;
+  background: rgba(10, 10, 10, 0.94);
   backdrop-filter: blur(12px);
-  font-family: var(--font-body), sans-serif;
 `;
 
-const NavWrap = styled.div`
-  width: min(100%, 1180px);
-  height: 64px;
-  margin: 0 auto;
-  padding: 0 clamp(1rem, 3vw, 2rem);
+const Nav = styled.div`
   display: flex;
+  width: min(100%, 1440px);
+  height: 64px;
   align-items: center;
-  gap: clamp(0.75rem, 1.5vw, 1.35rem);
-  min-width: 0;
+  gap: 32px;
+  margin: 0 auto;
+  padding: 0 48px;
 
-  @media (max-width: 1100px) {
-    gap: 0.85rem;
+  @media (max-width: 1180px) {
+    padding: 0 24px;
   }
 `;
 
 const Logo = styled(Link)`
   display: inline-flex;
-  align-items: center;
-  gap: 0.75rem;
   flex: 0 0 auto;
-  color: #fff;
+  align-items: center;
+  gap: 10px;
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 900;
+  letter-spacing: 1px;
   text-decoration: none;
-
-  &:focus-visible {
-    outline: 2px solid #f47912;
-    outline-offset: 5px;
-  }
+  text-transform: uppercase;
 `;
 
-const LogoMark = styled.span`
+const LogoImage = styled.span`
   position: relative;
-  width: 48px;
-  height: 48px;
-  display: inline-block;
-  overflow: hidden;
-  border-radius: 50%;
-  background: #050505;
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  box-shadow: 0 0 24px rgba(232, 93, 0, 0.28);
-
-  img {
-    padding: 4px;
-  }
+  width: 38px;
+  height: 38px;
 `;
 
-const LogoText = styled.span`
-  display: grid;
-  line-height: 1.05;
-
-  strong {
-    color: #fff;
-    font-family: var(--font-display), var(--font-body), sans-serif;
-    font-size: 1.08rem;
-    font-style: italic;
-    font-weight: 900;
-    letter-spacing: 0.05rem;
-    text-transform: uppercase;
-    white-space: nowrap;
-  }
-
-  span {
-    color: #e85d00;
-    font-size: 0.72rem;
-    font-weight: 800;
-    letter-spacing: 0.15rem;
-    text-transform: uppercase;
-  }
-
-  @media (max-width: 480px) {
-    strong {
-      font-size: 0.82rem;
-    }
-  }
-`;
-
-const SearchSlot = styled.div`
-  flex: 1 1 380px;
-  max-width: 420px;
-  min-width: 220px;
-
-  @media (max-width: 1100px) {
-    display: none;
-  }
-`;
-
-const NavLinks = styled.nav`
+const Links = styled.nav`
   display: flex;
   align-items: center;
-  gap: clamp(0.85rem, 1.3vw, 1.35rem);
+  gap: clamp(20px, 3vw, 40px);
   margin-left: auto;
-  flex: 0 0 auto;
-  min-width: max-content;
-  white-space: nowrap;
 
-  @media (max-width: 1100px) {
+  @media (max-width: 1020px) {
     display: none;
+  }
+`;
+
+const DropdownWrap = styled.div`
+  position: relative;
+  height: 64px;
+  display: flex;
+  align-items: center;
+`;
+
+const Trigger = styled.button<{ $open: boolean }>`
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 64px;
+  border: 0;
+  border-bottom: 2px solid ${({ $open }) => ($open ? "#e85d00" : "transparent")};
+  background: transparent;
+  color: ${({ $open }) => ($open ? "#e85d00" : "#cccccc")};
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+
+  svg {
+    width: 10px;
+    transition: transform 0.2s ease;
+    transform: rotate(${({ $open }) => ($open ? "180deg" : "0deg")});
+  }
+
+  &:hover {
+    color: #e85d00;
   }
 `;
 
 const NavLink = styled(Link)<{ $active: boolean }>`
-  position: relative;
+  height: 64px;
   display: inline-flex;
-  flex: 0 0 auto;
-  flex-shrink: 0;
-  min-width: max-content;
-  padding-bottom: 2px;
+  align-items: center;
   border-bottom: 2px solid ${({ $active }) => ($active ? "#e85d00" : "transparent")};
-  color: ${({ $active }) => ($active ? "#e85d00" : "rgba(255, 255, 255, 0.72)")};
-  font-size: 0.78rem;
-  font-weight: 900;
-  letter-spacing: 0.055rem;
-  line-height: 1;
+  color: ${({ $active }) => ($active ? "#e85d00" : "#cccccc")};
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 1.5px;
   text-decoration: none;
   text-transform: uppercase;
-  white-space: nowrap;
-  word-break: keep-all;
-  transition: color 160ms ease, border-color 160ms ease;
 
   &:hover {
-    border-color: #e85d00;
     color: #e85d00;
   }
+`;
 
-  &:focus-visible {
-    outline: 2px solid #f47912;
-    outline-offset: 6px;
+const DropdownPanel = styled.div<{ $open: boolean }>`
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  z-index: 200;
+  min-width: 220px;
+  padding: 8px;
+  border: 1px solid #1e1e1e;
+  border-radius: 12px;
+  background: #111111;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.6);
+  opacity: ${({ $open }) => ($open ? 1 : 0)};
+  visibility: ${({ $open }) => ($open ? "visible" : "hidden")};
+  transform: translateY(${({ $open }) => ($open ? "0" : "-6px")});
+  transition: 0.2s ease;
+`;
+
+const DropdownLink = styled(Link)<{ $divider?: boolean }>`
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: ${({ $divider }) => ($divider ? "4px" : "0")};
+  border-top: ${({ $divider }) => ($divider ? "1px solid #1e1e1e" : "0")};
+  border-radius: 8px;
+  padding: ${({ $divider }) => ($divider ? "12px 16px 10px" : "10px 16px")};
+  color: #cccccc;
+  font-size: 14px;
+  text-decoration: none;
+  white-space: nowrap;
+
+  &:hover {
+    background: rgba(232, 93, 0, 0.1);
+    color: #e85d00;
   }
+`;
+
+const ItemThumb = styled.span`
+  position: relative;
+  display: grid;
+  width: 24px;
+  height: 24px;
+  flex: 0 0 24px;
+  place-items: center;
+  overflow: hidden;
+  border-radius: 50%;
+  background: #1a1a1a;
+  color: #e85d00;
+  font-size: 14px;
 `;
 
 const Actions = styled.div`
   display: flex;
-  align-items: center;
-  gap: 0.95rem;
   flex: 0 0 auto;
+  align-items: center;
+  gap: 20px;
 `;
 
-const DesktopActions = styled(Actions)`
-  @media (max-width: 1100px) {
-    display: none;
+const ActionLink = styled(Link)`
+  position: relative;
+  display: grid;
+  width: 24px;
+  height: 40px;
+  place-items: center;
+  color: #cccccc;
+  text-decoration: none;
+
+  svg {
+    width: 20px;
+    height: 20px;
+  }
+
+  &:hover {
+    color: #e85d00;
   }
 `;
 
-const MobileActions = styled(Actions)`
+const Badge = styled.span`
+  position: absolute;
+  top: 2px;
+  right: -8px;
+  display: grid;
+  min-width: 17px;
+  height: 17px;
+  place-items: center;
+  border-radius: 9px;
+  background: #e85d00;
+  padding: 0 4px;
+  color: #ffffff;
+  font-size: 9px;
+  font-weight: 800;
+`;
+
+const MenuButton = styled.button`
   display: none;
-  margin-left: auto;
-  gap: 0.7rem;
-
-  @media (max-width: 1100px) {
-    display: flex;
-  }
-`;
-
-const IconButton = styled.button`
   width: 40px;
   height: 40px;
-  display: inline-grid;
   place-items: center;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 4px;
-  color: rgba(255, 255, 255, 0.82);
-  cursor: pointer;
-  transition: border-color 160ms ease, color 160ms ease, background 160ms ease;
-
-  &:hover {
-    background: rgba(255, 106, 0, 0.1);
-    border-color: rgba(255, 106, 0, 0.35);
-    color: #e85d00;
-  }
-
-  &:focus-visible {
-    outline: 2px solid #f47912;
-    outline-offset: 3px;
-  }
-`;
-
-const AuthLink = styled(Link)`
-  min-height: 40px;
-  display: inline-flex;
-  align-items: center;
-  padding: 0 0.85rem;
-  background: rgba(255, 106, 0, 0.12);
-  border: 1px solid rgba(255, 106, 0, 0.24);
-  color: #fff;
-  font-size: 0.72rem;
-  font-style: italic;
-  font-weight: 900;
-  text-decoration: none;
-  text-transform: uppercase;
-
-  &:hover {
-    border-color: #e85d00;
-    color: #f47912;
-  }
-`;
-
-const AuthButton = styled.button`
-  min-height: 40px;
-  padding: 0 0.85rem;
+  border: 0;
   background: transparent;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  color: rgba(255, 255, 255, 0.78);
+  color: #cccccc;
   cursor: pointer;
-  font-size: 0.72rem;
-  font-style: italic;
-  font-weight: 900;
-  text-transform: uppercase;
 
-  &:hover {
-    border-color: rgba(255, 106, 0, 0.36);
-    color: #f47912;
+  @media (max-width: 1020px) {
+    display: grid;
   }
 `;
 
-const DrawerOverlay = styled(m.div)`
+const MobilePanel = styled.div<{ $open: boolean }>`
   position: fixed;
-  inset: 0;
-  z-index: 1100;
-  background: rgba(0, 0, 0, 0.76);
+  top: 64px;
+  right: 0;
+  left: 0;
+  display: ${({ $open }) => ($open ? "grid" : "none")};
+  max-height: calc(100vh - 64px);
+  overflow-y: auto;
+  border-bottom: 1px solid #1e1e1e;
+  background: #0a0a0a;
+  padding: 12px 24px 24px;
 `;
 
-const Drawer = styled(m.aside)`
-  position: fixed;
-  inset: 0 0 0 auto;
-  z-index: 1101;
-  width: min(88vw, 360px);
-  padding: 1rem;
-  background: rgba(10, 10, 10, 0.98);
-  border-left: 1px solid rgba(255, 106, 0, 0.25);
-  display: grid;
-  align-content: start;
-  gap: 1.2rem;
-`;
-
-const DrawerTop = styled.div`
+const MobileTrigger = styled.button<{ $open: boolean }>`
   display: flex;
   align-items: center;
   justify-content: space-between;
+  padding: 15px 0;
+  border: 0;
+  border-bottom: 1px solid #1a1a1a;
+  background: transparent;
+  color: ${({ $open }) => ($open ? "#e85d00" : "#cccccc")};
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+
+  svg {
+    transform: rotate(${({ $open }) => ($open ? "180deg" : "0")});
+  }
 `;
 
-const DrawerLinks = styled.nav`
-  display: grid;
-  gap: 0.35rem;
+const MobileDropdown = styled.div<{ $open: boolean }>`
+  display: ${({ $open }) => ($open ? "grid" : "none")};
+  padding: 6px 0 10px 14px;
 
   a {
-    padding: 0.95rem 0;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.07);
-    color: rgba(255, 255, 255, 0.78);
-    font-weight: 800;
-    letter-spacing: 0.08rem;
+    padding: 10px 0;
+    color: #999999;
+    font-size: 13px;
     text-decoration: none;
-    text-transform: uppercase;
-    white-space: nowrap;
-    word-break: keep-all;
-  }
-
-  a:hover {
-    color: #e85d00;
   }
 `;
 
-const DrawerAuthButton = styled.button`
-  width: 100%;
-  padding: 0.95rem 0;
-  background: transparent;
-  border: 0;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
-  color: rgba(255, 255, 255, 0.78);
-  cursor: pointer;
-  font-weight: 800;
-  letter-spacing: 0.08rem;
-  text-align: left;
+const MobileLink = styled(Link)`
+  padding: 15px 0;
+  border-bottom: 1px solid #1a1a1a;
+  color: #cccccc;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-decoration: none;
   text-transform: uppercase;
-
-  &:hover {
-    color: #e85d00;
-  }
 `;
 
-const AdminWrap = styled.div`
-  height: 64px;
-  width: min(100%, 1180px);
-  margin: 0 auto;
-  padding: 0 clamp(1rem, 3vw, 2rem);
+const AdminActions = styled.div`
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  font-family: var(--font-body), sans-serif;
+  gap: 20px;
+  margin-left: auto;
 `;
 
-const Dropdown = styled.ul`
-  position: absolute;
-  right: 0;
-  top: 100%;
-  z-index: 10;
-  width: 13rem;
-  margin-top: 0.75rem;
-  padding: 0.65rem;
-  background: rgba(10, 10, 10, 0.96);
-  border: 1px solid rgba(255, 106, 0, 0.22);
-  box-shadow: 0 20px 46px rgba(0, 0, 0, 0.45);
-`;
+type OpenMenu = "categories" | "characters" | null;
 
-const Header = () => {
+function CategoryThumb({ icon }: { icon: string | null }) {
+  if (!icon) return null;
+  const isImage = icon.startsWith("/") || icon.startsWith("http");
+  return (
+    <ItemThumb aria-hidden="true">
+      {isImage ? <Image src={icon} alt="" fill sizes="24px" style={{ objectFit: "cover" }} /> : icon}
+    </ItemThumb>
+  );
+}
+
+export default function Header({
+  categories,
+  collectorSets,
+}: {
+  categories: NavigationCategory[];
+  collectorSets: NavigationCollectorSet[];
+}) {
   const pathname = usePathname();
   const { status } = useSession();
-  const { wishQuantity } = useWishlistStore();
-  const [drawerOpen, setDrawerOpen] = useState(false);
-  const { t } = useI18n();
-  const links = [
-    { href: "/", label: t("common.home") },
-    { href: "/shop", label: t("common.collection") },
-    { href: "/account/codes", label: t("common.codes") },
-    { href: "/about", label: t("common.about") },
-  ];
+  const cartQuantity = useProductStore((state) => state.allQuantity);
+  const wishQuantity = useWishlistStore((state) => state.wishQuantity);
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const [openMenu, setOpenMenu] = useState<OpenMenu>(null);
+  const [mobileMenu, setMobileMenu] = useState<OpenMenu>(null);
+  const navRef = useRef<HTMLDivElement>(null);
+  const isAdmin = pathname.startsWith("/admin");
 
-  const handleLogout = () => {
-    signOut({ callbackUrl: "/" });
-    toast.success("Đã đăng xuất!");
-  };
+  const dynamicCategories = categories.filter((category) => category.slug !== "hop-mu");
+  const dynamicSets = collectorSets.filter((set) => set.slug !== "vanie");
 
   useEffect(() => {
-    setDrawerOpen(false);
+    setMobileOpen(false);
+    setOpenMenu(null);
+    setMobileMenu(null);
   }, [pathname]);
 
-  const isAdmin = pathname.startsWith("/admin");
-  const isActive = (href: string) => (href === "/" ? pathname === "/" : pathname.startsWith(href));
+  useEffect(() => {
+    const closeOutside = (event: MouseEvent) => {
+      if (!navRef.current?.contains(event.target as Node)) setOpenMenu(null);
+    };
+    document.addEventListener("mousedown", closeOutside);
+    return () => document.removeEventListener("mousedown", closeOutside);
+  }, []);
+
+  const renderCategoryLinks = () => (
+    <>
+      <DropdownLink href="/bo-suu-tap?category=hop-mu">
+        Hộp mù
+      </DropdownLink>
+      {dynamicCategories.map((category) => (
+        <DropdownLink href={`/bo-suu-tap?category=${category.slug}`} key={category.id}>
+          <CategoryThumb icon={category.icon} />
+          {category.name}
+        </DropdownLink>
+      ))}
+      <DropdownLink href="/bo-suu-tap" $divider>
+        Tất cả
+      </DropdownLink>
+    </>
+  );
+
+  const renderCharacterLinks = () => (
+    <>
+      <DropdownLink href="/bo-suu-tap?nhanvat=vanie">
+        Vanie
+      </DropdownLink>
+      {dynamicSets.map((set) => (
+        <DropdownLink href={`/bo-suu-tap?nhanvat=${set.slug}`} key={set.id}>
+          {set.image ? (
+            <ItemThumb>
+              <Image src={set.image} alt="" fill sizes="24px" style={{ objectFit: "cover" }} />
+            </ItemThumb>
+          ) : null}
+          {set.name}
+        </DropdownLink>
+      ))}
+      <DropdownLink href="/bo-suu-tap" $divider>
+        Tất cả
+      </DropdownLink>
+    </>
+  );
 
   return (
-    <SiteHeader>
-      <HeaderTop />
-      {!isAdmin ? (
-        <NavWrap>
-          <Logo href="/" aria-label="Khủng Long Shop home">
-            <LogoMark aria-hidden="true">
-              <Image src="/images/logo.png" alt="" fill sizes="48px" style={{ objectFit: "contain" }} priority />
-            </LogoMark>
-            <LogoText>
-              <strong>{brandLine}</strong>
-              <span>Merch</span>
-            </LogoText>
-          </Logo>
-          <SearchSlot>
-            <SearchInput />
-          </SearchSlot>
-          <NavLinks aria-label="Primary navigation">
-            {links.map((link) => (
-              <NavLink key={link.href} href={link.href} $active={isActive(link.href)}>
-                {link.label}
-              </NavLink>
-            ))}
-          </NavLinks>
-          <DesktopActions>
-            <LanguageSwitcher />
-            {status === "authenticated" ? (
-              <>
-                <AuthLink href="/account">Tài khoản</AuthLink>
-                <AuthButton type="button" onClick={handleLogout}>
-                  Đăng xuất
-                </AuthButton>
-              </>
-            ) : (
-              <AuthLink href="/login">Đăng nhập</AuthLink>
-            )}
-            <HeartElement wishQuantity={wishQuantity} />
-            <CartElement />
-          </DesktopActions>
-          <MobileActions>
-            <CartElement />
-            <IconButton type="button" aria-label="Open menu" onClick={() => setDrawerOpen(true)}>
-              <FaBars />
-            </IconButton>
-          </MobileActions>
-        </NavWrap>
-      ) : (
-        <AdminWrap>
-          <Logo href="/" aria-label="Khủng Long Shop home">
-            <LogoMark aria-hidden="true">
-              <Image src="/images/logo.png" alt="" fill sizes="48px" style={{ objectFit: "contain" }} priority />
-            </LogoMark>
-            <LogoText>
-              <strong>{brandLine}</strong>
-              <span>Merch</span>
-            </LogoText>
-          </Logo>
-          <Actions>
-            <NotificationBell />
-            <div className="dropdown dropdown-end relative">
-              <div tabIndex={0} role="button" className="w-10">
-                <Image
-                  src="/randomuser.jpg"
-                  alt="random profile photo"
-                  width={40}
-                  height={40}
-                  className="w-full h-full rounded-full"
-                />
-              </div>
-              <Dropdown tabIndex={0} className="dropdown-content menu">
-                <li>
-                  <Link href="/admin">Dashboard</Link>
-                </li>
-                <li>
-                  <a>Profile</a>
-                </li>
-                <li onClick={handleLogout}>
-                  <a href="#">Logout</a>
-                </li>
-              </Dropdown>
-            </div>
-          </Actions>
-        </AdminWrap>
-      )}
-      <AnimatePresence>
-        {drawerOpen ? (
-          <>
-            <DrawerOverlay initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setDrawerOpen(false)} />
-            <Drawer initial={{ x: "100%" }} animate={{ x: 0 }} exit={{ x: "100%" }} transition={{ duration: 0.24, ease: smoothEase }}>
-              <DrawerTop>
-                <Logo href="/" aria-label="Khủng Long Shop home">
-                  <LogoMark aria-hidden="true">
-                    <Image src="/images/logo.png" alt="" fill sizes="48px" style={{ objectFit: "contain" }} priority />
-                  </LogoMark>
-                  <LogoText>
-                    <strong>{brandLine}</strong>
-                    <span>Merch</span>
-                  </LogoText>
-                </Logo>
-                <IconButton type="button" aria-label="Close menu" onClick={() => setDrawerOpen(false)}>
-                  <FaXmark />
-                </IconButton>
-              </DrawerTop>
-              <SearchInput />
-              <DrawerLinks aria-label="Mobile navigation">
-                {links.map((link) => (
-                  <Link key={link.href} href={link.href}>
-                    {link.label}
-                  </Link>
-                ))}
-                {status === "authenticated" ? (
-                  <>
-                    <Link href="/account">Tài khoản</Link>
-                    <DrawerAuthButton type="button" onClick={handleLogout}>
-                      Đăng xuất
-                    </DrawerAuthButton>
-                  </>
-                ) : (
-                  <Link href="/login">Đăng nhập</Link>
-                )}
-              </DrawerLinks>
-              <Actions>
-                <LanguageSwitcher />
-                <HeartElement wishQuantity={wishQuantity} />
-                <CartElement />
-              </Actions>
-            </Drawer>
-          </>
-        ) : null}
-      </AnimatePresence>
-    </SiteHeader>
-  );
-};
+    <HeaderShell ref={navRef}>
+      <Nav>
+        <Logo href="/" aria-label="Khủng Long Shop">
+          <LogoImage>
+            <Image src="/images/logo.png" alt="" fill sizes="38px" style={{ objectFit: "contain" }} priority />
+          </LogoImage>
+          <span>Khủng Long Shop</span>
+        </Logo>
 
-export default Header;
+        {isAdmin ? (
+          <AdminActions>
+            <NotificationBell />
+            <ActionLink href="/account" aria-label="Tài khoản"><FaRegUser /></ActionLink>
+          </AdminActions>
+        ) : (
+          <>
+            <Links aria-label="Điều hướng chính">
+              <DropdownWrap
+                onMouseEnter={() => setOpenMenu("categories")}
+                onMouseLeave={() => setOpenMenu(null)}
+              >
+                <Trigger
+                  type="button"
+                  $open={openMenu === "categories"}
+                  onClick={() => setOpenMenu((current) => current === "categories" ? null : "categories")}
+                  aria-expanded={openMenu === "categories"}
+                >
+                  Danh mục <FaChevronDown />
+                </Trigger>
+                <DropdownPanel $open={openMenu === "categories"}>
+                  {renderCategoryLinks()}
+                </DropdownPanel>
+              </DropdownWrap>
+
+              <DropdownWrap
+                onMouseEnter={() => setOpenMenu("characters")}
+                onMouseLeave={() => setOpenMenu(null)}
+              >
+                <Trigger
+                  type="button"
+                  $open={openMenu === "characters"}
+                  onClick={() => setOpenMenu((current) => current === "characters" ? null : "characters")}
+                  aria-expanded={openMenu === "characters"}
+                >
+                  Nhân vật <FaChevronDown />
+                </Trigger>
+                <DropdownPanel $open={openMenu === "characters"}>
+                  {renderCharacterLinks()}
+                </DropdownPanel>
+              </DropdownWrap>
+
+              <NavLink href="/account/codes" $active={pathname.startsWith("/account/codes")}>Mã của tôi</NavLink>
+              <NavLink href="/about" $active={pathname.startsWith("/about")}>Giới thiệu</NavLink>
+            </Links>
+
+            <Actions>
+              <ActionLink href="/search" aria-label="Tìm kiếm"><FaMagnifyingGlass /></ActionLink>
+              <ActionLink href={status === "authenticated" ? "/account" : "/login"} aria-label="Tài khoản"><FaRegUser /></ActionLink>
+              <ActionLink href="/wishlist" aria-label="Yêu thích">
+                <FaHeart />
+                {wishQuantity > 0 ? <Badge>{wishQuantity}</Badge> : null}
+              </ActionLink>
+              <ActionLink href="/cart" aria-label="Giỏ hàng">
+                <FaBagShopping />
+                {cartQuantity > 0 ? <Badge>{cartQuantity}</Badge> : null}
+              </ActionLink>
+              <MenuButton type="button" aria-label="Mở menu" onClick={() => setMobileOpen((open) => !open)}>
+                {mobileOpen ? <FaXmark /> : <FaBars />}
+              </MenuButton>
+            </Actions>
+
+            <MobilePanel $open={mobileOpen}>
+              <MobileTrigger type="button" $open={mobileMenu === "categories"} onClick={() => setMobileMenu((value) => value === "categories" ? null : "categories")}>
+                Danh mục <FaChevronDown />
+              </MobileTrigger>
+              <MobileDropdown $open={mobileMenu === "categories"}>{renderCategoryLinks()}</MobileDropdown>
+              <MobileTrigger type="button" $open={mobileMenu === "characters"} onClick={() => setMobileMenu((value) => value === "characters" ? null : "characters")}>
+                Nhân vật <FaChevronDown />
+              </MobileTrigger>
+              <MobileDropdown $open={mobileMenu === "characters"}>{renderCharacterLinks()}</MobileDropdown>
+              <MobileLink href="/account/codes">Mã của tôi</MobileLink>
+              <MobileLink href="/about">Giới thiệu</MobileLink>
+            </MobilePanel>
+          </>
+        )}
+      </Nav>
+    </HeaderShell>
+  );
+}

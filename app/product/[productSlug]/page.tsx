@@ -1,178 +1,154 @@
+import Image from "next/image";
+import { notFound, permanentRedirect } from "next/navigation";
 import {
-  StockAvailabillity,
-  UrgencyText,
-
   ProductTabs,
   SingleProductDynamicFields,
-  
+  StockAvailabillity,
 } from "@/components";
-import apiClient from "@/lib/api";
-import Image from "next/image";
-import { notFound } from "next/navigation";
-import React from "react";
-import { FaSquareFacebook } from "react-icons/fa6";
-import { FaSquareXTwitter } from "react-icons/fa6";
-import { FaSquarePinterest } from "react-icons/fa6";
+import { formatVnd } from "@/lib/currency";
+import {
+  normalizeCatalogImage,
+  PUBLIC_BLIND_BOX_SLUG,
+  PUBLIC_STOREFRONT_PRODUCT_WHERE,
+} from "@/lib/publicCatalog";
 import { sanitize } from "@/lib/sanitize";
-import { fallbackMerchProducts, isMerchTemplateImage, toMerchProduct } from "@/lib/merchCatalog";
-import { getServerTranslator } from "@/lib/i18n-server";
+import prisma from "@/utils/db";
 
-interface ImageItem {
-  imageID: string;
-  productID: string;
-  image: string;
-}
+export const revalidate = 60;
 
-interface SingleProductPageProps {
+const rarityLabels = {
+  COMMON: "Phổ biến",
+  RARE: "Hiếm",
+  EPIC: "Sử thi",
+  LEGENDARY: "Huyền thoại",
+} as const;
+
+export default async function SingleProductPage({
+  params,
+}: {
   params: Promise<{ productSlug: string }>;
-}
-
-const SingleProductPage = async ({ params }: SingleProductPageProps) => {
-  const paramsAwaited = await params;
-  const { t } = await getServerTranslator();
-  let product: Product | null = null;
-  let images: ImageItem[] = [];
-
-  try {
-    const data = await apiClient.get(`/api/slugs/${paramsAwaited.productSlug}`, {
-      cache: "no-store",
-    });
-
-    if (data.ok) {
-      product = await data.json();
-    }
-  } catch (error) {
-    console.error("Error fetching product by slug:", error);
+}) {
+  const { productSlug } = await params;
+  if (/^vanie-(?:[1-9]|10)$/.test(productSlug)) {
+    permanentRedirect(`/product/${PUBLIC_BLIND_BOX_SLUG}`);
   }
 
-  if (!product) {
-    product = fallbackMerchProducts.find((item) => item.slug === paramsAwaited.productSlug) ?? null;
-  }
+  const product = await prisma.product.findFirst({
+    where: {
+      ...PUBLIC_STOREFRONT_PRODUCT_WHERE,
+      slug: productSlug,
+    },
+    include: {
+      category: { select: { name: true } },
+      blindBoxSet: {
+        select: {
+          name: true,
+          totalSlots: true,
+          poolVersions: {
+            where: { status: "ACTIVE" },
+            take: 1,
+            select: {
+              entries: {
+                orderBy: { slotNumber: "asc" },
+                select: {
+                  slotNumber: true,
+                  rarityTier: true,
+                  product: {
+                    select: {
+                      title: true,
+                      mainImage: true,
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+  });
 
-  if (!product) {
-    notFound();
-  }
+  if (!product) notFound();
 
-  const displayProduct = isMerchTemplateImage(product.mainImage) ? product : toMerchProduct(product);
-
-  if (!product.id.startsWith("fallback-merch-")) {
-    try {
-      const imagesData = await apiClient.get(`/api/images/${product.id}`, {
-        cache: "no-store",
-      });
-      images = imagesData.ok ? await imagesData.json() : [];
-    } catch (error) {
-      console.error("Error fetching product images:", error);
-    }
-  }
+  const variants = product.blindBoxSet?.poolVersions[0]?.entries ?? [];
 
   return (
-    <div className="bg-white">
-      <div className="max-w-screen-2xl mx-auto">
-        <div className="flex justify-center gap-x-16 pt-10 max-lg:flex-col items-center gap-y-5 px-5">
-          <div>
-            <Image
-              src={displayProduct?.mainImage ? `/${displayProduct?.mainImage}` : "/product_placeholder.jpg"}
-              width={500}
-              height={500}
-              alt={sanitize(displayProduct?.title) || "main image"}
-              className="w-auto h-auto"
-            />
-            <div className="flex justify-around mt-5 flex-wrap gap-y-1 max-[500px]:justify-center max-[500px]:gap-x-1">
-              {images?.map((imageItem: ImageItem, key: number) => (
-                <Image
-                  key={imageItem.imageID + key}
-                  src={`/${imageItem.image}`}
-                  width={100}
-                  height={100}
-                  alt="laptop image"
-                  className="w-auto h-auto"
-                />
-              ))}
-            </div>
-          </div>
-          <div className="flex flex-col gap-y-7 text-black max-[500px]:text-center">
-        
-            <h1 className="text-3xl">{sanitize(displayProduct?.title)}</h1>
-            <p className="text-xl font-semibold">${displayProduct?.price}</p>
-            <StockAvailabillity stock={94} inStock={displayProduct?.inStock} />
-            {displayProduct?.isCollector && displayProduct.set ? (
-              <div className="rounded-none border border-orange-600/40 bg-black px-4 py-3 text-white">
-                <p className="text-sm font-black uppercase text-orange-500">
-                  Bộ sưu tập: {displayProduct.set.name}
-                </p>
-                <p className="mt-1 text-sm">
-                  Slot {displayProduct.setSlotNumber ?? "-"} / {displayProduct.set.totalSlots}. Sau khi mua, bạn sẽ nhận mã để mở khóa vật phẩm này trong bộ sưu tập.
-                </p>
-              </div>
-            ) : null}
-            <SingleProductDynamicFields product={displayProduct} />
-            <div className="flex flex-col gap-y-2 max-[500px]:items-center">
-             
-              <p className="text-lg">
-                {t("product.sku")}: <span className="ml-1">abccd-18</span>
-              </p>
-              <div className="text-lg flex gap-x-2">
-                <span>{t("product.share")}:</span>
-                <div className="flex items-center gap-x-1 text-2xl">
-                  <FaSquareFacebook />
-                  <FaSquareXTwitter />
-                  <FaSquarePinterest />
-                </div>
-              </div>
-              <div className="flex gap-x-2">
-                <Image
-                  src="/visa.svg"
-                  width={50}
-                  height={50}
-                  alt="visa icon"
-                  className="w-auto h-auto"
-                />
-                <Image
-                  src="/mastercard.svg"
-                  width={50}
-                  height={50}
-                  alt="mastercard icon"
-                  className="h-auto w-auto"
-                />
-                <Image
-                  src="/ae.svg"
-                  width={50}
-                  height={50}
-                  alt="americal express icon"
-                  className="h-auto w-auto"
-                />
-                <Image
-                  src="/paypal.svg"
-                  width={50}
-                  height={50}
-                  alt="paypal icon"
-                  className="w-auto h-auto"
-                />
-                <Image
-                  src="/dinersclub.svg"
-                  width={50}
-                  height={50}
-                  alt="diners club icon"
-                  className="h-auto w-auto"
-                />
-                <Image
-                  src="/discover.svg"
-                  width={50}
-                  height={50}
-                  alt="discover icon"
-                  className="h-auto w-auto"
-                />
-              </div>
-            </div>
-          </div>
+    <main className="min-h-screen bg-[#070707] text-white">
+      <section className="mx-auto grid max-w-screen-xl gap-10 px-5 py-12 lg:grid-cols-2">
+        <div className="relative aspect-square overflow-hidden border border-orange-600/30 bg-[#111]">
+          <Image
+            src={normalizeCatalogImage(product.mainImage)}
+            alt={sanitize(product.title)}
+            fill
+            priority
+            sizes="(max-width: 1024px) 100vw, 50vw"
+            className="object-contain p-8"
+          />
         </div>
-        <div className="py-16">
-          <ProductTabs product={displayProduct} />
+        <div className="flex flex-col justify-center gap-6">
+          <span className="w-fit bg-[#e85d00] px-3 py-1 text-xs font-black uppercase">
+            Túi mù
+          </span>
+          <h1 className="text-4xl font-black uppercase italic">
+            {sanitize(product.title)}
+          </h1>
+          <p className="text-2xl font-black text-[#e85d00]">
+            {formatVnd(product.price)}
+          </p>
+          <StockAvailabillity stock={product.inStock} inStock={product.inStock} />
+          <p className="leading-7 text-white/65">
+            {sanitize(product.description)}
+          </p>
+          <SingleProductDynamicFields product={product} />
         </div>
-      </div>
-    </div>
-  );
-};
+      </section>
 
-export default SingleProductPage;
+      <section className="mx-auto max-w-screen-xl px-5 pb-16">
+        <div className="border-t border-orange-600/25 pt-10">
+          <p className="text-xs font-black uppercase tracking-[0.28em] text-[#e85d00]">
+            Bộ sưu tập Vanie
+          </p>
+          <h2 className="mt-2 text-3xl font-black uppercase italic">
+            10 mẫu Vanie có thể nhận
+          </h2>
+          <p className="mt-3 max-w-2xl text-white/55">
+            Mỗi túi chứa ngẫu nhiên một mẫu. Độ hiếm được công bố theo cấp,
+            không hiển thị trọng số quay.
+          </p>
+          <div className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+            {variants.map((entry) => (
+              <article
+                key={entry.slotNumber}
+                className="overflow-hidden border border-white/10 bg-[#111]"
+              >
+                <div className="relative aspect-square bg-white/5">
+                  <Image
+                    src={normalizeCatalogImage(entry.product.mainImage)}
+                    alt={`${entry.product.title}, mẫu số ${entry.slotNumber}`}
+                    fill
+                    sizes="(max-width: 640px) 50vw, 220px"
+                    className="object-contain p-3"
+                  />
+                </div>
+                <div className="p-3">
+                  <p className="text-xs font-bold text-white/45">
+                    Mẫu {entry.slotNumber}
+                  </p>
+                  <h3 className="truncate font-black text-white">
+                    {entry.product.title}
+                  </h3>
+                  <span className="mt-2 inline-flex border border-[#e85d00]/50 px-2 py-1 text-xs font-bold text-[#e85d00]">
+                    Độ hiếm: {rarityLabels[entry.rarityTier]}
+                  </span>
+                </div>
+              </article>
+            ))}
+          </div>
+        </div>
+        <div className="py-12">
+          <ProductTabs product={product} />
+        </div>
+      </section>
+    </main>
+  );
+}

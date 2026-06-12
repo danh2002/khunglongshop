@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAdminApi } from "@/utils/adminAuth";
 import prisma from "@/utils/db";
-import { adminProductSchema } from "@/lib/adminProduct";
+import {
+  adminProductSchema,
+  parseProductImages,
+  serializeProductImages,
+} from "@/lib/adminProduct";
 
 type RouteContext = {
   params: Promise<{ id: string }>;
@@ -43,13 +47,18 @@ async function validateRelationsForUpdate(
     isCollector: boolean;
     setId?: string | null;
     setSlotNumber?: number | null;
+    isBlindBox: boolean;
+    blindBoxSetId?: string | null;
   }
 ) {
-  const [category, merchant, collectorSet] = await Promise.all([
+  const [category, merchant, collectorSet, blindBoxSet] = await Promise.all([
     prisma.category.findUnique({ where: { id: input.categoryId }, select: { id: true } }),
     prisma.merchant.findUnique({ where: { id: input.merchantId }, select: { id: true } }),
     input.isCollector && input.setId
       ? prisma.collectorSet.findUnique({ where: { id: input.setId }, select: { id: true, totalSlots: true } })
+      : Promise.resolve(null),
+    input.isBlindBox && input.blindBoxSetId
+      ? prisma.collectorSet.findUnique({ where: { id: input.blindBoxSetId }, select: { id: true } })
       : Promise.resolve(null),
   ]);
 
@@ -74,6 +83,10 @@ async function validateRelationsForUpdate(
     if (occupiedSlot) {
       return { code: "COLLECTOR_SLOT_OCCUPIED", message: "Slot sưu tập đã có sản phẩm", status: 409 };
     }
+  }
+
+  if (input.isBlindBox && !blindBoxSet) {
+    return { code: "BLIND_BOX_SET_NOT_FOUND", message: "Bộ sưu tập túi mù không tồn tại", status: 404 };
   }
 
   return null;
@@ -102,7 +115,11 @@ export async function GET(_request: NextRequest, context: RouteContext) {
 
   const dependencyCounts = await getProductDependencyCounts(id);
 
-  return NextResponse.json({ ...product, dependencyCounts });
+  return NextResponse.json({
+    ...product,
+    images: parseProductImages(product.images),
+    dependencyCounts,
+  });
 }
 
 export async function PATCH(request: NextRequest, context: RouteContext) {
@@ -136,7 +153,9 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
   const collectorFieldsChanged =
     existingProduct.isCollector !== parsed.data.isCollector ||
     existingProduct.setId !== parsed.data.setId ||
-    existingProduct.setSlotNumber !== parsed.data.setSlotNumber;
+    existingProduct.setSlotNumber !== parsed.data.setSlotNumber ||
+    existingProduct.isBlindBox !== parsed.data.isBlindBox ||
+    existingProduct.blindBoxSetId !== parsed.data.blindBoxSetId;
 
   if (codeCount > 0 && collectorFieldsChanged) {
     return NextResponse.json(
@@ -160,7 +179,10 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
 
   const updatedProduct = await prisma.product.update({
     where: { id },
-    data: parsed.data,
+    data: {
+      ...parsed.data,
+      images: serializeProductImages(parsed.data.images),
+    },
     include: {
       category: { select: { id: true, name: true } },
       merchant: { select: { id: true, name: true } },
@@ -168,7 +190,10 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
     },
   });
 
-  return NextResponse.json(updatedProduct);
+  return NextResponse.json({
+    ...updatedProduct,
+    images: parseProductImages(updatedProduct.images),
+  });
 }
 
 export async function PUT(request: NextRequest, context: RouteContext) {

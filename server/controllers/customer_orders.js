@@ -67,11 +67,11 @@ async function createCustomerOrder(request, response) {
     }
 
     // Additional business logic validation
-    if (validatedData.total < 0.01) {
+    if (validatedData.total <= 0) {
       console.log("❌ Invalid total amount");
       return response.status(400).json({
-        error: "Invalid order total",
-        details: [{ field: 'total', message: 'Order total must be at least $0.01' }]
+        error: "Tổng giá trị đơn hàng không hợp lệ",
+        details: [{ field: 'total', message: 'Tổng giá trị đơn hàng phải lớn hơn 0đ' }]
       });
     }
 
@@ -90,8 +90,8 @@ async function createCustomerOrder(request, response) {
     if (duplicateOrder) {
       console.log("❌ Duplicate order detected (same email, amount, within 1 minute)");
       return response.status(409).json({
-        error: "Duplicate order detected",
-        details: "An identical order was just created. Please wait a moment before creating another order with the same details."
+        error: "Đơn hàng bị trùng",
+        details: "Một đơn hàng giống hệt vừa được tạo. Vui lòng chờ trước khi đặt lại."
       });
     }
 
@@ -309,6 +309,9 @@ async function updateCustomerOrder(request, response) {
         console.error('Failed to process collector items:', collectorError);
       }
     }
+    if (existingOrder.userId !== request.user.id) {
+      return response.status(403).json({ error: "FORBIDDEN" });
+    }
 
     console.log(`Order updated successfully: ID ${updatedOrder.id}`);
 
@@ -357,6 +360,9 @@ async function deleteCustomerOrder(request, response) {
         error: "Order not found",
         details: "The specified order does not exist"
       });
+    }
+    if (existingOrder.userId !== request.user.id) {
+      return response.status(403).json({ error: "FORBIDDEN" });
     }
 
     await prisma.customer_order.delete({
@@ -407,6 +413,9 @@ async function getCustomerOrder(request, response) {
         details: "The specified order does not exist"
       });
     }
+    if (order.userId !== request.user.id) {
+      return response.status(403).json({ error: "FORBIDDEN" });
+    }
     
     return response.status(200).json(order);
   } catch (error) {
@@ -435,13 +444,14 @@ async function getAllOrders(request, response) {
 
     const [orders, totalCount] = await Promise.all([
       prisma.customer_order.findMany({
+        where: { userId: request.user.id },
         skip: offset,
         take: limit,
         orderBy: {
           dateTime: 'desc'
         }
       }),
-      prisma.customer_order.count()
+      prisma.customer_order.count({ where: { userId: request.user.id } })
     ]);
 
     return response.json({

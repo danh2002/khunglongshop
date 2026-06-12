@@ -5,7 +5,7 @@ import { SectionShell, Wrapper } from "@/components/design-system";
 const WishlistPage = () => {
   return (
     <>
-      <SectionTitle title="Yêu Thích" path="Home | Wishlist" />
+      <SectionTitle title="Yêu Thích" path="TRANG CHỦ | YÊU THÍCH" />
       <SectionShell>
         <Wrapper>
           <WishlistModule />

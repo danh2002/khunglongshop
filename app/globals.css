@@ -50,3 +50,73 @@ textarea {
 .divider::after {
     background-color: rgba(255, 106, 0, 0.22);
 }
+
+@keyframes route-loading-shimmer {
+  from { background-position: 200% 0; }
+  to { background-position: -200% 0; }
+}
+
+.route-loading {
+  min-height: 70vh;
+  background: #070707;
+  padding: 40px 48px 80px;
+}
+
+.route-loading__hero,
+.route-loading__image,
+.route-loading__line {
+  background: linear-gradient(90deg, #111111 25%, #1a1a1a 50%, #111111 75%);
+  background-size: 200% 100%;
+  animation: route-loading-shimmer 1.5s linear infinite;
+}
+
+.route-loading__hero {
+  width: min(100%, 1440px);
+  height: min(46vh, 520px);
+  margin: 0 auto 32px;
+  border-radius: 16px;
+}
+
+.route-loading__grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 24px 20px;
+  width: min(100%, 1440px);
+  margin: 0 auto;
+}
+
+.route-loading__image {
+  aspect-ratio: 1;
+  border-radius: 16px;
+}
+
+.route-loading__line {
+  height: 12px;
+  margin-top: 14px;
+  border-radius: 6px;
+}
+
+.route-loading__line--short {
+  width: 45%;
+}
+
+@media (max-width: 768px) {
+  .route-loading {
+    padding: 24px;
+  }
+
+  .route-loading__grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

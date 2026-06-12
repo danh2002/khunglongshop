@@ -13,11 +13,63 @@
 import React from "react";
 import { FaPlus } from "react-icons/fa6";
 import { FaMinus } from "react-icons/fa6";
+import styled from "styled-components";
 
 interface QuantityInputProps {
   quantityCount: number;
   setQuantityCount: React.Dispatch<React.SetStateAction<number>>;
 }
+
+const QuantityRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 16px;
+
+  @media (max-width: 500px) {
+    justify-content: center;
+  }
+`;
+
+const QuantityLabel = styled.p`
+  margin: 0;
+  color: #ffffff;
+  font-size: 1.125rem;
+`;
+
+const QuantityControl = styled.div`
+  display: flex;
+  align-items: center;
+`;
+
+const QuantityButton = styled.button`
+  display: grid;
+  width: 40px;
+  height: 40px;
+  place-items: center;
+  border: 1px solid #444;
+  background: #1a1a1a;
+  color: #ffffff;
+  cursor: pointer;
+  transition: background 150ms ease;
+
+  &:hover {
+    background: #e85d00;
+  }
+`;
+
+const QuantityValue = styled.input`
+  width: 80px;
+  height: 40px;
+  border: 1px solid #444;
+  border-right: 0;
+  border-left: 0;
+  border-radius: 0;
+  background: #1a1a1a;
+  color: #ffffff;
+  text-align: center;
+  opacity: 1;
+  -webkit-text-fill-color: #ffffff;
+`;
 
 const QuantityInput = ({quantityCount, setQuantityCount} : QuantityInputProps) => {
 
@@ -31,35 +83,35 @@ const QuantityInput = ({quantityCount, setQuantityCount} : QuantityInputProps) =
   };
 
   return (
-    <div className="flex items-center gap-x-4 max-[500px]:justify-center">
-      <p className="text-xl">Quantity: </p>
+    <QuantityRow>
+      <QuantityLabel>Số lượng:</QuantityLabel>
 
-      <div className="flex items-center gap-1">
-        <button
+      <QuantityControl>
+        <QuantityButton
           type="button"
-          className="size-10 leading-10 text-gray-600 transition hover:opacity-75 flex justify-center items-center border"
+          aria-label="Giảm số lượng"
           onClick={() => handleQuantityChange("minus")}
         >
           <FaMinus />
-        </button>
+        </QuantityButton>
 
-        <input
+        <QuantityValue
           type="number"
-          id="Quantity"
-          disabled={true}
+          id="quantity"
+          aria-label="Số lượng sản phẩm"
+          disabled
           value={quantityCount}
-          className="h-10 w-24 rounded border-gray-200 sm:text-sm"
         />
 
-        <button
+        <QuantityButton
           type="button"
-          className="size-10 leading-10 text-gray-600 transition hover:opacity-75 flex justify-center items-center border"
+          aria-label="Tăng số lượng"
           onClick={() => handleQuantityChange("plus")}
         >
           <FaPlus />
-        </button>
-      </div>
-    </div>
+        </QuantityButton>
+      </QuantityControl>
+    </QuantityRow>
   );
 };
 

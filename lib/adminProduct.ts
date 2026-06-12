@@ -11,15 +11,41 @@ export function normalizeSlug(value: string) {
     .replace(/^-+|-+$/g, "");
 }
 
+function normalizeLocalImagePath(value: string) {
+  const path = value.trim();
+  return path.startsWith("images/") ? `/${path}` : path;
+}
+
+const localImagePathSchema = z
+  .string()
+  .transform(normalizeLocalImagePath)
+  .pipe(
+    z
+      .string()
+      .regex(/^\/images\/[A-Za-z0-9._/-]+$/, "Ảnh phải là path trong /images")
+  );
+
+const galleryImagesSchema = z.preprocess((value) => {
+  if (typeof value !== "string") return value;
+
+  try {
+    return JSON.parse(value);
+  } catch {
+    return value;
+  }
+}, z.array(localImagePathSchema).max(8, "Tối đa 8 ảnh phụ"));
+
+const nullableSlotSchema = z.preprocess(
+  (value) => (value === "" || value === "null" || value === undefined ? null : value),
+  z.coerce.number().int().nullable()
+);
+
 export const adminProductSchema = z
   .object({
     title: z.string().trim().min(1, "Tên sản phẩm là bắt buộc").max(180),
     slug: z.string().trim().min(1, "Slug là bắt buộc").max(180).transform(normalizeSlug),
-    mainImage: z
-      .string()
-      .trim()
-      .min(1, "Ảnh chính là bắt buộc")
-      .regex(/^\/images\/[A-Za-z0-9._/-]+$/, "Ảnh phải là path trong /images"),
+    mainImage: localImagePathSchema,
+    images: galleryImagesSchema.optional().default([]),
     price: z.coerce.number().int().min(0, "Giá phải là số VND không âm"),
     rating: z.coerce.number().int().min(0).max(5).optional().default(5),
     description: z.string().trim().min(1, "Mô tả là bắt buộc").max(4000),
@@ -29,16 +55,27 @@ export const adminProductSchema = z
     merchantId: z.string().trim().min(1, "Merchant là bắt buộc"),
     isCollector: z.coerce.boolean().default(false),
     setId: z.string().trim().nullable().optional(),
-    setSlotNumber: z.coerce.number().int().nullable().optional(),
+    setSlotNumber: nullableSlotSchema.optional(),
+    isBlindBox: z.coerce.boolean().default(false),
+    blindBoxSetId: z.string().trim().nullable().optional(),
   })
   .transform((value) => {
-    if (!value.isCollector) {
-      return { ...value, setId: null, setSlotNumber: null };
-    }
-
-    return value;
+    return {
+      ...value,
+      setId: value.isCollector ? value.setId : null,
+      setSlotNumber: value.isCollector ? value.setSlotNumber : null,
+      blindBoxSetId: value.isBlindBox ? value.blindBoxSetId : null,
+    };
   })
   .superRefine((value, context) => {
+    if (value.isCollector && value.isBlindBox) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["isBlindBox"],
+        message: "Sản phẩm không thể vừa là mẫu sưu tập vừa là túi mù",
+      });
+    }
+
     if (value.isCollector) {
       if (!value.setId) {
         context.addIssue({
@@ -56,9 +93,34 @@ export const adminProductSchema = z
         });
       }
     }
+
+    if (value.isBlindBox && !value.blindBoxSetId) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["blindBoxSetId"],
+        message: "Sản phẩm túi mù cần bộ sưu tập",
+      });
+    }
   });
 
 export type AdminProductInput = z.infer<typeof adminProductSchema>;
+
+export function serializeProductImages(images: string[] | undefined) {
+  return JSON.stringify(images ?? []);
+}
+
+export function parseProductImages(images: string | null | undefined): string[] {
+  if (!images) return [];
+
+  try {
+    const parsed: unknown = JSON.parse(images);
+    return Array.isArray(parsed) && parsed.every((image) => typeof image === "string")
+      ? parsed
+      : [];
+  } catch {
+    return [];
+  }
+}
 
 export function normalizeImageForDisplay(path: string | null | undefined) {
   if (!path) return "/product_placeholder.jpg";

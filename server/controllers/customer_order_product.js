@@ -6,6 +6,16 @@ const { handleOrderCollectorItems } = require("../services/collectorService");
 const isCollectorPaymentSuccessStatus = (status) =>
   ['paid', 'completed'].includes(String(status || '').toLowerCase());
 
+async function requireOwnedOrder(orderId, userId) {
+  const order = await prisma.customer_order.findUnique({
+    where: { id: orderId },
+    select: { id: true, userId: true, status: true, email: true },
+  });
+  if (!order) throw new AppError("Customer order not found", 404);
+  if (order.userId !== userId) throw new AppError("FORBIDDEN", 403);
+  return order;
+}
+
 const createOrderProduct = asyncHandler(async (request, response) => {
   const { customerOrderId, productId, quantity } = request.body;
   
@@ -86,6 +96,11 @@ const updateProductOrder = asyncHandler(async (request, response) => {
   if (!existingOrder) {
     throw new AppError("Order product not found", 404);
   }
+  await requireOwnedOrder(existingOrder.customerOrderId, request.user.id);
+
+  if (customerOrderId && customerOrderId !== existingOrder.customerOrderId) {
+    await requireOwnedOrder(customerOrderId, request.user.id);
+  }
 
   // Validate quantity if provided
   if (quantity !== undefined && quantity <= 0) {
@@ -133,10 +148,11 @@ const deleteProductOrder = asyncHandler(async (request, response) => {
   if (!existingOrder) {
     throw new AppError("Order product not found", 404);
   }
+  await requireOwnedOrder(existingOrder.customerOrderId, request.user.id);
 
-  await prisma.customer_order_product.deleteMany({
+  await prisma.customer_order_product.delete({
     where: {
-      customerOrderId: id
+      id
     }
   });
   return response.status(204).send();
@@ -149,6 +165,7 @@ const getProductOrder = asyncHandler(async (request, response) => {
     throw new AppError("Order ID is required", 400);
   }
 
+  await requireOwnedOrder(id, request.user.id);
   const order = await prisma.customer_order_product.findMany({
     where: {
       customerOrderId: id
@@ -167,6 +184,7 @@ const getProductOrder = asyncHandler(async (request, response) => {
 
 const getAllProductOrders = asyncHandler(async (request, response) => {
   const productOrders = await prisma.customer_order_product.findMany({
+    where: { customerOrder: { userId: request.user.id } },
     select: {
       productId: true,
       quantity: true,

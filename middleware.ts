@@ -48,7 +48,12 @@ export default withAuth(
       }
     }
 
-    if (pathname.startsWith("/account") && !req.nextauth.token) {
+    if (
+      (pathname.startsWith("/account") ||
+        pathname.startsWith("/checkout") ||
+        pathname.startsWith("/order-confirmation")) &&
+      !req.nextauth.token
+    ) {
       const loginUrl = new URL("/login", req.url);
       loginUrl.searchParams.set("callbackUrl", req.nextUrl.pathname);
       return NextResponse.redirect(loginUrl);
@@ -61,7 +66,11 @@ export default withAuth(
         if (req.nextUrl.pathname.startsWith("/admin")) {
           return !!token && token.role === "admin";
         }
-        if (req.nextUrl.pathname.startsWith("/account")) {
+        if (
+          req.nextUrl.pathname.startsWith("/account") ||
+          req.nextUrl.pathname.startsWith("/checkout") ||
+          req.nextUrl.pathname.startsWith("/order-confirmation")
+        ) {
           return !!token;
         }
         return true;

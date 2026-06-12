@@ -27,6 +27,26 @@ export async function GET(
           product: { select: { title: true, slug: true, mainImage: true } },
         },
       },
+      blindBoxAllocations: {
+        orderBy: [{ orderItemId: "asc" }, { unitIndex: "asc" }],
+        include: {
+          product: {
+            select: {
+              id: true,
+              title: true,
+              slug: true,
+              mainImage: true,
+              setSlotNumber: true,
+            },
+          },
+          redemptionCode: {
+            select: { code: true, status: true },
+          },
+          poolVersion: {
+            select: { version: true, collectorSetId: true },
+          },
+        },
+      },
       _count: { select: { redemptionCodes: true } },
     },
   });

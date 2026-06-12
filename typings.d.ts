@@ -18,6 +18,9 @@ declare global {
     setId?: string | null;
     setSlotNumber?: number | null;
     isCollector?: boolean;
+    isBlindBox?: boolean;
+    isVisible?: boolean;
+    blindBoxSetId?: string | null;
     set?: {
       id: string;
       name: string;

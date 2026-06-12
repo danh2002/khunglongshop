@@ -9,6 +9,14 @@ import QuantityInputCart from "@/components/QuantityInputCart";
 import { sanitize } from "@/lib/sanitize";
 import styled from "styled-components";
 import { PrimaryLink } from "@/components/design-system";
+import { formatVnd, formatVndTotal } from "@/lib/currency";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  cartStatusMessage,
+  type CartItemStatus,
+  validateCartItems,
+} from "@/lib/cartValidation";
+import { normalizeCatalogImage } from "@/lib/publicCatalog";
 
 const CartForm = styled.form`
   margin-top: 2rem;
@@ -81,6 +89,22 @@ const Price = styled.p`
   font-weight: 900;
 `;
 
+const ValidationWarning = styled.p`
+  margin: 0;
+  padding: 0.65rem 0.75rem;
+  border-left: 3px solid #e85d00;
+  background: rgba(232, 93, 0, 0.1);
+  color: #fff;
+  font-size: 0.82rem;
+  line-height: 1.5;
+`;
+
+const CheckoutLink = styled(PrimaryLink)<{ $disabled: boolean }>`
+  width: 100%;
+  pointer-events: ${({ $disabled }) => ($disabled ? "none" : "auto")};
+  opacity: ${({ $disabled }) => ($disabled ? 0.45 : 1)};
+`;
+
 const RemoveButton = styled.button`
   display: inline-grid;
   width: 36px;
@@ -136,19 +160,93 @@ const SummaryList = styled.dl`
 `;
 
 export const CartModule = () => {
-  const { products, removeFromCart, calculateTotals, total } = useProductStore();
+  const {
+    products,
+    removeFromCart,
+    updateCartPrice,
+    total,
+    allQuantity,
+  } = useProductStore();
+  const [statuses, setStatuses] = useState<Record<string, CartItemStatus>>({});
+  const [validationFailed, setValidationFailed] = useState(false);
+  const [validating, setValidating] = useState(true);
+
+  const validate = useCallback(async () => {
+    if (products.length === 0) {
+      setStatuses({});
+      setValidationFailed(false);
+      setValidating(false);
+      return;
+    }
+    setValidating(true);
+    try {
+      const result = await validateCartItems(products);
+      setStatuses(
+        Object.fromEntries(result.items.map((item) => [item.productId, item.status]))
+      );
+      for (const item of result.items) {
+        if (item.priceChanged && item.status !== "NOT_FOUND") {
+          updateCartPrice(item.productId, item.currentPrice);
+        }
+      }
+      setValidationFailed(false);
+    } catch {
+      setValidationFailed(true);
+      toast.error("Không thể xác minh giỏ hàng, vui lòng thử lại");
+    } finally {
+      setValidating(false);
+    }
+  }, [products, updateCartPrice]);
+
+  useEffect(() => {
+    void validate();
+  }, [validate]);
+
+  const checkoutBlocked = useMemo(
+    () =>
+      validating ||
+      validationFailed ||
+      products.some((product) => (statuses[product.id] ?? "OK") !== "OK"),
+    [products, statuses, validating, validationFailed]
+  );
+
+  useEffect(() => {
+    if (process.env.NODE_ENV !== "production") {
+      console.debug("[cart] Trạng thái giỏ hàng:", {
+        products,
+        distinctItems: products.length,
+        allQuantity,
+        total,
+      });
+    }
+  }, [products, allQuantity, total]);
 
   const handleRemoveItem = (id: string) => {
     removeFromCart(id);
-    calculateTotals();
-    toast.success("Product removed from the cart");
+    toast.success("Đã xóa sản phẩm khỏi giỏ hàng");
   };
+
+  if (products.length === 0) {
+    return (
+      <Panel style={{ marginTop: "2rem", padding: "3rem 1.5rem", textAlign: "center" }}>
+        <h2 className="text-2xl font-black uppercase italic text-white">
+          Giỏ hàng đang trống
+        </h2>
+        <p className="mt-3 text-white/55">
+          Hãy thêm sản phẩm bạn yêu thích vào giỏ hàng.
+        </p>
+        <div className="mt-6">
+          <PrimaryLink href="/shop">Tiếp tục mua sắm</PrimaryLink>
+        </div>
+      </Panel>
+    );
+  }
 
   return (
     <CartForm>
       <Panel aria-labelledby="cart-heading">
         <h2 id="cart-heading" className="sr-only">
-          Items in your shopping cart
+          Sản phẩm trong giỏ hàng
         </h2>
         <CartList role="list">
           {products.map((product) => (
@@ -156,26 +254,42 @@ export const CartModule = () => {
               <Image
                 width={192}
                 height={192}
-                src={product?.image ? `/${product.image}` : "/product_placeholder.jpg"}
+                src={normalizeCatalogImage(product.image)}
                 alt={sanitize(product.title)}
                 style={{ width: "100%", maxHeight: 150, objectFit: "contain", background: "rgba(255,255,255,0.03)" }}
               />
               <ItemBody>
                 <ItemTop>
                   <div>
-                    <ItemTitle href="#">{sanitize(product.title)}</ItemTitle>
-                    <Price>${product.price}</Price>
+                    <ItemTitle href={`/product/${product.slug || product.id}`}>
+                      {sanitize(product.title)}
+                    </ItemTitle>
+                    <Price>{formatVnd(product.price)}</Price>
+                    <Muted>
+                      Thành tiền:{" "}
+                      <strong style={{ color: "#f47912" }}>
+                        {formatVnd(product.price * product.amount)}
+                      </strong>
+                    </Muted>
                   </div>
                   <RemoveButton onClick={() => handleRemoveItem(product.id)} type="button">
-                    <span className="sr-only">Remove</span>
+                    <span className="sr-only">Xóa sản phẩm</span>
                     <FaXmark aria-hidden="true" />
                   </RemoveButton>
                 </ItemTop>
                 <QuantityInputCart product={product} />
-                <Muted>
-                  <FaCheck style={{ display: "inline", color: "#f47912", marginRight: 8 }} />
-                  In stock
-                </Muted>
+                {(statuses[product.id] ?? "OK") === "OK" ? (
+                  <Muted>
+                    <FaCheck style={{ display: "inline", color: "#f47912", marginRight: 8 }} />
+                    Còn hàng
+                  </Muted>
+                ) : (
+                  <ValidationWarning>
+                    {cartStatusMessage[
+                      statuses[product.id] as Exclude<CartItemStatus, "OK">
+                    ]}
+                  </ValidationWarning>
+                )}
               </ItemBody>
             </CartRow>
           ))}
@@ -183,32 +297,52 @@ export const CartModule = () => {
       </Panel>
 
       <Summary aria-labelledby="summary-heading">
-        <SummaryTitle id="summary-heading">Order summary</SummaryTitle>
+        <SummaryTitle id="summary-heading">Tổng kết giỏ hàng</SummaryTitle>
         <SummaryList>
           <div>
-            <dt>Subtotal</dt>
-            <dd>${total}</dd>
+            <dt>Sản phẩm trong giỏ</dt>
+            <dd>{products.length} loại</dd>
+          </div>
+          <div>
+            <dt>Tổng số lượng</dt>
+            <dd>{allQuantity} món</dd>
+          </div>
+          <div>
+            <dt>Tạm tính</dt>
+            <dd>{formatVndTotal(total)}</dd>
           </div>
           <div>
             <dt>
-              Shipping estimate <FaCircleQuestion style={{ display: "inline", opacity: 0.55 }} />
+              Phí vận chuyển <FaCircleQuestion style={{ display: "inline", opacity: 0.55 }} />
             </dt>
-            <dd>$5.00</dd>
+            <dd>Miễn phí</dd>
           </div>
           <div>
-            <dt>Tax estimate</dt>
-            <dd>${total / 5}</dd>
-          </div>
-          <div>
-            <dt>Order total</dt>
-            <dd>${total === 0 ? 0 : Math.round(total + total / 5 + 5)}</dd>
+            <dt>Tổng tiền hàng</dt>
+            <dd>{formatVndTotal(total)}</dd>
           </div>
         </SummaryList>
         {products.length > 0 && (
           <div style={{ marginTop: "1.5rem" }}>
-            <PrimaryLink href="/checkout" style={{ width: "100%" }}>
-              Checkout
-            </PrimaryLink>
+            <CheckoutLink
+              href="/checkout"
+              $disabled={checkoutBlocked}
+              aria-disabled={checkoutBlocked}
+              onClick={(event) => {
+                if (checkoutBlocked) event.preventDefault();
+              }}
+            >
+              {validating ? "Đang xác minh..." : "Thanh toán"}
+            </CheckoutLink>
+            {validationFailed ? (
+              <button
+                type="button"
+                onClick={() => void validate()}
+                className="mt-3 w-full border border-[#e85d00] px-4 py-2 text-sm font-bold text-white"
+              >
+                Thử xác minh lại
+              </button>
+            ) : null}
           </div>
         )}
       </Summary>

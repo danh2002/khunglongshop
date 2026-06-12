@@ -189,9 +189,18 @@ export async function redeemProductCodeForUser(rawCode: string, userId: string) 
   const result = await prisma.$transaction(async (tx) => {
     const redemptionCode = await tx.redemptionCode.findUnique({
       where: { code: normalizedCode },
+      include: {
+        allocation: {
+          select: { rarityTier: true },
+        },
+      },
     });
 
     if (!redemptionCode) {
+      throw new CollectorRedeemError("NOT_FOUND", "Code not found");
+    }
+
+    if (redemptionCode.userId && redemptionCode.userId !== userId) {
       throw new CollectorRedeemError("NOT_FOUND", "Code not found");
     }
 
@@ -211,6 +220,7 @@ export async function redeemProductCodeForUser(rawCode: string, userId: string) 
         isCollector: true,
         setId: true,
         setSlotNumber: true,
+        set: { select: { totalSlots: true } },
       },
     });
 
@@ -244,8 +254,46 @@ export async function redeemProductCodeForUser(rawCode: string, userId: string) 
       product.setId,
       tx
     );
+    const [ownedCount, uniqueProducts] = await Promise.all([
+      tx.redemptionCode.count({
+        where: {
+          userId,
+          productId: product.id,
+          status: "REDEEMED",
+        },
+      }),
+      tx.redemptionCode.findMany({
+        where: {
+          userId,
+          status: "REDEEMED",
+          product: {
+            setId: product.setId,
+            isCollector: true,
+          },
+        },
+        distinct: ["productId"],
+        select: { productId: true },
+      }),
+    ]);
+    const totalSetSize = product.set?.totalSlots ?? 0;
+    const uniqueOwnedCount = uniqueProducts.length;
 
     return {
+      success: true,
+      isDuplicate: ownedCount > 1,
+      ownedCount,
+      collectionProgress: {
+        owned: uniqueOwnedCount,
+        total: totalSetSize,
+        percentage:
+          totalSetSize > 0
+            ? Math.round((uniqueOwnedCount / totalSetSize) * 100)
+            : 0,
+      },
+      rarityTier: redemptionCode.allocation?.rarityTier ?? null,
+      setCompleted:
+        totalSetSize > 0 && uniqueOwnedCount === totalSetSize,
+      allocationId: redemptionCode.allocationId,
       unlockedSlot: {
         setId: product.setId,
         slotNumber: product.setSlotNumber,

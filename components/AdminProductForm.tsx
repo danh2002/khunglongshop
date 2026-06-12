@@ -1,13 +1,14 @@
 "use client";
 
-import { normalizeImageForDisplay, normalizeSlug } from "@/lib/adminProduct";
-import Image from "next/image";
-import { FormEvent, useMemo } from "react";
+import { normalizeSlug } from "@/lib/adminProduct";
+import ImageManager from "@/components/admin/ImageManager";
+import { FormEvent, useMemo, useState } from "react";
 
 export type ProductFormValues = {
   title: string;
   slug: string;
   mainImage: string;
+  images: string[];
   price: number;
   rating: number;
   description: string;
@@ -18,6 +19,8 @@ export type ProductFormValues = {
   isCollector: boolean;
   setId: string | null;
   setSlotNumber: number | null;
+  isBlindBox: boolean;
+  blindBoxSetId: string | null;
 };
 
 export type ProductReferenceData = {
@@ -39,6 +42,7 @@ type AdminProductFormProps = {
   submitLabel: string;
   onChange: (value: ProductFormValues) => void;
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
+  onUploadingChange?: (isUploading: boolean) => void;
 };
 
 export default function AdminProductForm({
@@ -49,7 +53,9 @@ export default function AdminProductForm({
   submitLabel,
   onChange,
   onSubmit,
+  onUploadingChange,
 }: AdminProductFormProps) {
+  const [isUploading, setIsUploading] = useState(false);
   const selectedSet = references.collectorSets.find((set) => set.id === value.setId);
   const availableSlots = useMemo(() => {
     if (!selectedSet) return [];
@@ -127,17 +133,6 @@ export default function AdminProductForm({
         </label>
 
         <label className="grid gap-2 text-sm font-black uppercase text-white/70">
-          Ảnh chính
-          <input
-            required
-            placeholder="/images/product.png"
-            value={value.mainImage}
-            onChange={(event) => onChange({ ...value, mainImage: event.target.value })}
-            className="min-h-12 border border-[#e85d00]/40 bg-[#111] px-4 text-white outline-none focus:border-[#e85d00]"
-          />
-        </label>
-
-        <label className="grid gap-2 text-sm font-black uppercase text-white/70">
           Danh mục
           <select
             required
@@ -183,6 +178,8 @@ export default function AdminProductForm({
                 isCollector: event.target.checked,
                 setId: event.target.checked ? value.setId : null,
                 setSlotNumber: event.target.checked ? value.setSlotNumber : null,
+                isBlindBox: event.target.checked ? false : value.isBlindBox,
+                blindBoxSetId: event.target.checked ? null : value.blindBoxSetId,
               })
             }
           />
@@ -224,6 +221,47 @@ export default function AdminProductForm({
             </label>
           </div>
         ) : null}
+
+        <label className="flex items-center gap-3 text-sm font-black uppercase text-white/70">
+          <input
+            type="checkbox"
+            checked={value.isBlindBox}
+            onChange={(event) =>
+              onChange({
+                ...value,
+                isBlindBox: event.target.checked,
+                blindBoxSetId: event.target.checked ? value.blindBoxSetId : null,
+                isCollector: event.target.checked ? false : value.isCollector,
+                setId: event.target.checked ? null : value.setId,
+                setSlotNumber: event.target.checked ? null : value.setSlotNumber,
+              })
+            }
+          />
+          Sản phẩm túi mù
+        </label>
+
+        {value.isBlindBox ? (
+          <label className="grid gap-2 text-sm font-black uppercase text-white/70">
+            Bộ sưu tập của túi mù
+            <select
+              value={value.blindBoxSetId || ""}
+              onChange={(event) =>
+                onChange({
+                  ...value,
+                  blindBoxSetId: event.target.value || null,
+                })
+              }
+              className="min-h-12 border border-[#e85d00]/40 bg-[#111] px-4 text-white outline-none focus:border-[#e85d00]"
+            >
+              <option value="">Chọn bộ sưu tập</option>
+              {references.collectorSets.map((collectorSet) => (
+                <option key={collectorSet.id} value={collectorSet.id}>
+                  {collectorSet.name}
+                </option>
+              ))}
+            </select>
+          </label>
+        ) : null}
       </div>
 
       <label className="grid gap-2 text-sm font-black uppercase text-white/70">
@@ -236,18 +274,24 @@ export default function AdminProductForm({
         />
       </label>
 
-      {value.mainImage ? (
-        <div className="relative h-28 w-28 overflow-hidden border border-[#e85d00]/30 bg-white/5">
-          <Image src={normalizeImageForDisplay(value.mainImage)} alt={value.title || "Product image"} fill sizes="112px" style={{ objectFit: "cover" }} />
-        </div>
-      ) : null}
+      <ImageManager
+        mainImage={value.mainImage}
+        images={value.images}
+        title={value.title}
+        onMainImageChange={(mainImage) => onChange({ ...value, mainImage })}
+        onImagesChange={(images) => onChange({ ...value, images })}
+        onUploadingChange={(uploading) => {
+          setIsUploading(uploading);
+          onUploadingChange?.(uploading);
+        }}
+      />
 
       <button
         type="submit"
-        disabled={isSaving}
+        disabled={isSaving || isUploading}
         className="min-h-12 bg-[#e85d00] px-5 font-black uppercase text-white hover:bg-[#ff7417] disabled:opacity-50"
       >
-        {isSaving ? "Đang lưu..." : submitLabel}
+        {isSaving ? "Đang lưu..." : isUploading ? "Đang tải ảnh..." : submitLabel}
       </button>
     </form>
   );

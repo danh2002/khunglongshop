@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/utils/authOptions";
 import prisma from "@/utils/db";
+import { summarizeProductOwnership } from "@/lib/collectionOwnership";
 
 export async function GET() {
   const session = await getServerSession(authOptions);
@@ -36,13 +37,7 @@ export async function GET() {
     }),
   ]);
 
-  const usedCodesByProductId = new Map<string, (typeof redemptionCodes)[number]>();
-
-  for (const code of redemptionCodes) {
-    if (code.status === "REDEEMED" && !usedCodesByProductId.has(code.productId)) {
-      usedCodesByProductId.set(code.productId, code);
-    }
-  }
+  const ownershipByProductId = summarizeProductOwnership(redemptionCodes);
 
   const rewardBySetId = new Map(setRewards.map((reward) => [reward.setId, reward]));
 
@@ -57,11 +52,14 @@ export async function GET() {
       const slots = Array.from({ length: collectorSet.totalSlots }, (_, index) => {
         const slotNumber = index + 1;
         const product = productsBySlot.get(slotNumber);
-        const code = product ? usedCodesByProductId.get(product.id) : null;
-        const isUnlocked = Boolean(code);
+        const ownership = product ? ownershipByProductId.get(product.id) : null;
+        const isUnlocked = Boolean(ownership);
 
         return {
           slotNumber,
+          productId: product?.id ?? null,
+          ownedCount: ownership?.ownedCount ?? 0,
+          firstRedeemedAt: ownership?.firstRedeemedAt?.toISOString() ?? null,
           product: product
             ? {
                 id: product.id,
@@ -69,7 +67,7 @@ export async function GET() {
                 image: product.mainImage,
               }
             : null,
-          code: code?.code ?? null,
+          code: ownership?.firstCode.code ?? null,
           isUnlocked,
           isCollected: isUnlocked,
         };

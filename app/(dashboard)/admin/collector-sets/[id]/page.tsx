@@ -1,6 +1,8 @@
 import Image from "next/image";
 import { notFound } from "next/navigation";
 import { AdminMetric, AdminPage, AdminPageHeader } from "@/components/admin/AdminUi";
+import BlindBoxPoolEditor from "@/components/admin/BlindBoxPoolEditor";
+import CollectorSetMetadataForm from "@/components/admin/CollectorSetMetadataForm";
 import prisma from "@/utils/db";
 
 export default async function CollectorSetDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -25,6 +27,13 @@ export default async function CollectorSetDetailPage({ params }: { params: Promi
         <AdminMetric label="Người hoàn thành" value={set._count.setRewards} />
         <AdminMetric label="Phần thưởng" value={set.rewardDescription ?? "Chưa cấu hình"} />
       </section>
+      <CollectorSetMetadataForm
+        id={set.id}
+        initialName={set.name}
+        initialSlug={set.slug ?? ""}
+        initialImage={set.image ?? ""}
+        initialDescription={set.description ?? ""}
+      />
       <section className="mt-8 grid grid-cols-2 gap-3 md:grid-cols-5">
         {Array.from({ length: 10 }, (_, index) => {
           const slotNumber = index + 1;
@@ -47,6 +56,7 @@ export default async function CollectorSetDetailPage({ params }: { params: Promi
           );
         })}
       </section>
+      <BlindBoxPoolEditor collectorSetId={set.id} />
     </AdminPage>
   );
 }

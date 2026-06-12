@@ -3,7 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "concurrently --kill-others-on-fail --names web,api \"npm:dev:web\" \"npm:dev:api\"",
+    "dev:web": "next dev --turbo",
+    "dev:api": "npm --prefix server start",
     "build": "prisma generate && next build",
     "start": "next start",
     "lint": "next lint",
@@ -59,6 +61,7 @@
     "@types/react-dom": "^18.3.7",
     "@types/supertest": "^7.2.0",
     "autoprefixer": "^10.0.1",
+    "concurrently": "^9.2.1",
     "daisyui": "^4.7.2",
     "eslint": "^8",
     "eslint-config-next": "^15.5.3",

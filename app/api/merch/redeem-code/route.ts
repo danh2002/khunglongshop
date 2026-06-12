@@ -2,16 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { z } from "zod";
 import { CollectorRedeemError, redeemProductCodeForUser } from "@/lib/collectorService";
+import { isRateLimited } from "@/lib/rateLimit";
 import { authOptions } from "@/utils/authOptions";
-
-type RateBucket = {
-  count: number;
-  resetAt: number;
-};
-
-const WINDOW_MS = 60 * 1000;
-const MAX_REQUESTS = 15;
-const rateBuckets = new Map<string, RateBucket>();
 
 const redeemCodeSchema = z.object({
   code: z
@@ -22,24 +14,6 @@ const redeemCodeSchema = z.object({
     .transform((value) => value.toUpperCase()),
 });
 
-function getClientIp(request: NextRequest) {
-  const forwarded = request.headers.get("x-forwarded-for");
-  return forwarded?.split(",")[0]?.trim() || request.headers.get("x-real-ip") || "unknown";
-}
-
-function isRateLimited(key: string) {
-  const now = Date.now();
-  const bucket = rateBuckets.get(key);
-
-  if (!bucket || bucket.resetAt <= now) {
-    rateBuckets.set(key, { count: 1, resetAt: now + WINDOW_MS });
-    return false;
-  }
-
-  bucket.count += 1;
-  return bucket.count > MAX_REQUESTS;
-}
-
 export async function POST(request: NextRequest) {
   const session = await getServerSession(authOptions);
   const userId = session?.user?.id;
@@ -48,10 +22,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const rateKey = `${userId}:${getClientIp(request)}`;
-
-  if (isRateLimited(rateKey)) {
-    return NextResponse.json({ error: "Too many requests" }, { status: 429 });
+  if (isRateLimited(`redeem-code:${userId}`, 10)) {
+    return NextResponse.json({ error: "RATE_LIMITED" }, { status: 429 });
   }
 
   const body = await request.json().catch(() => null);
@@ -64,10 +36,7 @@ export async function POST(request: NextRequest) {
   try {
     const result = await redeemProductCodeForUser(parsed.data.code, userId);
 
-    return NextResponse.json({
-      success: true,
-      ...result,
-    });
+    return NextResponse.json(result);
   } catch (error) {
     if (error instanceof CollectorRedeemError) {
       if (error.code === "ALREADY_USED_OR_NOT_OWNED") {
@@ -81,7 +50,10 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: "Invalid collector item" }, { status: 422 });
       }
 
-      return NextResponse.json({ error: "Code not found" }, { status: 404 });
+      return NextResponse.json(
+        { error: "CODE_NOT_FOUND_OR_UNAUTHORIZED" },
+        { status: 404 }
+      );
     }
 
     console.error("Redeem code failed:", error);

@@ -37,6 +37,24 @@ export async function GET(
           },
         },
       },
+      blindBoxAllocations: {
+        where: { status: "ACTIVE" },
+        orderBy: [{ orderItemId: "asc" }, { unitIndex: "asc" }],
+        include: {
+          product: {
+            select: {
+              id: true,
+              title: true,
+              slug: true,
+              mainImage: true,
+              setSlotNumber: true,
+            },
+          },
+          redemptionCode: {
+            select: { code: true, status: true, usedAt: true },
+          },
+        },
+      },
     },
   });
 
@@ -67,6 +85,13 @@ export async function GET(
       image: item.product.mainImage,
       price: item.product.price,
       quantity: item.quantity,
+    })),
+    blindBoxResults: order.blindBoxAllocations.map((allocation) => ({
+      id: allocation.id,
+      unitIndex: allocation.unitIndex,
+      rarityTier: allocation.rarityTier,
+      product: allocation.product,
+      redemptionCode: allocation.redemptionCode,
     })),
   });
 }

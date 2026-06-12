@@ -1,24 +1,28 @@
 const express = require('express');
 
 const router = express.Router();
-const { requireAdminSession } = require('../middleware/adminAuth');
+const requireAuth = require('../middleware/requireAuth');
 
 const {
     getCustomerOrder,
-    createCustomerOrder,
     updateCustomerOrder,
     deleteCustomerOrder,
     getAllOrders 
   } = require('../controllers/customer_orders');
 
+  router.use(requireAuth);
+
   router.route('/')
   .get(getAllOrders)
-  .post(createCustomerOrder);
+  .post((_req, res) => res.status(410).json({
+    error: 'STOREFRONT_CHECKOUT_MOVED',
+    message: 'Use the authenticated Next.js POST /api/orders endpoint.'
+  }));
 
   router.route('/:id')
   .get(getCustomerOrder)
-  .put(requireAdminSession, updateCustomerOrder)
-  .delete(requireAdminSession, deleteCustomerOrder);
+  .put(updateCustomerOrder)
+  .delete(deleteCustomerOrder);
 
 
   module.exports = router;

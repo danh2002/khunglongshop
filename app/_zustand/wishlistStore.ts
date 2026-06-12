@@ -21,7 +21,8 @@ export const useWishlistStore = create<State & Actions>((set) => ({
       );
 
       if (productInWishlist === undefined) {
-        return { wishlist: [...state.wishlist, product], wishQuantity: state.wishlist.length };
+        const wishlist = [...state.wishlist, product];
+        return { wishlist, wishQuantity: wishlist.length };
       } else {
         return { wishlist: [...state.wishlist], wishQuantity: state.wishlist.length };
       }
@@ -35,7 +36,7 @@ export const useWishlistStore = create<State & Actions>((set) => ({
         return { wishlist: [...state.wishlist], wishQuantity: state.wishlist.length };
       } else {
         const newWishlist = state.wishlist.filter((item) => item.id !== id);
-        return { wishlist: [...newWishlist], wishQuantity: state.wishlist.length };
+        return { wishlist: [...newWishlist], wishQuantity: newWishlist.length };
       }
     });
   },

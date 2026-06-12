@@ -10,6 +10,8 @@ import Providers from "@/Providers";
 import SessionTimeoutWrapper from "@/components/SessionTimeoutWrapper";
 import { LanguageProvider } from "@/components/LanguageProvider";
 import { getServerLocale } from "@/lib/i18n-server";
+import StyledComponentsRegistry from "@/lib/registry";
+import { getNavigationData } from "@/lib/navigation";
 
 const bodyFont = Be_Vietnam_Pro({
   subsets: ["latin", "vietnamese"],
@@ -38,21 +40,26 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const session = await getServerSession();
-  const locale = await getServerLocale();
+  const [session, locale, navigation] = await Promise.all([
+    getServerSession(),
+    getServerLocale(),
+    getNavigationData(),
+  ]);
   return (
     <html lang={locale} data-theme="light">
       <body className={`${bodyFont.variable} ${displayFont.variable}`}>
-        <SessionProvider session={session}>
-          <LanguageProvider initialLocale={locale}>
-            <SessionTimeoutWrapper />
-            <Header />
-            <Providers>
-              {children}
-            </Providers>
-            <Footer />
-          </LanguageProvider>
-        </SessionProvider>
+        <StyledComponentsRegistry>
+          <SessionProvider session={session}>
+            <LanguageProvider initialLocale={locale}>
+              <SessionTimeoutWrapper />
+              <Header categories={navigation.categories} collectorSets={navigation.collectorSets} />
+              <Providers>
+                {children}
+              </Providers>
+              <Footer />
+            </LanguageProvider>
+          </SessionProvider>
+        </StyledComponentsRegistry>
       </body>
     </html>
   );

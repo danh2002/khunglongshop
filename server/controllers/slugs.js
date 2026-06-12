@@ -2,9 +2,16 @@ const prisma = require("../utills/db"); // ✅ Use shared connection
 
 async function getProductBySlug(request, response) {
   const { slug } = request.params;
-  const product = await prisma.product.findMany({
+  if (/^vanie-(?:[1-9]|10)$/.test(slug)) {
+    return response.redirect(308, "/product/vanie-blind-box");
+  }
+
+  const foundProduct = await prisma.product.findFirst({
     where: {
-      slug: slug,
+      slug,
+      isVisible: true,
+      isBlindBox: true,
+      isCollector: false,
     },
     include: {
       category: true,
@@ -12,7 +19,6 @@ async function getProductBySlug(request, response) {
     },
   });
 
-  const foundProduct = product[0]; // Assuming there's only one product with that slug
   if (!foundProduct) {
     return response.status(404).json({ error: "Product not found" });
   }

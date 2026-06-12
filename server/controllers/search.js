@@ -8,20 +8,18 @@ async function searchProducts(request, response) {
             return response.status(400).json({ error: "Query parameter is required" });
         }
 
+        const isVariantQuery = /^vanie(?:\s|-)?(?:[1-9]|10)$/i.test(query.trim());
         const products = await prisma.product.findMany({
             where: {
+                isVisible: true,
+                isBlindBox: true,
+                isCollector: false,
+                slug: "vanie-blind-box",
                 OR: [
-                    {
-                        title: {
-                            contains: query
-                        }
-                    },
-                    {
-                        description: {
-                            contains: query
-                        }
-                    }
-                ]
+                    { title: { contains: query } },
+                    { description: { contains: query } },
+                    ...(isVariantQuery ? [{ slug: "vanie-blind-box" }] : []),
+                ],
             }
         });
 

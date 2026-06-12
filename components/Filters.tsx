@@ -24,16 +24,31 @@ interface InputCategory {
 
 const Filters = () => {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const { replace } = useRouter();
 
   // getting current page number from Zustand store
   const { page } = usePaginationStore();
 
   const [inputCategory, setInputCategory] = useState<InputCategory>({
-    inStock: { text: "instock", isChecked: true },
-    outOfStock: { text: "outofstock", isChecked: true },
-    priceFilter: { text: "price", value: 3000 },
-    ratingFilter: { text: "rating", value: 0 },
+    inStock: {
+      text: "instock",
+      isChecked: searchParams.get("inStock") !== "false",
+    },
+    outOfStock: {
+      text: "outofstock",
+      isChecked: searchParams.get("outOfStock") !== "false",
+    },
+    priceFilter: {
+      text: "price",
+      value: searchParams.has("price")
+        ? Number(searchParams.get("price"))
+        : 3000000,
+    },
+    ratingFilter: {
+      text: "rating",
+      value: Number(searchParams.get("rating")) || 0,
+    },
   });
   const { sortBy } = useSortStore();
 
@@ -51,10 +66,10 @@ const Filters = () => {
 
   return (
     <div>
-      <h3 className="text-2xl mb-2">Filters</h3>
+      <h3 className="text-2xl mb-2">Bộ lọc</h3>
       <div className="divider"></div>
       <div className="flex flex-col gap-y-1">
-        <h3 className="text-xl mb-2">Availability</h3>
+        <h3 className="text-xl mb-2">Tình trạng</h3>
         <div className="form-control">
           <label className="cursor-pointer flex items-center">
             <input
@@ -71,7 +86,7 @@ const Filters = () => {
               }
               className="checkbox"
             />
-            <span className="label-text text-lg ml-2 text-black">In stock</span>
+            <span className="label-text text-lg ml-2 text-white">Còn hàng</span>
           </label>
         </div>
 
@@ -91,8 +106,8 @@ const Filters = () => {
               }
               className="checkbox"
             />
-            <span className="label-text text-lg ml-2 text-black">
-              Out of stock
+            <span className="label-text text-lg ml-2 text-white">
+              Hết hàng
             </span>
           </label>
         </div>
@@ -100,13 +115,13 @@ const Filters = () => {
 
       <div className="divider"></div>
       <div className="flex flex-col gap-y-1">
-        <h3 className="text-xl mb-2">Price</h3>
+        <h3 className="text-xl mb-2">Giá</h3>
         <div>
           <input
             type="range"
             min={0}
-            max={3000}
-            step={10}
+            max={3000000}
+            step={10000}
             value={inputCategory.priceFilter.value}
             className="range"
             onChange={(e) =>
@@ -119,14 +134,14 @@ const Filters = () => {
               })
             }
           />
-          <span>{`Max price: $${inputCategory.priceFilter.value}`}</span>
+          <span>{`Giá tối đa: ${inputCategory.priceFilter.value.toLocaleString("vi-VN")}đ`}</span>
         </div>
       </div>
 
       <div className="divider"></div>
 
       <div>
-        <h3 className="text-xl mb-2">Minimum Rating:</h3>
+        <h3 className="text-xl mb-2">Đánh giá tối thiểu</h3>
         <input
           type="range"
           min={0}

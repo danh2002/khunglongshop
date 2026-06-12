@@ -27,6 +27,7 @@ export default async function CategoriesPage() {
           <thead>
             <tr>
               <AdminTh>Tên</AdminTh>
+              <AdminTh>Slug</AdminTh>
               <AdminTh>Sản phẩm</AdminTh>
               <AdminTh />
             </tr>
@@ -35,6 +36,7 @@ export default async function CategoriesPage() {
             {categories.map((category) => (
               <tr key={category.id}>
                 <AdminTd>{category.name}</AdminTd>
+                <AdminTd>{category.slug ?? "Tự động"}</AdminTd>
                 <AdminTd>{category._count.products}</AdminTd>
                 <AdminTd>
                   <Link className="font-bold text-[#e85d00]" href={`/admin/categories/${category.id}`}>

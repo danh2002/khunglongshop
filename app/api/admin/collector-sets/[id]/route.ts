@@ -1,11 +1,20 @@
 import { NextResponse } from "next/server";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { z } from "zod";
-import { adminError, normalizeDisplayName, validationError } from "@/lib/adminResponses";
+import {
+  adminError,
+  isPrismaUniqueError,
+  normalizeDisplayName,
+  validationError,
+} from "@/lib/adminResponses";
 import { requireAdminApi } from "@/utils/adminAuth";
 import prisma from "@/utils/db";
+import { toSlug } from "@/lib/slug";
 
 const updateSchema = z.object({
   name: z.string().trim().min(1).max(120).optional(),
+  slug: z.string().trim().max(120).optional(),
+  image: z.string().trim().max(500).nullable().optional(),
   description: z.string().trim().max(2000).nullable().optional(),
   rewardDescription: z.string().trim().max(500).nullable().optional(),
   rewardCodeTemplate: z.string().trim().max(100).nullable().optional(),
@@ -107,6 +116,12 @@ export async function PATCH(
         where: { id },
         data: {
           ...(parsed.data.name ? { name: normalizeDisplayName(parsed.data.name) } : {}),
+          ...(parsed.data.slug !== undefined
+            ? { slug: toSlug(parsed.data.slug || parsed.data.name || existing.name) }
+            : parsed.data.name
+              ? { slug: toSlug(parsed.data.name) }
+              : {}),
+          ...(parsed.data.image !== undefined ? { image: parsed.data.image || null } : {}),
           ...(parsed.data.description !== undefined
             ? { description: parsed.data.description || null }
             : {}),
@@ -119,8 +134,13 @@ export async function PATCH(
         },
       });
     });
+    revalidateTag("navbar-navigation");
+    revalidatePath("/", "layout");
     return NextResponse.json(await findSet(id));
   } catch (error) {
+    if (isPrismaUniqueError(error)) {
+      return adminError(409, "COLLECTOR_SET_SLUG_EXISTS", "Tên hoặc slug bộ sưu tập đã tồn tại.");
+    }
     const code = error instanceof Error ? error.message : "";
     if (code === "COLLECTOR_SET_NOT_FOUND") {
       return adminError(404, code, "Không tìm thấy bộ sưu tập.");
@@ -153,5 +173,7 @@ export async function DELETE(
     );
   }
   await prisma.collectorSet.delete({ where: { id } });
+  revalidateTag("navbar-navigation");
+  revalidatePath("/", "layout");
   return new NextResponse(null, { status: 204 });
 }

@@ -1,4 +1,5 @@
 import { Prisma } from "@prisma/client";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { createPagination, parseAdminPagination } from "@/lib/adminApi";
@@ -10,9 +11,13 @@ import {
 } from "@/lib/adminResponses";
 import { requireAdminApi } from "@/utils/adminAuth";
 import prisma from "@/utils/db";
+import { toSlug } from "@/lib/slug";
 
 const categorySchema = z.object({
   name: z.string().trim().min(1, "Tên danh mục là bắt buộc.").max(100),
+  slug: z.string().trim().max(120).optional(),
+  icon: z.string().trim().max(500).nullable().optional(),
+  description: z.string().trim().max(1000).nullable().optional(),
 });
 
 export async function GET(request: NextRequest) {
@@ -45,9 +50,16 @@ export async function POST(request: Request) {
 
   try {
     const category = await prisma.category.create({
-      data: { name: normalizeDisplayName(parsed.data.name) },
+      data: {
+        name: normalizeDisplayName(parsed.data.name),
+        slug: toSlug(parsed.data.slug || parsed.data.name),
+        icon: parsed.data.icon || null,
+        description: parsed.data.description || null,
+      },
       include: { _count: { select: { products: true } } },
     });
+    revalidateTag("navbar-navigation");
+    revalidatePath("/", "layout");
     return NextResponse.json(category, { status: 201 });
   } catch (error) {
     if (isPrismaUniqueError(error)) {

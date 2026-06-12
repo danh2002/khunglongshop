@@ -1,18 +1,23 @@
-import { CategoryMenu, Hero, ProductsSection } from "@/components";
-import { fallbackMerchProducts } from "@/lib/merchCatalog";
+import { Hero, ProductsSection } from "@/components";
+import CollectorBanner from "@/components/CollectorBanner";
+import FeaturedSeries from "@/components/FeaturedSeries";
+import HomeMarquee from "@/components/HomeMarquee";
+import NewArrivals from "@/components/NewArrivals";
+import { getHomepageProducts } from "@/lib/homepage-products";
 
-const getHomepageProducts = async () => {
-  return { products: fallbackMerchProducts, hasError: false };
-};
+export const revalidate = 60;
 
 export default async function Home() {
-  const { products, hasError } = await getHomepageProducts();
+  const { products, variantImages, hasError } = await getHomepageProducts();
 
   return (
     <>
-      <Hero products={products} />
-      <CategoryMenu />
+      <Hero products={products} variantImages={variantImages} />
+      <HomeMarquee />
+      <NewArrivals products={products} />
+      <FeaturedSeries product={products[0]} images={variantImages} />
       <ProductsSection initialProducts={products} initialError={hasError} />
+      <CollectorBanner />
     </>
   );
 }

@@ -6,6 +6,7 @@ import { use, useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
 import styled from "styled-components";
 import { Eyebrow, SectionShell, Wrapper } from "@/components/design-system";
+import { formatVndTotal } from "@/lib/currency";
 
 type OrderStatus = "placed" | "packed" | "shipping" | "delivered" | "canceled" | "unknown";
 
@@ -33,7 +34,30 @@ type OrderDetail = {
     price: number;
     quantity: number;
   }>;
+  blindBoxResults: Array<{
+    id: string;
+    unitIndex: number;
+    rarityTier: "COMMON" | "RARE" | "EPIC" | "LEGENDARY";
+    product: {
+      title: string;
+      slug: string;
+      mainImage: string;
+      setSlotNumber: number | null;
+    };
+    redemptionCode: {
+      code: string;
+      status: string;
+      usedAt: string | null;
+    } | null;
+  }>;
 };
+
+const rarityLabel = {
+  COMMON: "Phổ biến",
+  RARE: "Hiếm",
+  EPIC: "Sử thi",
+  LEGENDARY: "Huyền thoại",
+} as const;
 
 const statusSteps: Array<{ key: Exclude<OrderStatus, "canceled" | "unknown">; label: string }> = [
   { key: "placed", label: "Đã đặt" },
@@ -175,6 +199,18 @@ const Total = styled.strong`
   font-style: italic;
 `;
 
+const RevealGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 0.8rem;
+`;
+
+const RevealCard = styled.article`
+  padding: 1rem;
+  background: #070707;
+  border: 1px solid rgba(232, 93, 0, 0.35);
+`;
+
 export default function AccountOrderDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const [order, setOrder] = useState<OrderDetail | null>(null);
@@ -249,10 +285,10 @@ export default function AccountOrderDetailPage({ params }: { params: Promise<{ i
                       <div>
                         <ProductName>{product.title}</ProductName>
                         <Meta>
-                          x{product.quantity} · ${product.price}
+                          x{product.quantity} · {formatVndTotal(product.price)}
                         </Meta>
                       </div>
-                      <Total>${product.price * product.quantity}</Total>
+                      <Total>{formatVndTotal(product.price * product.quantity)}</Total>
                     </ProductRow>
                   ))}
                 </ProductList>
@@ -271,10 +307,36 @@ export default function AccountOrderDetailPage({ params }: { params: Promise<{ i
                   <span>
                     {order.shipping.city}, {order.shipping.country} {order.shipping.postalCode}
                   </span>
-                  <Total>Tổng: ${order.total}</Total>
+                  <Total>Tổng: {formatVndTotal(order.total)}</Total>
                 </Address>
               </Panel>
             </Grid>
+            {order.blindBoxResults.length > 0 ? (
+              <Panel>
+                <PanelTitle>Kết quả túi mù</PanelTitle>
+                <RevealGrid>
+                  {order.blindBoxResults.map((result) => (
+                    <RevealCard key={result.id}>
+                      <ProductImage>
+                        <Image
+                          src={result.product.mainImage.startsWith("/") ? result.product.mainImage : `/${result.product.mainImage}`}
+                          alt={result.product.title}
+                          fill
+                          sizes="72px"
+                          style={{ objectFit: "contain" }}
+                        />
+                      </ProductImage>
+                      <Meta>{rarityLabel[result.rarityTier]}</Meta>
+                      <ProductName>{result.product.title}</ProductName>
+                      <Meta>Slot {result.product.setSlotNumber ?? "-"}</Meta>
+                      {result.redemptionCode ? (
+                        <Meta>Mã mở khóa: {result.redemptionCode.code}</Meta>
+                      ) : null}
+                    </RevealCard>
+                  ))}
+                </RevealGrid>
+              </Panel>
+            ) : null}
           </>
         ) : (
           <Panel>Không tìm thấy đơn hàng.</Panel>

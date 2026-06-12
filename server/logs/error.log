@@ -30,3 +30,19 @@
 ::1 - - [05/Oct/2025:13:35:21 +0000] "POST /api/products HTTP/1.1" 400 80 "http://localhost:3000/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36" reqId=j3e6LIZl userId=anonymous
 ::1 - - [03/Jun/2026:08:11:56 +0000] "GET /api/products HTTP/1.1" 500 97 "-" "Mozilla/5.0 (Windows NT; Windows NT 10.0; en-US) WindowsPowerShell/5.1.19041.6456" reqId=4-VadlHx userId=anonymous
 ::1 - - [03/Jun/2026:08:12:13 +0000] "GET /api/products HTTP/1.1" 500 97 "-" "node" reqId=BOjcVzTE userId=anonymous
+::1 - - [10/Jun/2026:07:25:59 +0000] "GET /api/wishlist/7oJLMzFo2Sn-tzptDu2RF HTTP/1.1" 404 50 "http://localhost:3000/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36" reqId=RpuxV_PJ userId=anonymous
+::1 - - [10/Jun/2026:07:25:59 +0000] "GET /api/wishlist/7oJLMzFo2Sn-tzptDu2RF HTTP/1.1" 404 50 "http://localhost:3000/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36" reqId=8G0Q7X4y userId=anonymous
+::1 - - [10/Jun/2026:07:58:25 +0000] "GET /api/wishlist/7oJLMzFo2Sn-tzptDu2RF HTTP/1.1" 404 50 "http://localhost:3000/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36" reqId=h68Xi-4J userId=anonymous
+::1 - - [10/Jun/2026:07:58:25 +0000] "GET /api/wishlist/7oJLMzFo2Sn-tzptDu2RF HTTP/1.1" 404 50 "http://localhost:3000/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36" reqId=FHRsU3hT userId=anonymous
+::1 - - [10/Jun/2026:08:00:23 +0000] "GET /api/wishlist/test-user HTTP/1.1" 404 50 "-" "Mozilla/5.0 (Windows NT; Windows NT 10.0; en-US) WindowsPowerShell/5.1.19041.6456" reqId=nL0vuEJE userId=anonymous
+::1 - - [10/Jun/2026:08:01:32 +0000] "GET /api/wishlist/7oJLMzFo2Sn-tzptDu2RF HTTP/1.1" 404 50 "http://localhost:3000/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36" reqId=XkfmXm6A userId=anonymous
+::1 - - [10/Jun/2026:08:02:00 +0000] "GET /api/wishlist/7oJLMzFo2Sn-tzptDu2RF HTTP/1.1" 404 50 "http://localhost:3000/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36" reqId=fxrkyo0n userId=anonymous
+::1 - - [10/Jun/2026:08:27:25 +0000] "GET / HTTP/1.1" 404 50 "-" "Mozilla/5.0 (Windows NT; Windows NT 10.0; en-US) WindowsPowerShell/5.1.19041.6456" reqId=hcdvSCY- userId=anonymous
+::1 - - [10/Jun/2026:08:38:43 +0000] "GET / HTTP/1.1" 404 50 "-" "Mozilla/5.0 (Windows NT; Windows NT 10.0; en-US) WindowsPowerShell/5.1.19041.6456" reqId=OCJJQjmg userId=anonymous
+::1 - - [10/Jun/2026:12:45:07 +0000] "POST /api/orders HTTP/1.1" 410 106 "-" "Mozilla/5.0 (Windows NT; Windows NT 10.0; en-US) WindowsPowerShell/5.1.19041.6456" reqId=avti_ZDO userId=anonymous
+::1 - - [10/Jun/2026:12:45:07 +0000] "POST /api/order-product HTTP/1.1" 410 108 "-" "Mozilla/5.0 (Windows NT; Windows NT 10.0; en-US) WindowsPowerShell/5.1.19041.6456" reqId=c4df-Cbi userId=anonymous
+::1 - - [10/Jun/2026:13:01:08 +0000] "GET /api/orders HTTP/1.1" 401 24 "-" "curl/8.13.0" reqId=iApbDWqM userId=anonymous
+::1 - - [10/Jun/2026:13:01:08 +0000] "GET /api/orders/not-owned HTTP/1.1" 401 24 "-" "curl/8.13.0" reqId=p3s3SGdN userId=anonymous
+::1 - - [10/Jun/2026:13:01:08 +0000] "GET /api/order-product HTTP/1.1" 401 24 "-" "curl/8.13.0" reqId=uub9u1oi userId=anonymous
+::1 - - [10/Jun/2026:13:01:08 +0000] "PUT /api/order-product/not-owned HTTP/1.1" 401 24 "-" "curl/8.13.0" reqId=QKiV2dkK userId=anonymous
+::1 - - [10/Jun/2026:13:47:56 +0000] "GET /api/wishlist HTTP/1.1" 401 24 "-" "Mozilla/5.0 (Windows NT; Windows NT 10.0; en-US) WindowsPowerShell/5.1.19041.6456" reqId=z0DuTNXp userId=anonymous

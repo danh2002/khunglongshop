@@ -1,10 +1,18 @@
 import config from './config';
 
+export function resolveApiUrl(
+  endpoint: string,
+  baseUrl: string,
+  isBrowser = typeof window !== "undefined"
+) {
+  return isBrowser ? endpoint : `${baseUrl}${endpoint}`;
+}
+
 export const apiClient = {
   baseUrl: config.apiBaseUrl,
   
   async request(endpoint: string, options: RequestInit = {}) {
-    const url = `${this.baseUrl}${endpoint}`;
+    const url = resolveApiUrl(endpoint, this.baseUrl);
     
     const defaultOptions: RequestInit = {
       credentials: 'include',

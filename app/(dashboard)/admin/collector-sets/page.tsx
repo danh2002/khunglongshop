@@ -24,11 +24,12 @@ export default async function CollectorSetsPage() {
       />
       {sets.length ? (
         <AdminTable>
-          <thead><tr><AdminTh>Tên</AdminTh><AdminTh>Đã gán</AdminTh><AdminTh>Hoàn thành</AdminTh><AdminTh>Ngày tạo</AdminTh><AdminTh /></tr></thead>
+          <thead><tr><AdminTh>Tên</AdminTh><AdminTh>Slug</AdminTh><AdminTh>Đã gán</AdminTh><AdminTh>Hoàn thành</AdminTh><AdminTh>Ngày tạo</AdminTh><AdminTh /></tr></thead>
           <tbody>
             {sets.map((set) => (
               <tr key={set.id}>
                 <AdminTd>{set.name}</AdminTd>
+                <AdminTd>{set.slug ?? "Tự động"}</AdminTd>
                 <AdminTd>{set._count.products}/{set.totalSlots}</AdminTd>
                 <AdminTd>{set._count.setRewards} người dùng</AdminTd>
                 <AdminTd>{set.createdAt.toLocaleDateString("vi-VN")}</AdminTd>

@@ -8,19 +8,50 @@
 // Output: styled text that displays current stock status on the single product page
 // *********************
 
-import React from 'react'
-import { FaCheck } from 'react-icons/fa6'
+import React from "react";
+import styled from "styled-components";
+import { FaCheck } from "react-icons/fa6";
 import { FaXmark } from "react-icons/fa6";
 
+const StockRow = styled.p`
+  display: flex;
+  gap: 8px;
+  margin: 0;
+  color: #ffffff;
+  font-size: 1.125rem;
 
-const StockAvailabillity = ({ stock, inStock } : { stock: number, inStock: number }) => {
+  @media (max-width: 500px) {
+    justify-content: center;
+  }
+`;
+
+const StockStatus = styled.span<{ $available: boolean }>`
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: ${({ $available }) => ($available ? "#00cc66" : "#cc0000")};
+  font-weight: 700;
+`;
+
+const StockAvailabillity = ({ inStock }: { stock: number; inStock: number }) => {
+  const available = inStock > 0;
+
   return (
-    <p className='text-xl flex gap-x-2 max-[500px]:justify-center'>Availability: 
-    { inStock === 1 ? <span className='text-success flex items-center gap-x-1'>In stock <FaCheck /></span> :  <span className='text-error flex items-center gap-x-1'>Out of stock <FaXmark /></span>}
-    
-    
-    </p>
-  )
-}
+    <StockRow>
+      Tình trạng:
+      <StockStatus $available={available}>
+        {available ? (
+          <>
+            Còn hàng <FaCheck aria-hidden="true" />
+          </>
+        ) : (
+          <>
+            Hết hàng <FaXmark aria-hidden="true" />
+          </>
+        )}
+      </StockStatus>
+    </StockRow>
+  );
+};
 
-export default StockAvailabillity
+export default StockAvailabillity;

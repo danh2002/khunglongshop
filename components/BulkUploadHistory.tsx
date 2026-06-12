@@ -11,6 +11,7 @@
 "use client";
 import React, { useEffect, useState } from "react";
 import toast from "react-hot-toast";
+import { buildBulkUploadUrl } from "@/lib/bulk-upload-api";
 import {
   FaCheckCircle,
   FaTimesCircle,
@@ -51,7 +52,7 @@ const BulkUploadHistory = () => {
   const fetchBatchHistory = async () => {
     try {
       setLoading(true);
-      const response = await fetch("http://localhost:3001/api/bulk-upload");
+      const response = await fetch(buildBulkUploadUrl());
 
       if (response.ok) {
         const data = await response.json();
@@ -81,7 +82,7 @@ const BulkUploadHistory = () => {
 
     try {
       const response = await fetch(
-        `http://localhost:3001/api/bulk-upload/${batchToDelete.id}?deleteProducts=${deleteProducts}`,
+        buildBulkUploadUrl(batchToDelete.id, deleteProducts),
         {
           method: "DELETE",
         }

@@ -6,7 +6,13 @@ import {
   normalizeAdminSearch,
   parseAdminPagination,
 } from "@/lib/adminApi";
-import { adminProductSchema, productSortFields, stockFilters } from "@/lib/adminProduct";
+import {
+  adminProductSchema,
+  parseProductImages,
+  productSortFields,
+  serializeProductImages,
+  stockFilters,
+} from "@/lib/adminProduct";
 
 function validationError(error: { flatten: () => { fieldErrors: Record<string, string[]> } }) {
   return NextResponse.json(
@@ -27,12 +33,17 @@ async function validateProductRelations(input: {
   isCollector: boolean;
   setId?: string | null;
   setSlotNumber?: number | null;
+  isBlindBox: boolean;
+  blindBoxSetId?: string | null;
 }) {
-  const [category, merchant, collectorSet] = await Promise.all([
+  const [category, merchant, collectorSet, blindBoxSet] = await Promise.all([
     prisma.category.findUnique({ where: { id: input.categoryId }, select: { id: true } }),
     prisma.merchant.findUnique({ where: { id: input.merchantId }, select: { id: true } }),
     input.isCollector && input.setId
       ? prisma.collectorSet.findUnique({ where: { id: input.setId }, select: { id: true, totalSlots: true } })
+      : Promise.resolve(null),
+    input.isBlindBox && input.blindBoxSetId
+      ? prisma.collectorSet.findUnique({ where: { id: input.blindBoxSetId }, select: { id: true } })
       : Promise.resolve(null),
   ]);
 
@@ -56,6 +67,10 @@ async function validateProductRelations(input: {
     if (occupiedSlot) {
       return { code: "COLLECTOR_SLOT_OCCUPIED", message: "Slot sưu tập đã có sản phẩm", status: 409 };
     }
+  }
+
+  if (input.isBlindBox && !blindBoxSet) {
+    return { code: "BLIND_BOX_SET_NOT_FOUND", message: "Bộ sưu tập túi mù không tồn tại", status: 404 };
   }
 
   return null;
@@ -113,7 +128,10 @@ export async function GET(request: NextRequest) {
   ]);
 
   return NextResponse.json({
-    items: products,
+    items: products.map((product) => ({
+      ...product,
+      images: parseProductImages(product.images),
+    })),
     pagination: createPagination(page, limit, totalItems),
   });
 }
@@ -148,7 +166,10 @@ export async function POST(request: NextRequest) {
   }
 
   const product = await prisma.product.create({
-    data: parsed.data,
+    data: {
+      ...parsed.data,
+      images: serializeProductImages(parsed.data.images),
+    },
     include: {
       category: { select: { id: true, name: true } },
       merchant: { select: { id: true, name: true } },
@@ -156,5 +177,11 @@ export async function POST(request: NextRequest) {
     },
   });
 
-  return NextResponse.json(product, { status: 201 });
+  return NextResponse.json(
+    {
+      ...product,
+      images: parseProductImages(product.images),
+    },
+    { status: 201 }
+  );
 }

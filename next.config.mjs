@@ -4,7 +4,12 @@ const nextConfig = {
       styledComponents: true,
     },
     images: {
+        formats: ['image/avif', 'image/webp'],
         remotePatterns: [
+          {
+            protocol: 'http',
+            hostname: 'localhost',
+          },
           {
             protocol: 'https',
             hostname: 'placehold.co',
@@ -12,8 +17,8 @@ const nextConfig = {
           },
         ],
       },
-    env: {
-        NEXT_PUBLIC_API_BASE_URL: process.env.NEXT_PUBLIC_API_BASE_URL,
+    experimental: {
+      optimizePackageImports: ['styled-components', 'react-icons'],
     },
     async headers() {
       return [

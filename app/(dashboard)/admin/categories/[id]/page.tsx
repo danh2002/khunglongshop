@@ -20,6 +20,9 @@ export default async function CategoryDetailPage({
       <CategoryForm
         id={category.id}
         initialName={category.name}
+        initialSlug={category.slug ?? ""}
+        initialIcon={category.icon ?? ""}
+        initialDescription={category.description ?? ""}
         productCount={category._count.products}
       />
     </AdminPage>

@@ -22,6 +22,7 @@ enum RedemptionCodeStatus {
   ACTIVE
   REDEEMED
   DISABLED
+  CANCELLED
 }
 
 enum OrderStatus {
@@ -43,11 +44,30 @@ enum OrderSnapshotSource {
   BACKFILL_ESTIMATE
 }
 
+enum PoolVersionStatus {
+  DRAFT
+  ACTIVE
+  ARCHIVED
+}
+
+enum RarityTier {
+  COMMON
+  RARE
+  EPIC
+  LEGENDARY
+}
+
+enum BlindBoxAllocationStatus {
+  ACTIVE
+  VOIDED
+}
+
 model Product {
   id              String                   @id @default(uuid())
   slug            String                   @unique
   title           String
-  mainImage       String
+  mainImage       String                   @default("")
+  images          String                   @default("[]") @db.VarChar(2000)
   price           Int                      @default(0)
   rating          Int                      @default(0)
   description     String
@@ -62,6 +82,12 @@ model Product {
   set             CollectorSet?            @relation(fields: [setId], references: [id])
   setSlotNumber   Int?
   isCollector     Boolean                  @default(false)
+  isBlindBox      Boolean                  @default(false)
+  isVisible       Boolean                  @default(false)
+  blindBoxSetId   String?
+  blindBoxSet     CollectorSet?            @relation("BlindBoxSellableProducts", fields: [blindBoxSetId], references: [id], onDelete: Restrict)
+  poolEntries     BlindBoxPoolEntry[]
+  allocations     BlindBoxAllocation[]
 
   merchantId      String
   merchant        Merchant           @relation(fields: [merchantId], references: [id])
@@ -74,6 +100,10 @@ model Product {
   @@index([setId])
   @@index([inStock])
   @@index([isCollector])
+  @@index([isBlindBox])
+  @@index([isVisible, isBlindBox])
+  @@index([isVisible, isBlindBox, inStock])
+  @@index([blindBoxSetId])
 }
 
 model Image {
@@ -83,31 +113,97 @@ model Image {
 }
 
 model CollectorSet {
-  id                 String      @id @default(cuid())
+  id                 String                @id @default(cuid())
   name               String
+  slug               String?               @unique
+  image              String?
   description        String?
   totalSlots         Int
   rewardDescription  String?
   rewardCodeTemplate String?
   products           Product[]
+  blindBoxProducts   Product[]             @relation("BlindBoxSellableProducts")
+  poolVersions       BlindBoxPoolVersion[]
   setRewards         SetReward[]
-  createdAt          DateTime    @default(now())
-  updatedAt          DateTime    @updatedAt
+  createdAt          DateTime              @default(now())
+  updatedAt          DateTime              @updatedAt
+}
+
+model BlindBoxPoolVersion {
+  id             String                   @id @default(cuid())
+  collectorSetId String
+  collectorSet   CollectorSet             @relation(fields: [collectorSetId], references: [id], onDelete: Restrict)
+  version        Int
+  status         PoolVersionStatus        @default(DRAFT)
+  activeSetKey   String?                  @unique
+  createdAt      DateTime                 @default(now())
+  publishedAt    DateTime?
+  entries        BlindBoxPoolEntry[]
+  allocations    BlindBoxAllocation[]
+  orderItems     customer_order_product[]
+
+  @@unique([collectorSetId, version])
+  @@index([collectorSetId, status])
+}
+
+model BlindBoxPoolEntry {
+  id            String              @id @default(cuid())
+  poolVersionId String
+  poolVersion   BlindBoxPoolVersion @relation(fields: [poolVersionId], references: [id], onDelete: Restrict)
+  productId     String
+  product       Product             @relation(fields: [productId], references: [id], onDelete: Restrict)
+  slotNumber    Int
+  drawWeight    Int
+  rarityTier    RarityTier
+
+  @@unique([poolVersionId, productId])
+  @@unique([poolVersionId, slotNumber])
+  @@index([productId])
+}
+
+model BlindBoxAllocation {
+  id             String                   @id @default(cuid())
+  allocationKey  String                   @unique
+  orderId        String
+  order          Customer_order           @relation(fields: [orderId], references: [id], onDelete: Restrict)
+  orderItemId    String
+  orderItem      customer_order_product   @relation(fields: [orderItemId], references: [id], onDelete: Restrict)
+  unitIndex      Int
+  userId         String
+  user           User                     @relation(fields: [userId], references: [id], onDelete: Restrict)
+  productId      String
+  product        Product                  @relation(fields: [productId], references: [id], onDelete: Restrict)
+  rarityTier     RarityTier
+  poolVersionId  String
+  poolVersion    BlindBoxPoolVersion      @relation(fields: [poolVersionId], references: [id], onDelete: Restrict)
+  status         BlindBoxAllocationStatus @default(ACTIVE)
+  drawnAt        DateTime                 @default(now())
+  revealed       Boolean                  @default(false)
+  voidedAt       DateTime?
+  redemptionCode RedemptionCode?
+
+  @@unique([orderItemId, unitIndex])
+  @@index([orderId])
+  @@index([userId, status])
+  @@index([productId])
+  @@index([poolVersionId])
 }
 
 model RedemptionCode {
-  id        String               @id @default(cuid())
-  code      String               @unique
-  productId String
-  product   Product              @relation(fields: [productId], references: [id], onDelete: Restrict)
-  orderId   String?
-  order     Customer_order?      @relation(fields: [orderId], references: [id], onDelete: SetNull)
-  userId    String?
-  user      User?                @relation(fields: [userId], references: [id], onDelete: SetNull)
-  status    RedemptionCodeStatus @default(ACTIVE)
-  isUsed    Boolean              @default(false)
-  usedAt    DateTime?
-  createdAt DateTime             @default(now())
+  id           String               @id @default(cuid())
+  code         String               @unique
+  productId    String
+  product      Product              @relation(fields: [productId], references: [id], onDelete: Restrict)
+  allocationId String?              @unique
+  allocation   BlindBoxAllocation?  @relation(fields: [allocationId], references: [id], onDelete: Restrict)
+  orderId      String?
+  order        Customer_order?      @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  userId       String?
+  user         User?                @relation(fields: [userId], references: [id], onDelete: SetNull)
+  status       RedemptionCodeStatus @default(ACTIVE)
+  isUsed       Boolean              @default(false)
+  usedAt       DateTime?
+  createdAt    DateTime             @default(now())
 
   @@index([userId])
   @@index([productId])
@@ -134,47 +230,52 @@ model SetReward {
 }
 
 model User {
-  id                String              @id @default(uuid())
-  email             String              @unique
-  password          String?
-  role              Role                @default(user)
-  orders            Customer_order[]
-  Wishlist          Wishlist[]
-  notifications     Notification[]
-  redemptionCodes   RedemptionCode[]
-  setRewards        SetReward[]
-  settingsUpdates   SiteSettings[]      @relation("SiteSettingsUpdatedBy")
-  adminAuditLogs    AdminAuditLog[]     @relation("AdminAuditActor")
-  isActive          Boolean             @default(true)
-  deactivatedAt     DateTime?
+  id                  String               @id @default(uuid())
+  email               String               @unique
+  password            String?
+  role                Role                 @default(user)
+  orders              Customer_order[]
+  Wishlist            Wishlist[]
+  notifications       Notification[]
+  redemptionCodes     RedemptionCode[]
+  blindBoxAllocations BlindBoxAllocation[]
+  setRewards          SetReward[]
+  settingsUpdates     SiteSettings[]       @relation("SiteSettingsUpdatedBy")
+  adminAuditLogs      AdminAuditLog[]      @relation("AdminAuditActor")
+  isActive            Boolean              @default(true)
+  deactivatedAt       DateTime?
   // Back relation for bulk upload batches
-  bulkUploadBatches bulk_upload_batch[] @relation("UserBatches")
+  bulkUploadBatches   bulk_upload_batch[]  @relation("UserBatches")
 
   @@index([role])
   @@index([isActive])
 }
 
 model Customer_order {
-  id              String                   @id @default(uuid())
-  userId          String?
-  user            User?                    @relation(fields: [userId], references: [id], onDelete: SetNull)
-  name            String
-  lastname        String
-  phone           String
-  email           String
-  company         String
-  adress          String
-  apartment       String
-  postalCode      String
-  dateTime        DateTime?                @default(now())
-  status          OrderStatus              @default(PENDING)
-  city            String
-  country         String
-  orderNotice     String?
-  total           Int
-  products        customer_order_product[]
-  redemptionCodes RedemptionCode[]
+  id                     String                   @id @default(uuid())
+  userId                 String?
+  user                   User?                    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  name                   String
+  lastname               String
+  phone                  String
+  email                  String
+  company                String
+  adress                 String
+  apartment              String
+  postalCode             String
+  dateTime               DateTime?                @default(now())
+  status                 OrderStatus              @default(PENDING)
+  city                   String
+  country                String
+  orderNotice            String?
+  total                  Int
+  checkoutIdempotencyKey String?
+  checkoutRequestHash    String?
+  products               customer_order_product[]
+  redemptionCodes        RedemptionCode[]
+  blindBoxAllocations    BlindBoxAllocation[]
 
+  @@unique([userId, checkoutIdempotencyKey])
   @@index([userId])
   @@index([email])
   @@index([userId, dateTime])
@@ -183,22 +284,32 @@ model Customer_order {
 }
 
 model customer_order_product {
-  id              String              @id @default(uuid())
-  customerOrder   Customer_order      @relation(fields: [customerOrderId], references: [id])
-  customerOrderId String
-  product         Product             @relation(fields: [productId], references: [id])
-  productId       String
-  quantity        Int
-  productTitle    String
-  productSlug     String
-  unitPrice       Int
-  snapshotSource  OrderSnapshotSource
+  id                  String               @id @default(uuid())
+  customerOrder       Customer_order       @relation(fields: [customerOrderId], references: [id])
+  customerOrderId     String
+  product             Product              @relation(fields: [productId], references: [id])
+  productId           String
+  quantity            Int
+  productTitle        String
+  productSlug         String
+  unitPrice           Int
+  snapshotSource      OrderSnapshotSource
+  poolVersionId       String?
+  poolVersion         BlindBoxPoolVersion? @relation(fields: [poolVersionId], references: [id], onDelete: Restrict)
+  blindBoxAllocations BlindBoxAllocation[]
+
+  @@index([customerOrderId])
+  @@index([productId])
+  @@index([poolVersionId])
 }
 
 model Category {
-  id       String    @id @default(uuid())
-  name     String    @unique
-  products Product[] // Define a one-to-many relationship
+  id          String    @id @default(uuid())
+  name        String    @unique
+  slug        String?   @unique
+  icon        String?
+  description String?
+  products    Product[] // Define a one-to-many relationship
 }
 
 model Wishlist {

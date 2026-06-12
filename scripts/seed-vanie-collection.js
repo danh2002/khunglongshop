@@ -61,6 +61,9 @@ async function main() {
         setId: collectorSet.id,
         setSlotNumber: slot,
         isCollector: true,
+        isBlindBox: false,
+        isVisible: false,
+        price: 0,
       },
       create: {
         id: slug,
@@ -77,11 +80,91 @@ async function main() {
         setId: collectorSet.id,
         setSlotNumber: slot,
         isCollector: true,
+        isBlindBox: false,
+        isVisible: false,
       },
     });
 
     productIds.push(product.id);
   }
+
+  const blindBox = await prisma.product.upsert({
+    where: { slug: "vanie-blind-box" },
+    update: {
+      title: "Túi mù Vanie",
+      mainImage: "/images/blind-box/vanie-blind-box-cover.png",
+      price: 150000,
+      description: "Mỗi hộp chứa ngẫu nhiên 1 trong 10 mẫu Vanie. Vanie 10 là mẫu hiếm nhất.",
+      manufacturer: "Khung Long Shop",
+      inStock: 100,
+      categoryId: category.id,
+      merchantId: merchant.id,
+      isCollector: false,
+      setId: null,
+      setSlotNumber: null,
+      isBlindBox: true,
+      isVisible: true,
+      blindBoxSetId: collectorSet.id,
+    },
+    create: {
+      id: "vanie-blind-box",
+      slug: "vanie-blind-box",
+      title: "Túi mù Vanie",
+      mainImage: "/images/blind-box/vanie-blind-box-cover.png",
+      price: 150000,
+      rating: 5,
+      description: "Mỗi hộp chứa ngẫu nhiên 1 trong 10 mẫu Vanie. Vanie 10 là mẫu hiếm nhất.",
+      manufacturer: "Khung Long Shop",
+      inStock: 100,
+      categoryId: category.id,
+      merchantId: merchant.id,
+      isCollector: false,
+      isBlindBox: true,
+      isVisible: true,
+      blindBoxSetId: collectorSet.id,
+    },
+  });
+
+  await prisma.$transaction(async (tx) => {
+    await tx.blindBoxPoolVersion.updateMany({
+      where: {
+        collectorSetId: collectorSet.id,
+        status: "ACTIVE",
+        id: { not: "vanie-pool-v1" },
+      },
+      data: { status: "ARCHIVED", activeSetKey: null },
+    });
+
+    const poolVersion = await tx.blindBoxPoolVersion.upsert({
+      where: { id: "vanie-pool-v1" },
+      update: {
+        status: "ACTIVE",
+        activeSetKey: collectorSet.id,
+        publishedAt: new Date(),
+      },
+      create: {
+        id: "vanie-pool-v1",
+        collectorSetId: collectorSet.id,
+        version: 1,
+        status: "ACTIVE",
+        activeSetKey: collectorSet.id,
+        publishedAt: new Date(),
+      },
+    });
+
+    await tx.blindBoxPoolEntry.deleteMany({
+      where: { poolVersionId: poolVersion.id },
+    });
+    await tx.blindBoxPoolEntry.createMany({
+      data: productIds.map((productId, index) => ({
+        poolVersionId: poolVersion.id,
+        productId,
+        slotNumber: index + 1,
+        drawWeight: index === 9 ? 10 : 100,
+        rarityTier: index === 9 ? "LEGENDARY" : "COMMON",
+      })),
+    });
+  });
 
   const user = await prisma.user.findUnique({
     where: { email: TEST_EMAIL },
@@ -93,6 +176,8 @@ async function main() {
       where: {
         userId: user.id,
         productId: { in: productIds },
+        code: { startsWith: "VANIE-" },
+        allocationId: null,
       },
     });
     await prisma.setReward.deleteMany({
@@ -109,7 +194,8 @@ async function main() {
         where: { code },
         update: {
           productId: productIds[slot - 1],
-          orderId: "vanie-test-seed",
+          orderId: null,
+          allocationId: null,
           userId: user.id,
           isUsed: false,
           status: "ACTIVE",
@@ -118,14 +204,16 @@ async function main() {
         create: {
           code,
           productId: productIds[slot - 1],
-          orderId: "vanie-test-seed",
+          orderId: null,
           userId: user.id,
         },
       });
     }
   }
 
-  console.log(`Seeded ${collectorSet.name} with ${productIds.length} locked products and test codes.`);
+  console.log(
+    `Seeded ${collectorSet.name}, ${productIds.length} variants, blind-box SKU ${blindBox.slug}, pool weight 910, and test codes.`
+  );
 }
 
 main()

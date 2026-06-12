@@ -10,6 +10,7 @@
 
 "use client";
 import BulkUploadHistory from "@/components/BulkUploadHistory";
+import { buildBulkUploadUrl } from "@/lib/bulk-upload-api";
 import React, { useState, useRef } from "react";
 import toast from "react-hot-toast";
 import {
@@ -94,7 +95,7 @@ const BulkUploadPage = () => {
       const formData = new FormData();
       formData.append("file", file);
 
-      const response = await fetch("http://localhost:3001/api/bulk-upload", {
+      const response = await fetch(buildBulkUploadUrl(), {
         method: "POST",
         body: formData,
       });

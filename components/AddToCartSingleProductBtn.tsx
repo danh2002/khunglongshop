@@ -15,30 +15,40 @@ import React from "react";
 import { useProductStore } from "@/app/_zustand/store";
 import toast from "react-hot-toast";
 import { useI18n } from "./LanguageProvider";
+import ProductPurchaseButton from "./ProductPurchaseButton";
 
 
 const AddToCartSingleProductBtn = ({ product, quantityCount } : SingleProductBtnProps) => {
-  const { addToCart, calculateTotals } = useProductStore();
+  const { addToCart } = useProductStore();
   const { t } = useI18n();
 
   const handleAddToCart = () => {
+    if (
+      product.slug !== "vanie-blind-box" ||
+      !product.isBlindBox ||
+      product.isCollector ||
+      product.isVisible === false
+    ) {
+      toast.error("Sản phẩm này không được bán riêng");
+      return;
+    }
     addToCart({
       id: product?.id.toString(),
       title: product?.title,
       price: product?.price,
       image: product?.mainImage,
-      amount: quantityCount
+      amount: quantityCount,
+      slug: product?.slug,
     });
-    calculateTotals();
     toast.success(t("product.addedToCart"));
   };
   return (
-    <button
+    <ProductPurchaseButton
+      type="button"
       onClick={handleAddToCart}
-      className="btn w-[200px] text-lg border border-gray-300 border-1 font-normal bg-white text-blue-500 hover:bg-blue-500 hover:text-white hover:border-blue-500 hover:scale-110 transition-all uppercase ease-in max-[500px]:w-full"
     >
       {t("product.addToCart")}
-    </button>
+    </ProductPurchaseButton>
   );
 };
 

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { z } from "zod";
 import {
   adminError,
@@ -8,9 +9,13 @@ import {
 } from "@/lib/adminResponses";
 import { requireAdminApi } from "@/utils/adminAuth";
 import prisma from "@/utils/db";
+import { toSlug } from "@/lib/slug";
 
 const categorySchema = z.object({
   name: z.string().trim().min(1, "Tên danh mục là bắt buộc.").max(100),
+  slug: z.string().trim().max(120).optional(),
+  icon: z.string().trim().max(500).nullable().optional(),
+  description: z.string().trim().max(1000).nullable().optional(),
 });
 
 export async function GET(
@@ -43,9 +48,16 @@ export async function PATCH(
     const { id } = await params;
     const category = await prisma.category.update({
       where: { id },
-      data: { name: normalizeDisplayName(parsed.data.name) },
+      data: {
+        name: normalizeDisplayName(parsed.data.name),
+        slug: toSlug(parsed.data.slug || parsed.data.name),
+        icon: parsed.data.icon || null,
+        description: parsed.data.description || null,
+      },
       include: { _count: { select: { products: true } } },
     });
+    revalidateTag("navbar-navigation");
+    revalidatePath("/", "layout");
     return NextResponse.json(category);
   } catch (error) {
     if (isPrismaUniqueError(error)) {
@@ -77,5 +89,7 @@ export async function DELETE(
   }
 
   await prisma.category.delete({ where: { id } });
+  revalidateTag("navbar-navigation");
+  revalidatePath("/", "layout");
   return new NextResponse(null, { status: 204 });
 }

@@ -23,6 +23,17 @@ export default async function OrderDetailPage({
       products: {
         include: { product: { select: { title: true, slug: true, mainImage: true } } },
       },
+      blindBoxAllocations: {
+        where: { status: "ACTIVE" },
+        orderBy: [{ orderItemId: "asc" }, { unitIndex: "asc" }],
+        include: {
+          product: {
+            select: { title: true, slug: true, mainImage: true, setSlotNumber: true },
+          },
+          poolVersion: { select: { version: true } },
+          redemptionCode: { select: { code: true, status: true } },
+        },
+      },
     },
   });
   if (!order) notFound();
@@ -97,6 +108,37 @@ export default async function OrderDetailPage({
           </tbody>
         </AdminTable>
       </section>
+
+      {order.blindBoxAllocations.length > 0 ? (
+        <section className="mt-8">
+          <h2 className="mb-1 text-lg font-black uppercase">Danh sách đóng gói túi mù</h2>
+          <p className="mb-3 text-sm text-white/50">
+            Kho đóng gói đúng mẫu được phân bổ trong vòng 2 ngày làm việc.
+          </p>
+          <AdminTable>
+            <thead>
+              <tr>
+                <AdminTh>Mẫu cần đóng gói</AdminTh>
+                <AdminTh>Slot</AdminTh>
+                <AdminTh>Độ hiếm</AdminTh>
+                <AdminTh>Phiên bản pool</AdminTh>
+                <AdminTh>Mã mở khóa</AdminTh>
+              </tr>
+            </thead>
+            <tbody>
+              {order.blindBoxAllocations.map((allocation) => (
+                <tr key={allocation.id}>
+                  <AdminTd>{allocation.product.title}</AdminTd>
+                  <AdminTd>{allocation.product.setSlotNumber ?? "-"}</AdminTd>
+                  <AdminTd>{allocation.rarityTier}</AdminTd>
+                  <AdminTd>v{allocation.poolVersion.version}</AdminTd>
+                  <AdminTd>{allocation.redemptionCode?.code ?? "-"}</AdminTd>
+                </tr>
+              ))}
+            </tbody>
+          </AdminTable>
+        </section>
+      ) : null}
     </AdminPage>
   );
 }

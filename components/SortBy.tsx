@@ -10,28 +10,89 @@
 
 "use client";
 import React from "react";
+import styled from "styled-components";
 import { useSortStore } from "@/app/_zustand/sortStore";
+
+const SortContainer = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+
+  @media (max-width: 1024px) {
+    width: 100%;
+    flex-direction: column;
+    align-items: flex-start;
+  }
+`;
+
+const SortLabel = styled.label`
+  color: #ffffff;
+  font-size: 1.25rem;
+`;
+
+const SortSelect = styled.select`
+  width: 12rem;
+  min-height: 46px;
+  padding: 0.65rem 2.5rem 0.65rem 0.85rem;
+  background-color: #1a1a1a;
+  border: 1px solid #e85d00;
+  border-radius: 6px;
+  color: #e85d00;
+  color-scheme: dark;
+  cursor: pointer;
+  font-size: 1rem;
+  outline: none;
+
+  &:hover {
+    background-color: #111111;
+  }
+
+  &:focus-visible {
+    border-color: #ff6a00;
+    box-shadow: 0 0 0 3px rgba(232, 93, 0, 0.24);
+  }
+
+  option {
+    background-color: #1a1a1a;
+    color: #ffffff;
+  }
+
+  option:hover,
+  option:focus {
+    background-color: #e85d00;
+    color: #ffffff;
+  }
+
+  option:checked {
+    background-color: #1a1a1a;
+    color: #e85d00;
+  }
+
+  @media (max-width: 1024px) {
+    width: 100%;
+  }
+`;
 
 const SortBy = () => {
   // getting values from Zustand sort store
   const { sortBy, changeSortBy } = useSortStore();
 
   return (
-    <div className="flex items-center gap-x-5 max-lg:flex-col max-lg:w-full max-lg:items-start">
-      <h3 className="text-xl">Sort by:</h3>
-      <select
-        defaultValue={sortBy}
+    <SortContainer>
+      <SortLabel htmlFor="shop-sort">Sắp xếp:</SortLabel>
+      <SortSelect
+        id="shop-sort"
+        value={sortBy}
         onChange={(e) => changeSortBy(e.target.value)}
-        className="select border-gray-400 py-2 px-2 text-base border-2 select-bordered w-40 focus:outline-none outline-none max-lg:w-full bg-white"
         name="sort"
       >
-        <option value="defaultSort">Default</option>
-        <option value="titleAsc">Sort A-Z</option>
-        <option value="titleDesc">Sort Z-A</option>
-        <option value="lowPrice">Lowest Price</option>
-        <option value="highPrice">Highest Price</option>
-      </select>
-    </div>
+        <option value="defaultSort">Mặc định</option>
+        <option value="lowPrice">Giá: Thấp → Cao</option>
+        <option value="highPrice">Giá: Cao → Thấp</option>
+        <option value="newestSort">Mới nhất</option>
+        <option value="titleAsc">Tên: A → Z</option>
+      </SortSelect>
+    </SortContainer>
   );
 };
 

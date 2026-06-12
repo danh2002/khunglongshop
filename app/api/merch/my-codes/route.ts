@@ -15,6 +15,28 @@ export async function GET() {
     prisma.redemptionCode.findMany({
       where: { userId },
       orderBy: { createdAt: "desc" },
+      include: {
+        allocation: {
+          include: {
+            product: {
+              select: {
+                id: true,
+                title: true,
+                slug: true,
+                mainImage: true,
+                setSlotNumber: true,
+              },
+            },
+            poolVersion: {
+              select: {
+                collectorSet: {
+                  select: { id: true, name: true, totalSlots: true },
+                },
+              },
+            },
+          },
+        },
+      },
     }),
     prisma.setReward.findMany({
       where: { userId },
@@ -61,6 +83,15 @@ export async function GET() {
       ...code,
       canRedeem: code.status === "ACTIVE",
       redeemedAt: code.usedAt,
+      allocation: code.allocation
+        ? {
+            id: code.allocation.id,
+            status: code.allocation.status,
+            rarityTier: code.allocation.rarityTier,
+            product: code.allocation.product,
+            set: code.allocation.poolVersion.collectorSet,
+          }
+        : null,
       product: productById.get(code.productId)
         ? {
             ...productById.get(code.productId),

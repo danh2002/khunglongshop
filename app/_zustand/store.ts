@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
+import { calculateCartSummary } from "@/lib/cart";
 
 export type ProductInCart = {
   id: string;
@@ -7,6 +8,7 @@ export type ProductInCart = {
   price: number;
   image: string;
   amount: number;
+  slug?: string;
 };
 
 export type State = {
@@ -20,6 +22,7 @@ export type Actions = {
   removeFromCart: (id: string) => void;
   updateCartAmount: (id: string, quantity: number) => void;
   calculateTotals: () => void;
+  updateCartPrice: (id: string, price: number) => void;
   clearCart: () => void;
 };
 
@@ -31,77 +34,83 @@ export const useProductStore = create<State & Actions>()(
       total: 0,
       addToCart: (newProduct) => {
         set((state) => {
+          const amount = Math.max(
+            1,
+            Math.floor(Number(newProduct.amount) || 1)
+          );
           const cartItem = state.products.find(
             (item) => item.id === newProduct.id
           );
-          if (!cartItem) {
-            return { products: [...state.products, newProduct] };
-          } else {
-            state.products.map((product) => {
-              if (product.id === cartItem.id) {
-                product.amount += newProduct.amount;
-              }
-            });
-          }
-          return { products: [...state.products] };
+          const products = cartItem
+            ? state.products.map((product) =>
+                product.id === cartItem.id
+                  ? {
+                      ...product,
+                      amount: product.amount + amount,
+                    }
+                  : product
+              )
+            : [
+                ...state.products,
+                {
+                  ...newProduct,
+                  amount,
+                },
+              ];
+
+          return { products, ...calculateCartSummary(products) };
         });
       },
       clearCart: () => {
-        set((state: any) => {
-          
-          return {
-            products: [],
-            allQuantity: 0,
-            total: 0,
-          };
+        set({
+          products: [],
+          allQuantity: 0,
+          total: 0,
         });
       },
       removeFromCart: (id) => {
         set((state) => {
-          state.products = state.products.filter(
+          const products = state.products.filter(
             (product: ProductInCart) => product.id !== id
           );
-          return { products: state.products };
+          return { products, ...calculateCartSummary(products) };
         });
       },
 
       calculateTotals: () => {
         set((state) => {
-          let amount = 0;
-          let total = 0;
-          state.products.forEach((item) => {
-            amount += item.amount;
-            total += item.amount * item.price;
-          });
-
           return {
             products: state.products,
-            allQuantity: amount,
-            total: total,
+            ...calculateCartSummary(state.products),
           };
         });
       },
       updateCartAmount: (id, amount) => {
         set((state) => {
-          const cartItem = state.products.find((item) => item.id === id);
+          const products = state.products.map((product) =>
+            product.id === id
+              ? { ...product, amount: Math.max(1, Math.floor(amount)) }
+              : product
+          );
 
-          if (!cartItem) {
-            return { products: [...state.products] };
-          } else {
-            state.products.map((product) => {
-              if (product.id === cartItem.id) {
-                product.amount = amount;
-              }
-            });
-          }
-
-          return { products: [...state.products] };
+          return { products, ...calculateCartSummary(products) };
+        });
+      },
+      updateCartPrice: (id, price) => {
+        set((state) => {
+          const products = state.products.map((product) =>
+            product.id === id ? { ...product, price } : product
+          );
+          return { products, ...calculateCartSummary(products) };
         });
       },
     }),
     {
       name: "products-storage", // name of the item in the storage (must be unique)
       storage: createJSONStorage(() => sessionStorage), // (optional) by default, 'localStorage' is used
+      onRehydrateStorage: () => (state) => {
+        state?.calculateTotals();
+      },
     }
   )
 );

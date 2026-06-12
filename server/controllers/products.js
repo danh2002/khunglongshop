@@ -4,7 +4,24 @@ const { asyncHandler, handleServerError, AppError } = require("../utills/errorHa
 // Security: Define whitelists for allowed filter types and operators
 const ALLOWED_FILTER_TYPES = ['price', 'rating', 'category', 'inStock', 'outOfStock'];
 const ALLOWED_OPERATORS = ['gte', 'lte', 'gt', 'lt', 'equals', 'contains'];
-const ALLOWED_SORT_VALUES = ['defaultSort', 'titleAsc', 'titleDesc', 'lowPrice', 'highPrice'];
+const ALLOWED_SORT_VALUES = ['defaultSort', 'titleAsc', 'titleDesc', 'lowPrice', 'highPrice', 'newestSort'];
+
+function serializeProductImages(images) {
+  return JSON.stringify(Array.isArray(images) ? images.slice(0, 8) : []);
+}
+
+function parseProductImages(images) {
+  if (!images) return [];
+
+  try {
+    const parsed = JSON.parse(images);
+    return Array.isArray(parsed) && parsed.every((image) => typeof image === "string")
+      ? parsed
+      : [];
+  } catch {
+    return [];
+  }
+}
 
 // Security: Input validation functions
 function validateFilterType(filterType) {
@@ -70,180 +87,47 @@ function buildSafeFilterObject(filterArray) {
 }
 
 const getAllProducts = asyncHandler(async (request, response) => {
-  const mode = request.query.mode || "";
-  
-  // checking if we are on the admin products page because we don't want to have filtering, sorting and pagination there
-  if(mode === "admin"){
-    const adminProducts = await prisma.product.findMany({});
-    return response.json(adminProducts);
-  } else {
-    const dividerLocation = request.url.indexOf("?");
-    let filterObj = {};
-    let sortObj = {};
-    let sortByValue = "defaultSort";
-
-    // getting current page with validation
-    const page = Number(request.query.page);
-    const validatedPage = (page && page > 0) ? page : 1;
-
-    if (dividerLocation !== -1) {
-      const queryArray = request.url
-        .substring(dividerLocation + 1, request.url.length)
-        .split("&");
-
-      let filterType;
-      let filterArray = [];
-
-      for (let i = 0; i < queryArray.length; i++) {
-        // Security: Use more robust parsing with validation
-        const queryParam = queryArray[i];
-        
-        // Extract filter type safely
-        if (queryParam.includes("filters")) {
-          if (queryParam.includes("price")) {
-            filterType = "price";
-          } else if (queryParam.includes("rating")) {
-            filterType = "rating";
-          } else if (queryParam.includes("category")) {
-            filterType = "category";
-          } else if (queryParam.includes("inStock")) {
-            filterType = "inStock";
-          } else if (queryParam.includes("outOfStock")) {
-            filterType = "outOfStock";
-          } else {
-            // Skip unknown filter types
-            continue;
-          }
-        }
-
-        if (queryParam.includes("sort")) {
-          // Security: Validate sort value
-          const extractedSortValue = queryParam.substring(queryParam.indexOf("=") + 1);
-          if (validateSortValue(extractedSortValue)) {
-            sortByValue = extractedSortValue;
-          }
-        }
-
-        // Security: Extract filter parameters safely
-        if (queryParam.includes("filters") && filterType) {
-          let filterValue;
-          
-          // Extract filter value based on type
-          if (filterType === "category") {
-            filterValue = queryParam.substring(queryParam.indexOf("=") + 1);
-          } else {
-            const numValue = parseInt(queryParam.substring(queryParam.indexOf("=") + 1));
-            filterValue = isNaN(numValue) ? null : numValue;
-          }
-
-          // Extract operator safely
-          const operatorStart = queryParam.indexOf("$") + 1;
-          const operatorEnd = queryParam.indexOf("=") - 1;
-          
-          if (operatorStart > 0 && operatorEnd > operatorStart) {
-            const filterOperator = queryParam.substring(operatorStart, operatorEnd);
-            
-            // Only add to filter array if all values are valid
-            if (filterValue !== null && filterOperator) {
-              filterArray.push({ 
-                filterType, 
-                filterOperator, 
-                filterValue 
-              });
-            }
-          }
-        }
-      }
-      
-      // Security: Build filter object using safe function
-      filterObj = buildSafeFilterObject(filterArray);
-    }
-
-    let whereClause = { ...filterObj };
-
-    // Security: Handle category filter separately with validation
-    if (filterObj.category && filterObj.category.equals) {
-      delete whereClause.category;
-    }
-
-    // Security: Build sort object safely
-    switch (sortByValue) {
-      case "defaultSort":
-        sortObj = {};
-        break;
-      case "titleAsc":
-        sortObj = { title: "asc" };
-        break;
-      case "titleDesc":
-        sortObj = { title: "desc" };
-        break;
-      case "lowPrice":
-        sortObj = { price: "asc" };
-        break;
-      case "highPrice":
-        sortObj = { price: "desc" };
-        break;
-      default:
-        sortObj = {};
-    }
-
-    let products;
-
-    if (Object.keys(filterObj).length === 0) {
-      products = await prisma.product.findMany({
-        skip: (validatedPage - 1) * 10,
-        take: 12,
-        include: {
-          category: {
-            select: {
-              name: true,
-            },
-          },
-        },
-        orderBy: sortObj,
-      });
-    } else {
-      // Security: Handle category filter with proper validation
-      if (filterObj.category && filterObj.category.equals) {
-        products = await prisma.product.findMany({
-          skip: (validatedPage - 1) * 10,
-          take: 12,
-          include: {
-            category: {
-              select: {
-                name: true,
-              },
-            },
-          },
-          where: {
-            ...whereClause,
-            category: {
-              name: {
-                equals: filterObj.category.equals,
-              },
-            },
-          },
-          orderBy: sortObj,
-        });
-      } else {
-        products = await prisma.product.findMany({
-          skip: (validatedPage - 1) * 10,
-          take: 12,
-          include: {
-            category: {
-              select: {
-                name: true,
-              },
-            },
-          },
-          where: whereClause,
-          orderBy: sortObj,
-        });
-      }
-    }
-
-    return response.json(products);
+  if (Object.prototype.hasOwnProperty.call(request.query, "mode")) {
+    return response.status(400).json({ error: "UNSUPPORTED_QUERY_PARAMETER" });
   }
+
+  const page = Math.max(1, Number.parseInt(request.query.page, 10) || 1);
+  const pageSize = 12;
+  const where = {
+    isVisible: true,
+    isBlindBox: true,
+    isCollector: false,
+    slug: "vanie-blind-box",
+  };
+  const [products, total] = await Promise.all([
+    prisma.product.findMany({
+      where,
+      orderBy: [{ title: "asc" }, { id: "asc" }],
+      skip: (page - 1) * pageSize,
+      take: pageSize,
+    }),
+    prisma.product.count({ where }),
+  ]);
+
+  return response.json({
+    products: products.map((product) => ({
+      id: product.id,
+      slug: product.slug,
+      title: product.title,
+      price: product.price,
+      mainImage: product.mainImage.startsWith("/")
+        ? product.mainImage
+        : `/${product.mainImage}`,
+      inStock: product.inStock > 0,
+      categoryId: product.categoryId,
+      setId: product.setId,
+      rarityTier: null,
+    })),
+    page,
+    total,
+    totalPages: Math.ceil(total / pageSize),
+    pageSize,
+  });
 });
 
 const getAllProductsOld = asyncHandler(async (request, response) => {
@@ -256,7 +140,12 @@ const getAllProductsOld = asyncHandler(async (request, response) => {
       },
     },
   });
-  response.status(200).json(products);
+  response.status(200).json(
+    products.map((product) => ({
+      ...product,
+      images: parseProductImages(product.images),
+    }))
+  );
 });
 
 const createProduct = asyncHandler(async (request, response) => {
@@ -265,6 +154,7 @@ const createProduct = asyncHandler(async (request, response) => {
     slug,
     title,
     mainImage,
+    images,
     price,
     description,
     manufacturer,
@@ -299,6 +189,7 @@ const createProduct = asyncHandler(async (request, response) => {
       slug,
       title,
       mainImage,
+      images: serializeProductImages(images),
       price,
       rating: 5,
       description,
@@ -307,7 +198,10 @@ const createProduct = asyncHandler(async (request, response) => {
       inStock,
     },
   });
-  return response.status(201).json(product);
+  return response.status(201).json({
+    ...product,
+    images: parseProductImages(product.images),
+  });
 });
 
 // Method for updating existing product
@@ -318,6 +212,7 @@ const updateProduct = asyncHandler(async (request, response) => {
     slug,
     title,
     mainImage,
+    images,
     price,
     rating,
     description,
@@ -351,6 +246,9 @@ const updateProduct = asyncHandler(async (request, response) => {
       merchantId: merchantId,
       title: title,
       mainImage: mainImage,
+      images: Array.isArray(images)
+        ? serializeProductImages(images)
+        : existingProduct.images,
       slug: slug,
       price: price,
       rating: rating,
@@ -361,7 +259,10 @@ const updateProduct = asyncHandler(async (request, response) => {
     },
   });
 
-  return response.status(200).json(updatedProduct);
+  return response.status(200).json({
+    ...updatedProduct,
+    images: parseProductImages(updatedProduct.images),
+  });
 });
 
 // Method for deleting a product
@@ -426,9 +327,7 @@ const getProductById = asyncHandler(async (request, response) => {
   }
 
   const product = await prisma.product.findUnique({
-    where: {
-      id: id,
-    },
+    where: { id },
     include: {
       category: true,
     },
@@ -437,8 +336,19 @@ const getProductById = asyncHandler(async (request, response) => {
   if (!product) {
     throw new AppError("Product not found", 404);
   }
+  if (
+    !product.isVisible ||
+    !product.isBlindBox ||
+    product.isCollector ||
+    product.slug !== "vanie-blind-box"
+  ) {
+    throw new AppError("Product not found", 404);
+  }
   
-  return response.status(200).json(product);
+  return response.status(200).json({
+    ...product,
+    images: parseProductImages(product.images),
+  });
 });
 
 module.exports = {

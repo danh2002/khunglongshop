@@ -6,10 +6,12 @@ import CategoryItem from "./CategoryItem";
 import { categoryMenuList } from "@/lib/utils";
 import styled from "styled-components";
 import { useI18n } from "./LanguageProvider";
+import { revealSection } from "./homeStyles";
 
 const Section = styled.section`
-  background: #0a0a0a;
-  padding: 3rem 0;
+  ${revealSection(180)}
+  background: #070707;
+  padding: 80px 0;
 `;
 
 const Inner = styled.div`
@@ -23,20 +25,22 @@ const HeaderRow = styled.div`
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
-  margin-bottom: 1.5rem;
+  margin-bottom: 2rem;
+  border-left: 4px solid #e85d00;
+  padding-left: 16px;
 `;
 
 const Title = styled.h2`
   margin: 0;
-  color: #fff;
-  font-size: 1.5rem;
-  font-style: italic;
-  font-weight: 900;
+  color: #ffffff;
+  font-size: clamp(2rem, 4vw, 3.4rem);
+  font-weight: 950;
+  letter-spacing: -0.05em;
   line-height: 1;
   text-transform: uppercase;
 
   span {
-    color: #ff6a00;
+    color: #e85d00;
   }
 `;
 
@@ -59,15 +63,15 @@ const ViewAll = styled(Link)`
 
 const Grid = styled.div`
   display: grid;
-  grid-template-columns: repeat(10, minmax(0, 1fr));
-  gap: 0.75rem;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 20px;
 
   @media (max-width: 1024px) {
-    grid-template-columns: repeat(5, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
   @media (max-width: 768px) {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 `;
 

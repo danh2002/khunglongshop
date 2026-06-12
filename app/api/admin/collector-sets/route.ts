@@ -1,13 +1,22 @@
 import { Prisma } from "@prisma/client";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { createPagination, parseAdminPagination } from "@/lib/adminApi";
-import { adminError, normalizeDisplayName, validationError } from "@/lib/adminResponses";
+import {
+  adminError,
+  isPrismaUniqueError,
+  normalizeDisplayName,
+  validationError,
+} from "@/lib/adminResponses";
 import { requireAdminApi } from "@/utils/adminAuth";
 import prisma from "@/utils/db";
+import { toSlug } from "@/lib/slug";
 
 const setSchema = z.object({
   name: z.string().trim().min(1).max(120),
+  slug: z.string().trim().max(120).optional(),
+  image: z.string().trim().max(500).nullable().optional(),
   description: z.string().trim().max(2000).nullable().optional(),
   rewardDescription: z.string().trim().max(500).nullable().optional(),
   rewardCodeTemplate: z.string().trim().max(100).nullable().optional(),
@@ -75,14 +84,25 @@ export async function POST(request: Request) {
   });
   if (duplicate) return adminError(409, "COLLECTOR_SET_NAME_EXISTS", "Tên bộ sưu tập đã tồn tại.");
 
-  const collectorSet = await prisma.collectorSet.create({
-    data: {
-      ...parsed.data,
-      name: normalizeDisplayName(parsed.data.name),
-      description: parsed.data.description || null,
-      rewardDescription: parsed.data.rewardDescription || null,
-      rewardCodeTemplate: parsed.data.rewardCodeTemplate || null,
-    },
-  });
-  return NextResponse.json(collectorSet, { status: 201 });
+  try {
+    const collectorSet = await prisma.collectorSet.create({
+      data: {
+        ...parsed.data,
+        name: normalizeDisplayName(parsed.data.name),
+        slug: toSlug(parsed.data.slug || parsed.data.name),
+        image: parsed.data.image || null,
+        description: parsed.data.description || null,
+        rewardDescription: parsed.data.rewardDescription || null,
+        rewardCodeTemplate: parsed.data.rewardCodeTemplate || null,
+      },
+    });
+    revalidateTag("navbar-navigation");
+    revalidatePath("/", "layout");
+    return NextResponse.json(collectorSet, { status: 201 });
+  } catch (error) {
+    if (isPrismaUniqueError(error)) {
+      return adminError(409, "COLLECTOR_SET_SLUG_EXISTS", "Tên hoặc slug bộ sưu tập đã tồn tại.");
+    }
+    throw error;
+  }
 }

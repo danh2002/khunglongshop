@@ -10,6 +10,7 @@ const emptyProduct: ProductFormValues = {
   title: "",
   slug: "",
   mainImage: "/images/mk1.png",
+  images: [],
   price: 0,
   rating: 5,
   description: "",
@@ -20,6 +21,8 @@ const emptyProduct: ProductFormValues = {
   isCollector: false,
   setId: null,
   setSlotNumber: null,
+  isBlindBox: false,
+  blindBoxSetId: null,
 };
 
 const emptyReferences: ProductReferenceData = {

@@ -10,17 +10,10 @@ const prismaClientSingleton = () => {
     const databaseUrl = process.env.DATABASE_URL;
     const url = new URL(databaseUrl);
     
-    // Log SSL configuration for debugging
-    if (process.env.NODE_ENV === "development") {
-        console.log(` Database connection: ${url.protocol}//${url.hostname}:${url.port || '3306'}`);
-        console.log(`🔒 SSL Mode: ${url.searchParams.get('sslmode') || 'not specified'}`);
-    }
-
     return new PrismaClient({
-        // Add logging for debugging
         log: process.env.NODE_ENV === "development" 
-            ? ['query', 'info', 'warn', 'error']
-            : ['error', 'warn'],
+            ? ['warn', 'error']
+            : ['error'],
     });
 }
 

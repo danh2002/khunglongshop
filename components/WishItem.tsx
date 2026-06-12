@@ -3,8 +3,8 @@
 import Image from "next/image";
 import Link from "next/link";
 import { FaTrashCan } from "react-icons/fa6";
-import { useWishlistStore } from "@/app/_zustand/wishlistStore";
 import { sanitize } from "@/lib/sanitize";
+import { formatVnd } from "@/lib/currency";
 
 type WishItemProps = {
   id: string;
@@ -13,19 +13,18 @@ type WishItemProps = {
   image: string;
   slug: string;
   stockAvailabillity: number;
+  onRemove: (id: string) => void | Promise<void>;
 };
 
-const WishItem = ({ id, title, price, image, slug, stockAvailabillity }: WishItemProps) => {
-  const { removeFromWishlist } = useWishlistStore();
-
+const WishItem = ({ id, title, price, image, slug, stockAvailabillity, onRemove }: WishItemProps) => {
   return (
     <tr className="text-white">
       <td>
         <button
           type="button"
-          onClick={() => removeFromWishlist(id)}
+          onClick={() => onRemove(id)}
           className="inline-flex h-9 w-9 items-center justify-center rounded bg-red-600 text-white hover:bg-red-700"
-          aria-label={`Remove ${sanitize(title)} from wishlist`}
+          aria-label={`Xóa ${sanitize(title)} khỏi danh sách yêu thích`}
         >
           <FaTrashCan />
         </button>
@@ -36,7 +35,7 @@ const WishItem = ({ id, title, price, image, slug, stockAvailabillity }: WishIte
             src={image ? `/${image}` : "/images/logo.png"}
             width={72}
             height={72}
-            alt={sanitize(title) || "Wishlist item"}
+            alt={sanitize(title) || "Sản phẩm yêu thích"}
             className="h-[72px] w-[72px] object-contain"
           />
         </Link>
@@ -45,7 +44,7 @@ const WishItem = ({ id, title, price, image, slug, stockAvailabillity }: WishIte
         <Link href={`/product/${slug}`} className="font-bold text-white hover:text-orange-500">
           {sanitize(title)}
         </Link>
-        <p className="text-sm text-orange-500">${price}</p>
+        <p className="text-sm text-orange-500">{formatVnd(price)}</p>
       </td>
       <td>{stockAvailabillity > 0 ? "Còn hàng" : "Hết hàng"}</td>
       <td>
