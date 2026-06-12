@@ -2,7 +2,6 @@
 // IN DEVELOPMENT
 // *********************
 
-import React from 'react'
 
 const UrgencyText = ({stock} : { stock: number }) => {
   return (

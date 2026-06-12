@@ -7,7 +7,6 @@
 // Input parameters: { text: string, stateValue: any, setStateValue: any }
 // Output: checkbox input with label
 // *********************
-import React from "react";
 
 const Checkbox = ({ text, stateValue, setStateValue } : { text: string, stateValue: any, setStateValue: any }) => {
   return (

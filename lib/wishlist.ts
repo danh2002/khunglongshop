@@ -8,10 +8,12 @@ export function normalizeWishlistResponse(payload: unknown): any[] {
   if (Array.isArray(payload)) return payload;
   if (!payload || typeof payload !== "object") return [];
 
-  const response = payload as WishlistResponse;
-  if (Array.isArray(response.data)) return response.data;
-  if (Array.isArray(response.wishlist)) return response.wishlist;
-  if (Array.isArray(response.items)) return response.items;
+  const wishlistResponse = payload as WishlistResponse;
+  if (Array.isArray(wishlistResponse.data)) return wishlistResponse.data;
+  if (Array.isArray(wishlistResponse.wishlist)) {
+    return wishlistResponse.wishlist;
+  }
+  if (Array.isArray(wishlistResponse.items)) return wishlistResponse.items;
 
   return [];
 }

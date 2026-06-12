@@ -8,7 +8,6 @@
 // Output: custom button component
 // *********************
 
-import React from "react";
 
 interface CustomButtonProps {
   paddingX: number;

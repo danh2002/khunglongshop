@@ -1,6 +1,5 @@
 "use client";
 
-import React from "react";
 import { SectionHeading } from "./design-system";
 
 const Heading = ({ title }: { title: string }) => {

@@ -2,7 +2,6 @@
 // IN DEVELOPMENT
 // *********************
 
-import React from "react";
 import { FaArrowUp } from "react-icons/fa6";
 
 

@@ -8,7 +8,6 @@
 // Output: Section with the email input and some text
 // *********************
 
-import React from 'react'
 
 const Newsletter = () => {
   return (

@@ -1,7 +1,6 @@
 "use client";
 
 import { usePaginationStore } from "@/app/_zustand/paginationStore";
-import React from "react";
 
 const Pagination = () => {
   const { page, incrementPage, decrementPage } = usePaginationStore();

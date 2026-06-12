@@ -1,6 +1,5 @@
 "use client";
 
-import React from "react";
 import styled from "styled-components";
 import { Eyebrow, SectionHeading, SectionShell } from "./design-system";
 

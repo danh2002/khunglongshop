@@ -1,5 +1,4 @@
 import { ProductItem, SectionTitle } from "@/components";
-import React from "react";
 import { sanitize } from "@/lib/sanitize";
 import { SectionShell, Wrapper } from "@/components/design-system";
 import { getServerTranslator } from "@/lib/i18n-server";

@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import React from "react";
 import CategoryItem from "./CategoryItem";
 import { categoryMenuList } from "@/lib/utils";
 import styled from "styled-components";

@@ -4,11 +4,11 @@ import { useSession, signOut } from "next-auth/react";
 import { useEffect, useRef } from "react";
 
 // Use 30 seconds for testing
-const SESSION_TIMEOUT = 30 * 1000; // 30 seconds for testing
+const SESSION_TIMEOUT_MS = 30 * 1000; // 30 seconds for testing
 
 export function useSessionTimeoutTest() {
   const { data: session, status } = useSession();
-  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const sessionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     // Only run on client side
@@ -17,43 +17,43 @@ export function useSessionTimeoutTest() {
     if (status === "authenticated" && session) {
       console.log('🕐 Session timeout test started - 30 seconds');
       
-      const startTimeout = () => {
+      const restartSessionTimeout = () => {
         // Clear existing timeout
-        if (timeoutRef.current) {
-          clearTimeout(timeoutRef.current);
+        if (sessionTimeoutRef.current) {
+          clearTimeout(sessionTimeoutRef.current);
         }
         
         // Set new timeout
-        timeoutRef.current = setTimeout(() => {
+        sessionTimeoutRef.current = setTimeout(() => {
           console.log('🚪 Session expired - signing out');
           signOut({ 
             callbackUrl: "/login?expired=true",
             redirect: true 
           });
-        }, SESSION_TIMEOUT);
+        }, SESSION_TIMEOUT_MS);
       };
 
       // Start the initial timeout
-      startTimeout();
+      restartSessionTimeout();
 
       // Reset timeout on user activity
-      const resetTimeout = () => {
+      const handleUserActivity = () => {
         console.log('🔄 User activity detected - resetting timeout');
-        startTimeout();
+        restartSessionTimeout();
       };
 
       // Listen for user activity
-      const events = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart', 'click'];
-      events.forEach(event => {
-        document.addEventListener(event, resetTimeout, true);
+      const activityEvents = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart', 'click'];
+      activityEvents.forEach(activityEvent => {
+        document.addEventListener(activityEvent, handleUserActivity, true);
       });
 
       return () => {
-        if (timeoutRef.current) {
-          clearTimeout(timeoutRef.current);
+        if (sessionTimeoutRef.current) {
+          clearTimeout(sessionTimeoutRef.current);
         }
-        events.forEach(event => {
-          document.removeEventListener(event, resetTimeout, true);
+        activityEvents.forEach(activityEvent => {
+          document.removeEventListener(activityEvent, handleUserActivity, true);
         });
       };
     }

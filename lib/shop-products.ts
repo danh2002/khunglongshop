@@ -2,24 +2,38 @@ import { merchCategories } from "@/lib/merchCatalog";
 
 type ShopSearchParams = Record<string, string | string[] | undefined>;
 
-const singleValue = (value: string | string[] | undefined) =>
+const getFirstValue = (value: string | string[] | undefined) =>
   Array.isArray(value) ? value[0] : value;
 
-const positiveNumber = (value: string | undefined, fallback: number) => {
-  const parsed = Number(value);
-  return Number.isFinite(parsed) && parsed >= 0 ? parsed : fallback;
+const parseNonNegativeNumber = (
+  value: string | undefined,
+  fallback: number
+) => {
+  const parsedValue = Number(value);
+  return Number.isFinite(parsedValue) && parsedValue >= 0
+    ? parsedValue
+    : fallback;
 };
 
 export function buildShopProductsPath(
   slug: string[] | undefined,
   searchParams: ShopSearchParams
 ) {
-  const inStock = singleValue(searchParams.inStock) === "true";
-  const outOfStock = singleValue(searchParams.outOfStock) === "true";
-  const price = positiveNumber(singleValue(searchParams.price), 3000000);
-  const rating = positiveNumber(singleValue(searchParams.rating), 0);
-  const page = Math.max(1, positiveNumber(singleValue(searchParams.page), 1));
-  const sort = singleValue(searchParams.sort) || "defaultSort";
+  const inStock = getFirstValue(searchParams.inStock) === "true";
+  const outOfStock = getFirstValue(searchParams.outOfStock) === "true";
+  const price = parseNonNegativeNumber(
+    getFirstValue(searchParams.price),
+    3000000
+  );
+  const rating = parseNonNegativeNumber(
+    getFirstValue(searchParams.rating),
+    0
+  );
+  const page = Math.max(
+    1,
+    parseNonNegativeNumber(getFirstValue(searchParams.page), 1)
+  );
+  const sort = getFirstValue(searchParams.sort) || "defaultSort";
   const categoryName = slug?.[0]?.replace(/-/g, " ") || "";
   const isMerchCategory = merchCategories.includes(
     categoryName as (typeof merchCategories)[number]

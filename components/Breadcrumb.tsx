@@ -11,7 +11,6 @@
 // *********************
 
 import Link from "next/link";
-import React from "react";
 import { FaHouse } from "react-icons/fa6";
 
 const Breadcrumb = () => {

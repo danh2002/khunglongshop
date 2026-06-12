@@ -10,7 +10,6 @@
 
 "use client";
 import { useProductStore } from "@/app/_zustand/store";
-import React from "react";
 import toast from "react-hot-toast";
 import { useRouter } from "next/navigation";
 import { useI18n } from "./LanguageProvider";

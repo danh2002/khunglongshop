@@ -1,17 +1,7 @@
-// *********************
-// Role of the component: Bulk upload products page for admin dashboard
-// Name of the component: BulkUpload.tsx
-// Developer: Aleksandar Kuzmanovic (modified)
-// Version: 1.0
-// Component call: <BulkUpload />
-// Input parameters: no input parameters
-// Output: bulk upload page for admin dashboard
-// *********************
-
 "use client";
 import BulkUploadHistory from "@/components/BulkUploadHistory";
 import { buildBulkUploadUrl } from "@/lib/bulk-upload-api";
-import React, { useState, useRef } from "react";
+import { useRef, useState } from "react";
 import toast from "react-hot-toast";
 import {
   FaFileUpload,
