@@ -1,16 +1,21 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
-import toast from "react-hot-toast";
-
-type AdminUserListItem = {
-  id: string;
-  email: string;
-  role: "admin" | "user";
-  orderCount: number;
-  wishlistCount: number;
-};
+import { useRouter, useSearchParams } from "next/navigation";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  AdminActionLink,
+  AdminEmptyState,
+  AdminPage,
+  AdminPageHeader,
+  AdminStatusBadge,
+  AdminTable,
+  AdminTd,
+  AdminTh,
+  adminInputClass,
+  adminSecondaryButtonClass,
+} from "@/components/admin/AdminUi";
+import type { AdminUserListItem } from "@/lib/adminUsers";
 
 type UsersResponse = {
   items: AdminUserListItem[];
@@ -22,178 +27,214 @@ type UsersResponse = {
   };
 };
 
-const roleOptions = [
-  { value: "", label: "Tất cả vai trò" },
-  { value: "admin", label: "Admin" },
-  { value: "user", label: "User" },
-];
-
 export default function DashboardUsers() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const [users, setUsers] = useState<AdminUserListItem[]>([]);
-  const [search, setSearch] = useState("");
-  const [role, setRole] = useState("");
-  const [page, setPage] = useState(1);
+  const [search, setSearch] = useState(searchParams.get("search") ?? "");
   const [totalPages, setTotalPages] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [reloadKey, setReloadKey] = useState(0);
 
-  const query = useMemo(() => {
-    const params = new URLSearchParams({
-      page: String(page),
-      limit: "20",
-    });
+  const page = Math.max(Number(searchParams.get("page") ?? "1"), 1);
+  const role = searchParams.get("role") ?? "";
+  const status = searchParams.get("status") ?? "";
 
-    if (search.trim()) params.set("search", search.trim());
-    if (role) params.set("role", role);
-
+  const apiQuery = useMemo(() => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("page", String(page));
+    params.set("limit", "20");
     return params.toString();
-  }, [page, role, search]);
+  }, [page, searchParams]);
+
+  const updateQuery = useCallback(
+    (values: Record<string, string>) => {
+      const params = new URLSearchParams(searchParams.toString());
+      Object.entries(values).forEach(([key, value]) => {
+        if (value) params.set(key, value);
+        else params.delete(key);
+      });
+      router.replace(`/admin/users?${params.toString()}`, { scroll: false });
+    },
+    [router, searchParams]
+  );
 
   useEffect(() => {
-    let mounted = true;
-
-    async function loadUsers() {
-      setIsLoading(true);
-
-      try {
-        const response = await fetch(`/api/admin/users?${query}`, { cache: "no-store" });
-
-        if (!response.ok) {
-          throw new Error("Failed to load users");
-        }
-
-        const payload = (await response.json()) as UsersResponse;
-
-        if (mounted) {
-          setUsers(payload.items);
-          setTotalPages(payload.pagination.totalPages);
-        }
-      } catch (error) {
-        if (mounted) {
-          toast.error("Không thể tải danh sách người dùng");
-        }
-      } finally {
-        if (mounted) {
-          setIsLoading(false);
-        }
+    const timeout = window.setTimeout(() => {
+      const currentSearch = searchParams.get("search") ?? "";
+      if (search.trim() !== currentSearch) {
+        updateQuery({ search: search.trim(), page: "1" });
       }
-    }
+    }, 300);
+    return () => window.clearTimeout(timeout);
+  }, [search, searchParams, updateQuery]);
 
-    loadUsers();
+  useEffect(() => {
+    let active = true;
+    setIsLoading(true);
+    setError("");
+
+    fetch(`/api/admin/users?${apiQuery}`, { cache: "no-store" })
+      .then(async (response) => {
+        const payload = await response.json().catch(() => null);
+        if (!response.ok) {
+          throw new Error(
+            payload?.error?.message || "Không thể tải danh sách người dùng."
+          );
+        }
+        return payload as UsersResponse;
+      })
+      .then((payload) => {
+        if (!active) return;
+        setUsers(payload.items);
+        setTotalPages(payload.pagination.totalPages);
+      })
+      .catch((loadError: unknown) => {
+        if (active) {
+          setError(
+            loadError instanceof Error
+              ? loadError.message
+              : "Không thể tải danh sách người dùng."
+          );
+        }
+      })
+      .finally(() => {
+        if (active) setIsLoading(false);
+      });
 
     return () => {
-      mounted = false;
+      active = false;
     };
-  }, [query]);
+  }, [apiQuery, reloadKey]);
 
   return (
-    <main className="min-h-screen bg-[#070707] text-white">
-      <div className="mx-auto flex max-w-screen-2xl max-xl:flex-col">
-        <section className="w-full px-5 py-6">
-          <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
-            <div>
-              <p className="text-sm font-black uppercase tracking-[0.2em] text-[#e85d00]">CMS</p>
-              <h1 className="mt-2 text-3xl font-black uppercase italic">Người dùng</h1>
-            </div>
-            <Link
-              href="/admin/users/new"
-              className="inline-flex min-h-12 items-center border border-[#e85d00] bg-[#e85d00] px-5 text-sm font-black uppercase text-white hover:bg-[#ff7417]"
-            >
-              Thêm người dùng
-            </Link>
-          </div>
+    <AdminPage className="bg-[#070707]">
+      <AdminPageHeader
+        title="Người dùng"
+        description="Tìm kiếm, phân quyền và quản lý trạng thái tài khoản."
+        action={
+          <AdminActionLink href="/admin/users/new">
+            Thêm người dùng
+          </AdminActionLink>
+        }
+      />
 
-          <div className="mb-5 grid gap-3 md:grid-cols-[minmax(0,360px)_180px_auto]">
-            <input
-              value={search}
-              onChange={(event) => {
-                setPage(1);
-                setSearch(event.target.value);
-              }}
-              placeholder="Tìm theo email..."
-              className="min-h-12 border border-[#e85d00]/40 bg-white/5 px-4 text-white outline-none focus:border-[#e85d00]"
-            />
-            <select
-              value={role}
-              onChange={(event) => {
-                setPage(1);
-                setRole(event.target.value);
-              }}
-              className="min-h-12 border border-[#e85d00]/40 bg-[#111] px-4 text-white outline-none focus:border-[#e85d00]"
-            >
-              {roleOptions.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="overflow-auto border border-[#e85d00]/25 bg-white/[0.03]">
-            <table className="min-w-full text-left text-sm">
-              <thead className="bg-[#e85d00] text-xs uppercase text-white">
-                <tr>
-                  <th className="px-4 py-3">Email</th>
-                  <th className="px-4 py-3">Vai trò</th>
-                  <th className="px-4 py-3">Đơn hàng</th>
-                  <th className="px-4 py-3">Wishlist</th>
-                  <th className="px-4 py-3 text-right">Thao tác</th>
-                </tr>
-              </thead>
-              <tbody>
-                {isLoading ? (
-                  <tr>
-                    <td className="px-4 py-8 text-center text-white/60" colSpan={5}>
-                      Đang tải...
-                    </td>
-                  </tr>
-                ) : users.length === 0 ? (
-                  <tr>
-                    <td className="px-4 py-8 text-center text-white/60" colSpan={5}>
-                      Không tìm thấy dữ liệu phù hợp
-                    </td>
-                  </tr>
-                ) : (
-                  users.map((user) => (
-                    <tr key={user.id} className="border-t border-white/10">
-                      <td className="max-w-[360px] px-4 py-4 font-bold text-white">{user.email}</td>
-                      <td className="px-4 py-4 uppercase text-[#e85d00]">{user.role}</td>
-                      <td className="px-4 py-4">{user.orderCount}</td>
-                      <td className="px-4 py-4">{user.wishlistCount}</td>
-                      <td className="px-4 py-4 text-right">
-                        <Link href={`/admin/users/${user.id}`} className="font-black uppercase text-[#e85d00]">
-                          Chi tiết
-                        </Link>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-
-          <div className="mt-5 flex items-center justify-end gap-3">
-            <button
-              type="button"
-              disabled={page <= 1}
-              onClick={() => setPage((current) => Math.max(current - 1, 1))}
-              className="min-h-10 border border-white/20 px-4 font-bold uppercase text-white disabled:opacity-40"
-            >
-              Trước
-            </button>
-            <span className="text-sm text-white/70">
-              Trang {page}/{totalPages}
-            </span>
-            <button
-              type="button"
-              disabled={page >= totalPages}
-              onClick={() => setPage((current) => Math.min(current + 1, totalPages))}
-              className="min-h-10 border border-white/20 px-4 font-bold uppercase text-white disabled:opacity-40"
-            >
-              Sau
-            </button>
-          </div>
-        </section>
+      <div className="mb-5 grid gap-3 md:grid-cols-[minmax(0,360px)_180px_190px]">
+        <input
+          value={search}
+          onChange={(event) => setSearch(event.target.value)}
+          placeholder="Tìm theo email..."
+          className={adminInputClass}
+        />
+        <select
+          value={role}
+          onChange={(event) =>
+            updateQuery({ role: event.target.value, page: "1" })
+          }
+          className={adminInputClass}
+        >
+          <option value="">Tất cả vai trò</option>
+          <option value="admin">Admin</option>
+          <option value="user">User</option>
+        </select>
+        <select
+          value={status}
+          onChange={(event) =>
+            updateQuery({ status: event.target.value, page: "1" })
+          }
+          className={adminInputClass}
+        >
+          <option value="">Tất cả trạng thái</option>
+          <option value="active">Đang hoạt động</option>
+          <option value="inactive">Đã vô hiệu hóa</option>
+        </select>
       </div>
-    </main>
+
+      {error ? (
+        <AdminEmptyState>
+          <p>{error}</p>
+          <button
+            type="button"
+            onClick={() => setReloadKey((value) => value + 1)}
+            className={`${adminSecondaryButtonClass} mt-4`}
+          >
+            Thử lại
+          </button>
+        </AdminEmptyState>
+      ) : isLoading ? (
+        <AdminEmptyState>Đang tải danh sách người dùng...</AdminEmptyState>
+      ) : users.length === 0 ? (
+        <AdminEmptyState>Không tìm thấy người dùng phù hợp.</AdminEmptyState>
+      ) : (
+        <AdminTable>
+          <thead>
+            <tr>
+              <AdminTh>Email</AdminTh>
+              <AdminTh>Vai trò</AdminTh>
+              <AdminTh>Trạng thái</AdminTh>
+              <AdminTh>Đơn hàng</AdminTh>
+              <AdminTh>Wishlist</AdminTh>
+              <AdminTh>Thao tác</AdminTh>
+            </tr>
+          </thead>
+          <tbody>
+            {users.map((user) => (
+              <tr key={user.id}>
+                <AdminTd className="max-w-[360px] break-all font-bold">
+                  {user.email}
+                </AdminTd>
+                <AdminTd>
+                  <AdminStatusBadge
+                    tone={user.role === "admin" ? "warning" : "neutral"}
+                  >
+                    {user.role}
+                  </AdminStatusBadge>
+                </AdminTd>
+                <AdminTd>
+                  <AdminStatusBadge
+                    tone={user.isActive ? "success" : "danger"}
+                  >
+                    {user.isActive ? "Đang hoạt động" : "Đã vô hiệu hóa"}
+                  </AdminStatusBadge>
+                </AdminTd>
+                <AdminTd>{user.orderCount}</AdminTd>
+                <AdminTd>{user.wishlistCount}</AdminTd>
+                <AdminTd>
+                  <Link
+                    href={`/admin/users/${user.id}`}
+                    className="font-black uppercase text-[#e85d00]"
+                  >
+                    Chi tiết
+                  </Link>
+                </AdminTd>
+              </tr>
+            ))}
+          </tbody>
+        </AdminTable>
+      )}
+
+      <div className="mt-5 flex items-center justify-end gap-3">
+        <button
+          type="button"
+          disabled={page <= 1}
+          onClick={() => updateQuery({ page: String(page - 1) })}
+          className={adminSecondaryButtonClass}
+        >
+          Trước
+        </button>
+        <span className="text-sm text-white/60">
+          Trang {page}/{totalPages}
+        </span>
+        <button
+          type="button"
+          disabled={page >= totalPages}
+          onClick={() => updateQuery({ page: String(page + 1) })}
+          className={adminSecondaryButtonClass}
+        >
+          Sau
+        </button>
+      </div>
+    </AdminPage>
   );
 }

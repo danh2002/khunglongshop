@@ -3,12 +3,13 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { FaBagShopping, FaGear, FaRegUser, FaStore, FaTable, FaTicket, FaTrophy, FaUpload } from "react-icons/fa6";
-import { MdCategory, MdDashboard } from "react-icons/md";
+import { MdCategory, MdDashboard, MdPhotoLibrary } from "react-icons/md";
 
 const navItems = [
   { href: "/admin", label: "Tổng quan", icon: MdDashboard },
   { href: "/admin/orders", label: "Đơn hàng", icon: FaBagShopping },
   { href: "/admin/products", label: "Sản phẩm", icon: FaTable },
+  { href: "/admin/homepage-slider", label: "Slider trang chủ", icon: MdPhotoLibrary },
   { href: "/admin/bulk-upload", label: "Nhập mã", icon: FaUpload },
   { href: "/admin/categories", label: "Danh mục", icon: MdCategory },
   { href: "/admin/users", label: "Người dùng", icon: FaRegUser },

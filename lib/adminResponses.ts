@@ -5,10 +5,18 @@ export function adminError(
   status: number,
   code: string,
   message: string,
-  fieldErrors?: Record<string, string[]>
+  fieldErrors?: Record<string, string[]>,
+  details?: Record<string, unknown>
 ) {
   return NextResponse.json(
-    { error: { code, message, ...(fieldErrors ? { fieldErrors } : {}) } },
+    {
+      error: {
+        code,
+        message,
+        ...(fieldErrors ? { fieldErrors } : {}),
+        ...(details ? { details } : {}),
+      },
+    },
     { status }
   );
 }

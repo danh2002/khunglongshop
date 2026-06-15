@@ -62,6 +62,21 @@ enum BlindBoxAllocationStatus {
   VOIDED
 }
 
+enum OtpChallengeStatus {
+  PENDING
+  VERIFIED
+  CONSUMED
+  EXPIRED
+  LOCKED
+}
+
+enum OtpRateLimitStatus {
+  RESERVED
+  SENT
+  FAILED
+  FAILED_STALE
+}
+
 model Product {
   id              String                   @id @default(uuid())
   slug            String                   @unique
@@ -232,6 +247,9 @@ model SetReward {
 model User {
   id                  String               @id @default(uuid())
   email               String               @unique
+  phone               String?              @unique
+  firstName           String               @default("")
+  lastName            String               @default("")
   password            String?
   role                Role                 @default(user)
   orders              Customer_order[]
@@ -384,6 +402,23 @@ model SiteSettings {
   updatedAt       DateTime @updatedAt
 }
 
+model HomepageSliderSlide {
+  id        String   @id @default(cuid())
+  imageUrl  String
+  title     String
+  subtitle  String?
+  eyebrow   String?
+  ctaLabel  String?
+  ctaUrl    String?
+  altText   String
+  sortOrder Int      @default(0)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([isActive, sortOrder])
+}
+
 model AdminAuditLog {
   id         String   @id @default(cuid())
   actorId    String
@@ -396,6 +431,45 @@ model AdminAuditLog {
 
   @@index([actorId, createdAt])
   @@index([entityType, entityId, createdAt])
+}
+
+model OtpChallenge {
+  id          String             @id @default(cuid())
+  phone       String
+  otpHash     String
+  status      OtpChallengeStatus @default(PENDING)
+  attempts    Int                @default(0)
+  resendCount Int                @default(0)
+  tokenHash   String?
+  tokenExpiry DateTime?
+  expiresAt   DateTime
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+
+  @@index([phone, status])
+  @@index([status, updatedAt])
+}
+
+model OtpRateLimitEvent {
+  id        String             @id @default(cuid())
+  key       String
+  status    OtpRateLimitStatus @default(RESERVED)
+  createdAt DateTime           @default(now())
+
+  @@index([key, status, createdAt])
+  @@index([createdAt])
+}
+
+model OtpAuditLog {
+  id          String   @id @default(cuid())
+  phoneMasked String
+  event       String
+  ip          String
+  challengeId String
+  createdAt   DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([challengeId])
 }
 
 model bulk_upload_batch {

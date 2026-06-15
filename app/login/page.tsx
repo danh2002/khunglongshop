@@ -4,6 +4,7 @@ import SectionTitle from "@/components/SectionTitle";
 import { Field, PrimaryButton, SectionShell, Wrapper } from "@/components/design-system";
 import { isValidEmailAddressFormat } from "@/lib/utils";
 import { signIn, useSession } from "next-auth/react";
+import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import type { FormEvent } from "react";
 import React, { useEffect, useState } from "react";
@@ -72,12 +73,46 @@ const ErrorText = styled.p`
   text-align: center;
 `;
 
+const AuthDivider = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: #555;
+  font-size: 13px;
+  margin: 20px 0;
+
+  &::before,
+  &::after {
+    content: "";
+    flex: 1;
+    border-top: 1px solid #222;
+  }
+`;
+
+const AuthPrompt = styled.p`
+  margin: 0;
+  text-align: center;
+  font-size: 14px;
+  color: #888;
+
+  a {
+    color: #e85d00;
+    font-weight: 700;
+    text-decoration: none;
+    margin-left: 6px;
+  }
+
+  a:hover {
+    text-decoration: underline;
+  }
+`;
+
 const LoginPage = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [error, setError] = useState("");
   const { data: session, status: sessionStatus } = useSession();
-  const rawCallbackUrl = searchParams.get("callbackUrl") || "/account";
+  const rawCallbackUrl = searchParams.get("redirect") || searchParams.get("callbackUrl") || "/account";
   const callbackUrl = rawCallbackUrl.startsWith("/") && !rawCallbackUrl.startsWith("//") ? rawCallbackUrl : "/account";
 
   useEffect(() => {
@@ -153,6 +188,11 @@ const LoginPage = () => {
                 <a href="#">Quên mật khẩu?</a>
               </SmallRow>
               <PrimaryButton type="submit">Đăng nhập</PrimaryButton>
+              <AuthDivider>hoặc</AuthDivider>
+              <AuthPrompt>
+                Chưa có tài khoản?
+                <Link href="/register">Đăng ký ngay →</Link>
+              </AuthPrompt>
             </Form>
             <ErrorText>{error && error}</ErrorText>
           </AuthCard>

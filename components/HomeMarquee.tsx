@@ -9,14 +9,18 @@ const scroll = keyframes`
 
 const Bar = styled.section`
   overflow: hidden;
-  background: #e85d00;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  background:
+    linear-gradient(90deg, rgba(232, 93, 0, 0.92), rgba(255, 106, 0, 0.86)),
+    #e85d00;
   color: #ffffff;
 `;
 
 const Track = styled.div`
   display: flex;
   width: max-content;
-  animation: ${scroll} 24s linear infinite;
+  animation: ${scroll} 26s linear infinite;
 
   @media (prefers-reduced-motion: reduce) {
     animation: none;
@@ -26,11 +30,11 @@ const Track = styled.div`
 const Item = styled.span`
   display: inline-flex;
   align-items: center;
-  gap: 28px;
-  padding: 10px 22px;
-  font-size: 13px;
-  font-weight: 700;
-  letter-spacing: 2px;
+  gap: 24px;
+  padding: 8px 22px;
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 2.6px;
   white-space: nowrap;
   text-transform: uppercase;
 
@@ -39,7 +43,7 @@ const Item = styled.span`
     width: 4px;
     height: 4px;
     border-radius: 50%;
-    background: rgba(255, 255, 255, 0.72);
+    background: rgba(255, 255, 255, 0.74);
   }
 `;
 
@@ -48,7 +52,7 @@ const messages = [
   "Bộ sưu tập giới hạn",
   "Giao hàng toàn quốc",
   "Mã collector độc quyền",
-  "Vanie blind box",
+  "Designer toy drop",
 ];
 
 export default function HomeMarquee() {

@@ -2,6 +2,13 @@ export type AdminApiErrorCode =
   | "UNAUTHORIZED"
   | "FORBIDDEN"
   | "VALIDATION_ERROR"
+  | "USER_NOT_FOUND"
+  | "EMAIL_ALREADY_EXISTS"
+  | "SELF_DELETE_FORBIDDEN"
+  | "SELF_ACCESS_CHANGE_FORBIDDEN"
+  | "LAST_ADMIN_FORBIDDEN"
+  | "USER_HAS_DEPENDENCIES"
+  | "USER_HAS_AUDIT_HISTORY"
   | "NOT_FOUND"
   | "CONFLICT"
   | "INTERNAL_ERROR";
@@ -11,6 +18,7 @@ export type AdminApiError = {
     code: AdminApiErrorCode;
     message: string;
     fieldErrors?: Record<string, string[]>;
+    details?: Record<string, unknown>;
   };
 };
 

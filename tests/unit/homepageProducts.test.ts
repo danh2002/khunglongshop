@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { chooseHomepageProducts } from "@/lib/homepage-products";
+import {
+  chooseHomepageProducts,
+  getHomepageVariantImages,
+} from "@/lib/homepage-products";
 
 const databaseProduct: Product = {
   id: "db-product",
@@ -25,5 +28,68 @@ describe("homepage product selection", () => {
 
   it("does not inject legacy fallback products when the public SKU is missing", () => {
     expect(chooseHomepageProducts([])).toEqual([]);
+  });
+});
+
+describe("homepage variant images", () => {
+  it("uses blind-box pool images before gallery images", () => {
+    const product = {
+      ...databaseProduct,
+      images: JSON.stringify(["/images/gallery-1.png", "/images/gallery-2.png"]),
+      blindBoxSet: {
+        poolVersions: [
+          {
+            entries: [
+              { product: { mainImage: "/images/pool-1.png" } },
+              { product: { mainImage: "/images/pool-2.png" } },
+            ],
+          },
+        ],
+      },
+    };
+
+    expect(getHomepageVariantImages(product)).toEqual([
+      "/images/pool-1.png",
+      "/images/pool-2.png",
+      "/images/gallery-1.png",
+      "/images/gallery-2.png",
+    ]);
+  });
+
+  it("falls back to gallery images when no active pool entries are available", () => {
+    const product = {
+      ...databaseProduct,
+      images: JSON.stringify(["/images/gallery-1.png", "/images/gallery-2.png"]),
+      blindBoxSet: {
+        poolVersions: [{ entries: [] }],
+      },
+    };
+
+    expect(getHomepageVariantImages(product)).toEqual([
+      "/images/gallery-1.png",
+      "/images/gallery-2.png",
+    ]);
+  });
+
+  it("removes duplicate and invalid variant images", () => {
+    const product = {
+      ...databaseProduct,
+      images: JSON.stringify(["/images/duplicate.png", "/images/gallery.png"]),
+      blindBoxSet: {
+        poolVersions: [
+          {
+            entries: [
+              { product: { mainImage: "/images/duplicate.png" } },
+              { product: { mainImage: null } },
+            ],
+          },
+        ],
+      },
+    };
+
+    expect(getHomepageVariantImages(product)).toEqual([
+      "/images/duplicate.png",
+      "/images/gallery.png",
+    ]);
   });
 });

@@ -41,13 +41,6 @@ export default withAuth(
       );
     }
 
-    // Check for admin routes
-    if (pathname.startsWith("/admin")) {
-      if (req.nextauth.token?.role !== "admin") {
-        return NextResponse.redirect(new URL("/", req.url));
-      }
-    }
-
     if (
       (pathname.startsWith("/account") ||
         pathname.startsWith("/checkout") ||
@@ -55,16 +48,20 @@ export default withAuth(
       !req.nextauth.token
     ) {
       const loginUrl = new URL("/login", req.url);
-      loginUrl.searchParams.set("callbackUrl", req.nextUrl.pathname);
+      if (pathname.startsWith("/account/collection")) {
+        loginUrl.searchParams.set("redirect", req.nextUrl.pathname);
+      } else {
+        loginUrl.searchParams.set("callbackUrl", req.nextUrl.pathname);
+      }
       return NextResponse.redirect(loginUrl);
     }
   },
   {
     callbacks: {
       authorized: ({ token, req }) => {
-        // Admin routes require admin token
+        // The server layout revalidates current role and status from the database.
         if (req.nextUrl.pathname.startsWith("/admin")) {
-          return !!token && token.role === "admin";
+          return !!token;
         }
         if (
           req.nextUrl.pathname.startsWith("/account") ||

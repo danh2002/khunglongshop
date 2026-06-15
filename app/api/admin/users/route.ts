@@ -1,58 +1,32 @@
 import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
-import { z } from "zod";
+import { adminUserCreateSchema, adminUserListQuerySchema } from "@/lib/adminUserValidation";
+import { adminError, isPrismaUniqueError, validationError } from "@/lib/adminResponses";
+import { createPagination } from "@/lib/adminApi";
 import { requireAdminApi } from "@/utils/adminAuth";
 import prisma from "@/utils/db";
-import { commonValidations } from "@/utils/validation";
-import {
-  createPagination,
-  isRole,
-  normalizeAdminSearch,
-  parseAdminPagination,
-} from "@/lib/adminApi";
-
-const roleSchema = z.enum(["admin", "user"]);
-
-const createUserSchema = z.object({
-  email: commonValidations.email,
-  password: commonValidations.password,
-  role: roleSchema.default("user"),
-});
-
-function validationError(error: z.ZodError) {
-  return NextResponse.json(
-    {
-      error: {
-        code: "VALIDATION_ERROR",
-        message: "Dữ liệu không hợp lệ",
-        fieldErrors: error.flatten().fieldErrors,
-      },
-    },
-    { status: 400 }
-  );
-}
 
 export async function GET(request: NextRequest) {
   const { response } = await requireAdminApi();
   if (response) return response;
 
-  const { searchParams } = new URL(request.url);
-  const { page, limit, skip } = parseAdminPagination(searchParams);
-  const search = normalizeAdminSearch(searchParams.get("search"));
-  const roleParam = searchParams.get("role");
-  const role = isRole(roleParam) ? roleParam : null;
-  const sort = searchParams.get("sort") === "role" ? "role" : "email";
-  const direction = searchParams.get("direction") === "desc" ? "desc" : "asc";
+  const parsed = adminUserListQuerySchema.safeParse(
+    Object.fromEntries(request.nextUrl.searchParams)
+  );
 
+  if (!parsed.success) {
+    return validationError(parsed.error);
+  }
+
+  const { page, limit, search, role, status, sort, direction } = parsed.data;
+  const skip = (page - 1) * limit;
+  const normalizedSearch = search?.toLowerCase();
   const where = {
-    ...(search
-      ? {
-          email: {
-            contains: search,
-          },
-        }
+    ...(normalizedSearch
+      ? { email: { contains: normalizedSearch } }
       : {}),
     ...(role ? { role } : {}),
+    ...(status ? { isActive: status === "active" } : {}),
   };
 
   const [users, totalItems] = await Promise.all([
@@ -97,7 +71,7 @@ export async function POST(request: NextRequest) {
   if (response) return response;
 
   const body = await request.json().catch(() => null);
-  const parsed = createUserSchema.safeParse(body);
+  const parsed = adminUserCreateSchema.safeParse(body);
 
   if (!parsed.success) {
     return validationError(parsed.error);
@@ -109,25 +83,32 @@ export async function POST(request: NextRequest) {
   });
 
   if (existingUser) {
-    return NextResponse.json(
-      { error: { code: "EMAIL_ALREADY_EXISTS", message: "Email đã tồn tại" } },
-      { status: 409 }
-    );
+    return adminError(409, "EMAIL_ALREADY_EXISTS", "Email đã tồn tại.");
   }
 
   const password = await bcrypt.hash(parsed.data.password, 14);
-  const user = await prisma.user.create({
-    data: {
-      email: parsed.data.email,
-      password,
-      role: parsed.data.role,
-    },
-    select: {
-      id: true,
-      email: true,
-      role: true,
-    },
-  });
 
-  return NextResponse.json(user, { status: 201 });
+  try {
+    const user = await prisma.user.create({
+      data: {
+        email: parsed.data.email,
+        password,
+        role: parsed.data.role,
+      },
+      select: {
+        id: true,
+        email: true,
+        role: true,
+        isActive: true,
+      },
+    });
+
+    return NextResponse.json(user, { status: 201 });
+  } catch (error) {
+    if (isPrismaUniqueError(error)) {
+      return adminError(409, "EMAIL_ALREADY_EXISTS", "Email đã tồn tại.");
+    }
+
+    throw error;
+  }
 }

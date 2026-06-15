@@ -69,7 +69,16 @@ assertContains(
 assertContains("lib/api.ts", /credentials:\s*['"]include['"]/, "API client must send cookies to Express");
 assertContains("app/api/admin/users/route.ts", /requireAdminApi/, "Admin users list/create API must require admin auth");
 assertContains("app/api/admin/users/route.ts", /_count:\s*\{[\s\S]*orders:\s*true[\s\S]*Wishlist:\s*true/, "User list must use Prisma _count");
-assertContains("app/api/admin/users/route.ts", /password:\s*commonValidations\.password/, "User create must use shared password policy");
+assertContains(
+  "app/api/admin/users/route.ts",
+  /adminUserCreateSchema/,
+  "User create must use the shared admin user schema"
+);
+assertContains(
+  "lib/adminUserValidation.ts",
+  /password:\s*commonValidations\.password/,
+  "Shared admin user create schema must use the common password policy"
+);
 assertContains("app/api/admin/users/route.ts", /select:\s*\{[\s\S]*id:\s*true[\s\S]*email:\s*true[\s\S]*role:\s*true/, "User create response must select safe fields");
 assertNotContains("app/api/admin/users/route.ts", /select:\s*\{[\s\S]*password:\s*true/, "User API must not select password");
 assertContains("app/api/admin/users/[id]/route.ts", /SELF_DELETE_FORBIDDEN/, "User delete must block self-delete");

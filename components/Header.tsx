@@ -408,7 +408,7 @@ export default function Header({
                   onClick={() => setOpenMenu((current) => current === "categories" ? null : "categories")}
                   aria-expanded={openMenu === "categories"}
                 >
-                  Danh mục <FaChevronDown />
+                  DANH MỤC <FaChevronDown />
                 </Trigger>
                 <DropdownPanel $open={openMenu === "categories"}>
                   {renderCategoryLinks()}
@@ -425,15 +425,15 @@ export default function Header({
                   onClick={() => setOpenMenu((current) => current === "characters" ? null : "characters")}
                   aria-expanded={openMenu === "characters"}
                 >
-                  Nhân vật <FaChevronDown />
+                  NHÂN VẬT <FaChevronDown />
                 </Trigger>
                 <DropdownPanel $open={openMenu === "characters"}>
                   {renderCharacterLinks()}
                 </DropdownPanel>
               </DropdownWrap>
 
-              <NavLink href="/account/codes" $active={pathname.startsWith("/account/codes")}>Mã của tôi</NavLink>
-              <NavLink href="/about" $active={pathname.startsWith("/about")}>Giới thiệu</NavLink>
+              <NavLink href="/account/collection" $active={pathname.startsWith("/account/collection")}>BỘ SƯU TẬP</NavLink>
+              <NavLink href="/about" $active={pathname.startsWith("/about")}>GIỚI THIỆU</NavLink>
             </Links>
 
             <Actions>
@@ -454,15 +454,15 @@ export default function Header({
 
             <MobilePanel $open={mobileOpen}>
               <MobileTrigger type="button" $open={mobileMenu === "categories"} onClick={() => setMobileMenu((value) => value === "categories" ? null : "categories")}>
-                Danh mục <FaChevronDown />
+                DANH MỤC <FaChevronDown />
               </MobileTrigger>
               <MobileDropdown $open={mobileMenu === "categories"}>{renderCategoryLinks()}</MobileDropdown>
               <MobileTrigger type="button" $open={mobileMenu === "characters"} onClick={() => setMobileMenu((value) => value === "characters" ? null : "characters")}>
-                Nhân vật <FaChevronDown />
+                NHÂN VẬT <FaChevronDown />
               </MobileTrigger>
               <MobileDropdown $open={mobileMenu === "characters"}>{renderCharacterLinks()}</MobileDropdown>
-              <MobileLink href="/account/codes">Mã của tôi</MobileLink>
-              <MobileLink href="/about">Giới thiệu</MobileLink>
+              <MobileLink href="/account/collection">BỘ SƯU TẬP</MobileLink>
+              <MobileLink href="/about">GIỚI THIỆU</MobileLink>
             </MobilePanel>
           </>
         )}

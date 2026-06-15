@@ -1,50 +1,67 @@
 import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/utils/authOptions";
 import { redirect } from "next/navigation";
-import { NextResponse } from "next/server";
+import { adminError } from "@/lib/adminResponses";
+import { authOptions } from "@/utils/authOptions";
+import prisma from "@/utils/db";
+
+async function getActiveAdmin(userId: string) {
+  return prisma.user.findFirst({
+    where: {
+      id: userId,
+      role: "admin",
+      isActive: true,
+    },
+    select: {
+      id: true,
+      email: true,
+      role: true,
+      isActive: true,
+    },
+  });
+}
 
 export async function requireAdmin() {
   const session = await getServerSession(authOptions);
-  
-  if (!session) {
+
+  if (!session?.user?.id) {
     redirect("/login");
   }
-  
-  if (session.user.role !== "admin") {
+
+  const admin = await getActiveAdmin(session.user.id);
+
+  if (!admin) {
     redirect("/");
   }
-  
-  return session;
+
+  return { session, admin };
 }
 
 export async function isAdmin(): Promise<boolean> {
   const session = await getServerSession(authOptions);
-  return session?.user.role === "admin";
+  if (!session?.user?.id) return false;
+  return Boolean(await getActiveAdmin(session.user.id));
 }
 
 export async function requireAdminApi() {
   const session = await getServerSession(authOptions);
 
-  if (!session) {
+  if (!session?.user?.id) {
     return {
       session: null,
-      response: NextResponse.json(
-        { error: { code: "UNAUTHORIZED", message: "Unauthorized" } },
-        { status: 401 }
-      ),
+      admin: null,
+      response: adminError(401, "UNAUTHORIZED", "Bạn cần đăng nhập."),
     };
   }
 
-  if (session.user.role !== "admin") {
+  const admin = await getActiveAdmin(session.user.id);
+
+  if (!admin) {
     return {
       session: null,
-      response: NextResponse.json(
-        { error: { code: "FORBIDDEN", message: "Forbidden" } },
-        { status: 403 }
-      ),
+      admin: null,
+      response: adminError(403, "FORBIDDEN", "Bạn không có quyền quản trị."),
     };
   }
 
-  return { session, response: null };
+  return { session, admin, response: null };
 }
-

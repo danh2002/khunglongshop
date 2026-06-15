@@ -18,6 +18,10 @@ const EXTENSION_BY_TYPE: Record<string, string> = {
   "image/webp": ".webp",
   "image/gif": ".gif",
 };
+const UPLOAD_FOLDERS = {
+  products: "products",
+  homepageSlider: "homepage-slider",
+} as const;
 
 function sanitizeFilename(filename: string, mimeType: string) {
   const originalExtension = path.extname(filename).toLowerCase();
@@ -42,6 +46,9 @@ export async function POST(request: NextRequest) {
 
   const formData = await request.formData().catch(() => null);
   const file = formData?.get("file");
+  const folder = formData?.get("folder") === UPLOAD_FOLDERS.homepageSlider
+    ? UPLOAD_FOLDERS.homepageSlider
+    : UPLOAD_FOLDERS.products;
 
   if (!(file instanceof File)) {
     return NextResponse.json(
@@ -64,7 +71,7 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const uploadDirectory = path.join(process.cwd(), "public", "images", "products");
+  const uploadDirectory = path.join(process.cwd(), "public", "images", folder);
   const filename = `${Date.now()}-${crypto.randomUUID().slice(0, 8)}-${sanitizeFilename(file.name, file.type)}`;
 
   try {
@@ -77,5 +84,5 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  return NextResponse.json({ url: `/images/products/${filename}` });
+  return NextResponse.json({ url: `/images/${folder}/${filename}` });
 }

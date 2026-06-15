@@ -42,7 +42,7 @@ export const sectionPattern = css`
     inset: 0;
     z-index: -3;
     background-image:
-      url("/pexels-format-1029757.jpg");
+      url("/images/backgroundshop.png");
     background-size: cover;
     background-position: center;
     background-repeat: no-repeat;

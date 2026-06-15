@@ -11,6 +11,8 @@
     "lint": "next lint",
     "type-check": "tsc --noEmit",
     "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
     "test:unit": "vitest run tests/unit",
     "test:integration": "vitest run tests/integration --no-file-parallelism",
     "test:collector": "node scripts/verify-collector-unlock.js",
@@ -55,6 +57,7 @@
     "zustand": "^4.5.1"
   },
   "devDependencies": {
+    "@testing-library/react": "^16.3.2",
     "@types/dompurify": "^3.0.5",
     "@types/node": "^24.3.3",
     "@types/react": "^18.3.24",
@@ -65,6 +68,7 @@
     "daisyui": "^4.7.2",
     "eslint": "^8",
     "eslint-config-next": "^15.5.3",
+    "jsdom": "^29.1.1",
     "postcss": "^8",
     "prisma": "^6.16.1",
     "supertest": "^7.2.2",
