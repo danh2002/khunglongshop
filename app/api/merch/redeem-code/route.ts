@@ -4,6 +4,7 @@ import { z } from "zod";
 import { CollectorRedeemError, redeemProductCodeForUser } from "@/lib/collectorService";
 import { isRateLimited } from "@/lib/rateLimit";
 import { authOptions } from "@/utils/authOptions";
+import prisma from "@/utils/db";
 
 const redeemCodeSchema = z.object({
   code: z
@@ -20,6 +21,15 @@ export async function POST(request: NextRequest) {
 
   if (!userId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { role: true, isActive: true },
+  });
+
+  if (!user?.isActive || user.role !== "user") {
+    return NextResponse.json({ error: "REDEEM_ROLE_NOT_ALLOWED" }, { status: 403 });
   }
 
   if (isRateLimited(`redeem-code:${userId}`, 10)) {

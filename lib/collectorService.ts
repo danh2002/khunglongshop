@@ -1,7 +1,8 @@
 import prisma from "@/utils/db";
 import { Prisma } from "@prisma/client";
-import { generateRedemptionCode, generateSetRewardCode } from "./codes";
+import { generateSetRewardCode } from "./codes";
 import { sendSetCompleteEmail } from "./emails/setComplete";
+import { createUniqueRedemptionCodeValue } from "./redemptionCodes";
 
 type PrismaLike = typeof prisma | Prisma.TransactionClient;
 
@@ -16,19 +17,6 @@ export class CollectorRedeemError extends Error {
     super(message);
     this.name = "CollectorRedeemError";
   }
-}
-
-async function createUniqueRedemptionCode(client: PrismaLike = prisma): Promise<string> {
-  for (let attempt = 0; attempt < 5; attempt += 1) {
-    const code = generateRedemptionCode();
-    const existing = await client.redemptionCode.findUnique({ where: { code } });
-
-    if (!existing) {
-      return code;
-    }
-  }
-
-  throw new Error("Unable to generate a unique redemption code");
 }
 
 // Call this after an order is successfully paid.
@@ -62,7 +50,7 @@ export async function handleOrderCollectorItems(orderId: string, userId: string)
     for (let index = 0; index < missingCodeCount; index += 1) {
       await prisma.redemptionCode.create({
         data: {
-          code: await createUniqueRedemptionCode(),
+          code: await createUniqueRedemptionCodeValue(),
           productId: item.productId,
           orderId,
           userId,

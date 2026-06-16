@@ -12,6 +12,7 @@ import {
   adminSecondaryButtonClass,
 } from "@/components/admin/AdminUi";
 import DisableCodeButton from "@/components/admin/DisableCodeButton";
+import RedemptionCodeCreateForm from "@/components/admin/RedemptionCodeCreateForm";
 import prisma from "@/utils/db";
 
 const PAGE_SIZE = 20;
@@ -61,39 +62,80 @@ export default async function RedemptionCodesPage({
   return (
     <AdminPage>
       <AdminPageHeader title="Mã mở khóa" description={`${total} mã phù hợp bộ lọc.`} />
+      <RedemptionCodeCreateForm />
       <form className="mb-5 flex flex-wrap gap-3">
-        <input className={`${adminInputClass} min-w-[240px] flex-1`} name="search" defaultValue={search} placeholder="Code, sản phẩm hoặc email" />
+        <input
+          className={`${adminInputClass} min-w-[240px] flex-1`}
+          name="search"
+          defaultValue={search}
+          placeholder="Code, sản phẩm hoặc email"
+        />
         <select className={adminInputClass} name="set" defaultValue={setId}>
           <option value="">Tất cả bộ sưu tập</option>
-          {sets.map((set) => <option key={set.id} value={set.id}>{set.name}</option>)}
+          {sets.map((set) => (
+            <option key={set.id} value={set.id}>
+              {set.name}
+            </option>
+          ))}
         </select>
         <select className={adminInputClass} name="status" defaultValue={status ?? ""}>
           <option value="">Tất cả trạng thái</option>
-          {Object.values(RedemptionCodeStatus).map((value) => <option key={value} value={value}>{value}</option>)}
+          {Object.values(RedemptionCodeStatus).map((value) => (
+            <option key={value} value={value}>
+              {value}
+            </option>
+          ))}
         </select>
-        <button className={adminSecondaryButtonClass} type="submit">Lọc</button>
+        <button className={adminSecondaryButtonClass} type="submit">
+          Lọc
+        </button>
       </form>
       {codes.length ? (
         <AdminTable>
-          <thead><tr><AdminTh>Code</AdminTh><AdminTh>Sản phẩm</AdminTh><AdminTh>Bộ / slot</AdminTh><AdminTh>Owner</AdminTh><AdminTh>Trạng thái</AdminTh><AdminTh>Ngày</AdminTh><AdminTh /></tr></thead>
+          <thead>
+            <tr>
+              <AdminTh>Code</AdminTh>
+              <AdminTh>Sản phẩm</AdminTh>
+              <AdminTh>Bộ / slot</AdminTh>
+              <AdminTh>Owner</AdminTh>
+              <AdminTh>Trạng thái</AdminTh>
+              <AdminTh>Tạo / dùng</AdminTh>
+              <AdminTh />
+            </tr>
+          </thead>
           <tbody>
             {codes.map((code) => (
               <tr key={code.id}>
                 <AdminTd className="font-mono">{code.code}</AdminTd>
                 <AdminTd>{code.product.title}</AdminTd>
-                <AdminTd>{code.product.set ? `${code.product.set.name} / ${code.product.setSlotNumber ?? "-"}` : "-"}</AdminTd>
+                <AdminTd>
+                  {code.product.set ? `${code.product.set.name} / ${code.product.setSlotNumber ?? "-"}` : "-"}
+                </AdminTd>
                 <AdminTd>{code.user?.email ?? "Chưa gán"}</AdminTd>
-                <AdminTd><AdminStatusBadge tone={code.status === "REDEEMED" ? "success" : code.status === "DISABLED" ? "danger" : "warning"}>{code.status}</AdminStatusBadge></AdminTd>
-                <AdminTd>{code.createdAt.toLocaleDateString("vi-VN")}</AdminTd>
+                <AdminTd>
+                  <AdminStatusBadge
+                    tone={code.status === "REDEEMED" ? "success" : code.status === "DISABLED" ? "danger" : "warning"}
+                  >
+                    {code.status}
+                  </AdminStatusBadge>
+                </AdminTd>
+                <AdminTd>
+                  <div>{code.createdAt.toLocaleDateString("vi-VN")}</div>
+                  {code.usedAt ? <div className="text-xs text-white/40">{code.usedAt.toLocaleDateString("vi-VN")}</div> : null}
+                </AdminTd>
                 <AdminTd>{code.status === "ACTIVE" ? <DisableCodeButton id={code.id} /> : null}</AdminTd>
               </tr>
             ))}
           </tbody>
         </AdminTable>
-      ) : <AdminEmptyState>Không có mã phù hợp.</AdminEmptyState>}
+      ) : (
+        <AdminEmptyState>Không có mã phù hợp.</AdminEmptyState>
+      )}
       <nav className="mt-5 flex gap-4 text-sm text-[#e85d00]">
         {page > 1 ? <Link href={`?page=${page - 1}`}>Trang trước</Link> : null}
-        <span className="text-white/45">Trang {page}/{totalPages}</span>
+        <span className="text-white/45">
+          Trang {page}/{totalPages}
+        </span>
         {page < totalPages ? <Link href={`?page=${page + 1}`}>Trang sau</Link> : null}
       </nav>
     </AdminPage>

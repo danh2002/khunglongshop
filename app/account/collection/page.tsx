@@ -23,6 +23,7 @@ type CollectionSet = {
       image: string | null;
     } | null;
     code: string | null;
+    ownedCount: number;
     isCollected: boolean;
     isUnlocked: boolean;
   }>;
@@ -222,6 +223,20 @@ const SlotBadge = styled.span<{ $collected?: boolean }>`
   color: ${({ $collected }) => ($collected ? "#fff" : "rgba(255, 255, 255, 0.28)")};
   font-size: 0.5rem;
   font-weight: 900;
+`;
+
+const OwnedCountBadge = styled.span`
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  z-index: 2;
+  min-width: 2rem;
+  padding: 2px 7px;
+  background: rgba(244, 121, 18, 0.92);
+  color: #fff;
+  font-size: 0.58rem;
+  font-weight: 900;
+  text-align: center;
 `;
 
 const UncollectedSlot = styled(SlotCard)`
@@ -607,6 +622,7 @@ export default function AccountCollectionPage() {
                           transition={{ duration: 0.38, delay: index * 0.04, ease: smoothEase }}
                         >
                           <SlotBadge $collected>#{slot.slotNumber}</SlotBadge>
+                          {slot.ownedCount > 1 ? <OwnedCountBadge>x{slot.ownedCount}</OwnedCountBadge> : null}
                           <ImageFrame>
                             {slot.product.image ? (
                               <Image

@@ -3,20 +3,24 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { createPagination, parseAdminPagination } from "@/lib/adminApi";
 import { adminError, isPrismaUniqueError, validationError } from "@/lib/adminResponses";
-import { generateRedemptionCode } from "@/lib/codes";
+import {
+  createUniqueRedemptionCodeValue,
+  RedemptionCodeGenerationError,
+} from "@/lib/redemptionCodes";
 import { requireAdminApi } from "@/utils/adminAuth";
 import prisma from "@/utils/db";
 
-const createSchema = z.object({
-  productId: z.string().min(1),
-  quantity: z.number().int().min(1).max(500).default(1),
-  orderId: z.string().min(1).nullable().optional(),
-  userId: z.string().min(1).nullable().optional(),
-});
+const createSchema = z
+  .object({
+    productId: z.string().min(1),
+    quantity: z.number().int().min(1).max(500),
+  })
+  .strict();
 
 export async function GET(request: NextRequest) {
   const { response } = await requireAdminApi();
   if (response) return response;
+
   const { page, limit, skip } = parseAdminPagination(request.nextUrl.searchParams);
   const params = request.nextUrl.searchParams;
   const search = params.get("search")?.trim() ?? "";
@@ -24,10 +28,12 @@ export async function GET(request: NextRequest) {
   const productId = params.get("product") || undefined;
   const userId = params.get("user") || undefined;
   const rawStatus = params.get("status");
-  const status =
-    rawStatus && Object.values(RedemptionCodeStatus).includes(rawStatus as RedemptionCodeStatus)
-      ? (rawStatus as RedemptionCodeStatus)
-      : undefined;
+
+  if (rawStatus && !Object.values(RedemptionCodeStatus).includes(rawStatus as RedemptionCodeStatus)) {
+    return adminError(400, "VALIDATION_ERROR", "Trạng thái code không hợp lệ.");
+  }
+
+  const status = rawStatus ? (rawStatus as RedemptionCodeStatus) : undefined;
   const where: Prisma.RedemptionCodeWhereInput = {
     ...(status ? { status } : {}),
     ...(productId ? { productId } : {}),
@@ -71,55 +77,94 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: Request) {
-  const { response } = await requireAdminApi();
+  const { admin, response } = await requireAdminApi();
   if (response) return response;
+
   const parsed = createSchema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return validationError(parsed.error);
 
-  const [product, user, order] = await Promise.all([
-    prisma.product.findUnique({ where: { id: parsed.data.productId }, select: { id: true } }),
-    parsed.data.userId
-      ? prisma.user.findUnique({
-          where: { id: parsed.data.userId },
-          select: { id: true, role: true },
-        })
-      : null,
-    parsed.data.orderId
-      ? prisma.customer_order.findUnique({
-          where: { id: parsed.data.orderId },
-          select: { id: true },
-        })
-      : null,
-  ]);
+  const product = await prisma.product.findUnique({
+    where: { id: parsed.data.productId },
+    select: {
+      id: true,
+      title: true,
+      slug: true,
+      mainImage: true,
+      isCollector: true,
+      setId: true,
+      setSlotNumber: true,
+      set: { select: { id: true, name: true } },
+    },
+  });
+
   if (!product) return adminError(404, "PRODUCT_NOT_FOUND", "Không tìm thấy sản phẩm.");
-  if (parsed.data.userId && (!user || user.role !== "user")) {
-    return adminError(400, "INVALID_CODE_OWNER_ROLE", "Owner phải là tài khoản user.");
-  }
-  if (parsed.data.orderId && !order) {
-    return adminError(404, "ORDER_NOT_FOUND", "Không tìm thấy đơn hàng.");
+  if (!product.isCollector || !product.setId || !product.setSlotNumber || !product.set) {
+    return adminError(422, "INVALID_COLLECTOR_ITEM", "Sản phẩm không phải collector item hợp lệ.");
   }
 
-  const created = [];
-  for (let index = 0; index < parsed.data.quantity; index += 1) {
-    for (let attempt = 0; attempt < 5; attempt += 1) {
-      try {
-        created.push(
-          await prisma.redemptionCode.create({
-            data: {
-              code: generateRedemptionCode(),
-              productId: parsed.data.productId,
-              orderId: parsed.data.orderId ?? null,
-              userId: parsed.data.userId ?? null,
-              status: "ACTIVE",
-              isUsed: false,
-            },
-          })
-        );
-        break;
-      } catch (error) {
-        if (!isPrismaUniqueError(error) || attempt === 4) throw error;
+  try {
+    const created = await prisma.$transaction(async (tx) => {
+      const codes = [];
+
+      for (let index = 0; index < parsed.data.quantity; index += 1) {
+        for (let attempt = 0; attempt < 10; attempt += 1) {
+          try {
+            codes.push(
+              await tx.redemptionCode.create({
+                data: {
+                  code: await createUniqueRedemptionCodeValue(tx),
+                  productId: product.id,
+                  userId: null,
+                  orderId: null,
+                  status: "ACTIVE",
+                  isUsed: false,
+                  usedAt: null,
+                },
+              })
+            );
+            break;
+          } catch (error) {
+            if (!isPrismaUniqueError(error) || attempt === 9) throw error;
+          }
+        }
       }
+
+      await tx.adminAuditLog.create({
+        data: {
+          actorId: admin!.id,
+          action: "REDEMPTION_CODES_CREATED",
+          entityType: "Product",
+          entityId: product.id,
+          metadata: {
+            actorId: admin!.id,
+            productId: product.id,
+            quantity: parsed.data.quantity,
+            redemptionCodeIds: codes.map((code) => code.id),
+          },
+        },
+      });
+
+      return codes;
+    });
+
+    return NextResponse.json(
+      {
+        product: {
+          id: product.id,
+          title: product.title,
+          slug: product.slug,
+          mainImage: product.mainImage,
+          setSlotNumber: product.setSlotNumber,
+          set: product.set,
+        },
+        items: created,
+      },
+      { status: 201 }
+    );
+  } catch (error) {
+    if (error instanceof RedemptionCodeGenerationError || isPrismaUniqueError(error)) {
+      return adminError(500, "CODE_GENERATION_FAILED", "Không thể tạo đủ code duy nhất.");
     }
+    throw error;
   }
-  return NextResponse.json({ items: created }, { status: 201 });
 }

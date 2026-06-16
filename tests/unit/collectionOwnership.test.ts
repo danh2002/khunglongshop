@@ -34,4 +34,19 @@ describe("collection ownership aggregation", () => {
       firstRedeemedAt: first,
     });
   });
+
+  it("counts ten redeemed codes for the same product", () => {
+    const redeemedAt = new Date("2026-01-01T00:00:00.000Z");
+    const ownership = summarizeProductOwnership(
+      Array.from({ length: 10 }, (_, index) => ({
+        productId: "vanie-1",
+        status: "REDEEMED",
+        usedAt: redeemedAt,
+        createdAt: redeemedAt,
+        code: `CODE-${index}`,
+      }))
+    );
+
+    expect(ownership.get("vanie-1")?.ownedCount).toBe(10);
+  });
 });

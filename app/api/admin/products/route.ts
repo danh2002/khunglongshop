@@ -90,6 +90,7 @@ export async function GET(request: NextRequest) {
     ? (searchParams.get("stock") as (typeof stockFilters)[number])
     : "all";
   const isCollectorParam = searchParams.get("isCollector");
+  const collectorOnly = searchParams.get("collectorOnly") === "true";
   const sortParam = searchParams.get("sort");
   const sort = productSortFields.includes(sortParam as any) ? sortParam! : "title";
   const direction = searchParams.get("direction") === "desc" ? "desc" : "asc";
@@ -108,8 +109,11 @@ export async function GET(request: NextRequest) {
     ...(setId ? { setId } : {}),
     ...(stock === "in-stock" ? { inStock: { gt: 0 } } : {}),
     ...(stock === "out-of-stock" ? { inStock: 0 } : {}),
-    ...(isCollectorParam === "true" ? { isCollector: true } : {}),
-    ...(isCollectorParam === "false" ? { isCollector: false } : {}),
+    ...(collectorOnly
+      ? { isCollector: true, setId: { not: null }, setSlotNumber: { not: null } }
+      : {}),
+    ...(!collectorOnly && isCollectorParam === "true" ? { isCollector: true } : {}),
+    ...(!collectorOnly && isCollectorParam === "false" ? { isCollector: false } : {}),
   };
 
   const [products, totalItems] = await Promise.all([
