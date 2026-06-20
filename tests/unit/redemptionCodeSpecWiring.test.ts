@@ -45,6 +45,7 @@ describe("issue 5 redemption-code spec wiring", () => {
     expect(page).toContain("ownedCount: number");
     expect(page).toContain("OwnedCountBadge");
     expect(page).toContain("x{slot.ownedCount}");
+    expect(page).toContain("normalizeCatalogImage(slot.product.image)");
   });
 
   it("exposes a manual-copy fallback for generated codes", () => {
@@ -54,5 +55,59 @@ describe("issue 5 redemption-code spec wiring", () => {
     expect(form).toContain("readOnly");
     expect(form).toContain('aria-label="Code vừa tạo"');
     expect(form).toContain("collectorOnly");
+  });
+
+  it("renders the shop visibility label without mojibake", () => {
+    const form = source("components/AdminProductForm.tsx");
+
+    expect(form).toContain("Hiển thị ở shop");
+    expect(form).not.toContain("Hiá»ƒn thá»‹ á»Ÿ shop");
+  });
+
+  it("uses blind-box set data for the product detail collection copy", () => {
+    const page = source("app/product/[productSlug]/page.tsx");
+
+    expect(page).toContain("product.blindBoxSet?.name");
+    expect(page).toContain("product.blindBoxSet?.totalSlots");
+    expect(page).toContain("Bộ sưu tập {sanitize(collectionName)}");
+    expect(page).toContain("{collectionTotalSlots} mẫu {sanitize(collectionName)} có thể nhận");
+    expect(page).not.toContain("Bộ sưu tập Vanie");
+    expect(page).not.toContain("10 mẫu Vanie");
+  });
+
+  it("keeps category navigation limited to blind boxes and all products", () => {
+    const header = source("components/Header.tsx");
+
+    expect(header).not.toContain("dynamicCategories.map");
+    expect(header).toContain('href="/bo-suu-tap?category=hop-mu"');
+    expect(header).toContain('href="/bo-suu-tap?nhanvat=all"');
+  });
+
+  it("renders the root layout dynamically so the navigation shell does not go stale", () => {
+    const layout = source("app/layout.tsx");
+
+    expect(layout).toContain('export const dynamic = "force-dynamic"');
+  });
+
+  it("renders character collection cards as view-only", () => {
+    const products = source("components/Products.tsx");
+    const item = source("components/ProductItem.tsx");
+    const page = source("app/product/[productSlug]/page.tsx");
+
+    expect(products).toContain("buildCollectorGalleryWhere({ characterSlug })");
+    expect(products).toContain("viewOnly={isCollectorGallery}");
+    expect(item).toContain("viewOnly = false");
+    expect(item).toContain("{!viewOnly ? (");
+    expect(page).toContain("isCollectorProduct");
+    expect(page).toContain("buildPublicProductDetailWhere(productSlug)");
+    expect(page).toContain("{!isCollectorProduct ? <SingleProductDynamicFields product={product} /> : null}");
+  });
+
+  it("normalizes wishlist item image paths before passing them to next/image", () => {
+    const item = source("components/WishItem.tsx");
+
+    expect(item).toContain('import { normalizeCatalogImage } from "@/lib/publicCatalog"');
+    expect(item).toContain('src={normalizeCatalogImage(image || "/images/logo.png")}');
+    expect(item).not.toContain("src={image ? `/${image}`");
   });
 });

@@ -18,7 +18,7 @@ const nextConfig = {
         ],
       },
     experimental: {
-      optimizePackageImports: ['styled-components', 'react-icons'],
+      optimizePackageImports: ['react-icons'],
     },
     async headers() {
       return [

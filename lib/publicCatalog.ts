@@ -7,8 +7,29 @@ export const PUBLIC_STOREFRONT_PRODUCT_WHERE = {
   isVisible: true,
   isBlindBox: true,
   isCollector: false,
-  slug: PUBLIC_BLIND_BOX_SLUG,
 } satisfies Prisma.ProductWhereInput;
+
+export const PUBLIC_COLLECTOR_PRODUCT_WHERE = {
+  isCollector: true,
+  setId: { not: null },
+  setSlotNumber: { not: null },
+  poolEntries: {
+    some: {
+      poolVersion: {
+        status: "ACTIVE",
+      },
+    },
+  },
+} satisfies Prisma.ProductWhereInput;
+
+export type PublicStorefrontFilters = {
+  categorySlug?: string | null;
+  characterSlug?: string | null;
+};
+
+export type CollectorGalleryFilters = {
+  characterSlug?: string | null;
+};
 
 export type PublicCatalogProduct = {
   id: string;
@@ -50,17 +71,59 @@ export function isPubliclySellableProduct(product: {
   isBlindBox: boolean;
   isCollector: boolean;
 }) {
-  return (
-    product.slug === PUBLIC_BLIND_BOX_SLUG &&
-    product.isVisible &&
-    product.isBlindBox &&
-    !product.isCollector
-  );
+  return product.isVisible && product.isBlindBox && !product.isCollector;
 }
 
-export function normalizeCatalogImage(path: string) {
-  if (!path) return "/product_placeholder.jpg";
-  return path.startsWith("/") ? path : `/${path}`;
+export function buildPublicStorefrontWhere(
+  filters: PublicStorefrontFilters = {}
+) {
+  const categorySlug = filters.categorySlug?.trim();
+
+  return {
+    ...PUBLIC_STOREFRONT_PRODUCT_WHERE,
+    ...(categorySlug && categorySlug !== "hop-mu"
+      ? {
+          category: {
+            is: {
+              OR: [{ slug: categorySlug }, { name: categorySlug }],
+            },
+          },
+        }
+      : {}),
+  } satisfies Prisma.ProductWhereInput;
+}
+
+export function buildCollectorGalleryWhere(
+  filters: CollectorGalleryFilters = {}
+) {
+  const characterSlug = filters.characterSlug?.trim();
+
+  return {
+    ...PUBLIC_COLLECTOR_PRODUCT_WHERE,
+    ...(characterSlug && characterSlug !== "all"
+      ? {
+          set: {
+            is: {
+              OR: [{ slug: characterSlug }, { name: characterSlug }],
+            },
+          },
+        }
+      : {}),
+  } satisfies Prisma.ProductWhereInput;
+}
+
+export function buildPublicProductDetailWhere(productSlug: string) {
+  return {
+    slug: productSlug,
+    OR: [PUBLIC_STOREFRONT_PRODUCT_WHERE, PUBLIC_COLLECTOR_PRODUCT_WHERE],
+  } satisfies Prisma.ProductWhereInput;
+}
+
+export function normalizeCatalogImage(path: string | null | undefined) {
+  const imagePath = path?.trim();
+  if (!imagePath) return "/product_placeholder.jpg";
+  if (/^https?:\/\//i.test(imagePath)) return imagePath;
+  return `/${imagePath.replace(/^\/+/, "")}`;
 }
 
 export function toPublicCatalogProduct(

@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import {
   buildPublicProductListResponse,
+  buildPublicStorefrontWhere,
   PUBLIC_CATALOG_PAGE_SIZE,
-  PUBLIC_STOREFRONT_PRODUCT_WHERE,
 } from "@/lib/publicCatalog";
 import prisma from "@/utils/db";
 
@@ -17,10 +17,14 @@ export async function GET(request: NextRequest) {
   const rawPage = Number(searchParams.get("page") ?? "1");
   const page = Number.isInteger(rawPage) && rawPage > 0 ? rawPage : 1;
   const pageSize = PUBLIC_CATALOG_PAGE_SIZE;
+  const where = buildPublicStorefrontWhere({
+    categorySlug: searchParams.get("category"),
+    characterSlug: searchParams.get("nhanvat"),
+  });
 
   const [products, total] = await Promise.all([
     prisma.product.findMany({
-      where: PUBLIC_STOREFRONT_PRODUCT_WHERE,
+      where,
       orderBy: [{ title: "asc" }, { id: "asc" }],
       skip: (page - 1) * pageSize,
       take: pageSize,
@@ -38,7 +42,7 @@ export async function GET(request: NextRequest) {
         isCollector: true,
       },
     }),
-    prisma.product.count({ where: PUBLIC_STOREFRONT_PRODUCT_WHERE }),
+    prisma.product.count({ where }),
   ]);
 
   return NextResponse.json(

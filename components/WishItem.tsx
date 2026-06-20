@@ -5,6 +5,7 @@ import Link from "next/link";
 import { FaTrashCan } from "react-icons/fa6";
 import { sanitize } from "@/lib/sanitize";
 import { formatVnd } from "@/lib/currency";
+import { normalizeCatalogImage } from "@/lib/publicCatalog";
 
 type WishItemProps = {
   id: string;
@@ -32,7 +33,7 @@ const WishItem = ({ id, title, price, image, slug, stockAvailabillity, onRemove 
       <td>
         <Link href={`/product/${slug}`} className="inline-block">
           <Image
-            src={image ? `/${image}` : "/images/logo.png"}
+            src={normalizeCatalogImage(image || "/images/logo.png")}
             width={72}
             height={72}
             alt={sanitize(title) || "Sản phẩm yêu thích"}

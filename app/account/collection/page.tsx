@@ -7,6 +7,7 @@ import toast from "react-hot-toast";
 import styled, { keyframes } from "styled-components";
 import { AnimatePresence, LazyMotion, domAnimation, m } from "framer-motion";
 import { Eyebrow, PrimaryButton, smoothEase } from "@/components/design-system";
+import { normalizeCatalogImage } from "@/lib/publicCatalog";
 
 type CollectionSet = {
   set: {
@@ -626,7 +627,7 @@ export default function AccountCollectionPage() {
                           <ImageFrame>
                             {slot.product.image ? (
                               <Image
-                                src={`/${slot.product.image}`}
+                                src={normalizeCatalogImage(slot.product.image)}
                                 alt={slot.product.name}
                                 fill
                                 sizes="180px"
@@ -650,7 +651,7 @@ export default function AccountCollectionPage() {
                           <LockedImageFrame>
                             {slot.product?.image ? (
                               <Image
-                                src={`/${slot.product.image}`}
+                                src={normalizeCatalogImage(slot.product.image)}
                                 alt={slot.product.name}
                                 fill
                                 sizes="180px"

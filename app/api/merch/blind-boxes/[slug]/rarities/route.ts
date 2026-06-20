@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { validateBlindBoxPool } from "@/lib/blindBox";
-import { PUBLIC_BLIND_BOX_SLUG } from "@/lib/publicCatalog";
+import { isPubliclySellableProduct, normalizeCatalogImage } from "@/lib/publicCatalog";
 import prisma from "@/utils/db";
 
 export async function GET(
@@ -8,15 +8,14 @@ export async function GET(
   { params }: { params: Promise<{ slug: string }> }
 ) {
   const { slug } = await params;
-  if (slug !== PUBLIC_BLIND_BOX_SLUG) {
-    return NextResponse.json({ error: "BLIND_BOX_NOT_FOUND" }, { status: 404 });
-  }
   const product = await prisma.product.findUnique({
     where: { slug },
     select: {
       id: true,
+      slug: true,
       isBlindBox: true,
       isVisible: true,
+      isCollector: true,
       blindBoxSet: {
         select: {
           id: true,
@@ -55,7 +54,7 @@ export async function GET(
 
   const versions = product?.blindBoxSet?.poolVersions ?? [];
   const version = versions[0];
-  if (!product?.isBlindBox || !product.isVisible || !product.blindBoxSet || !version) {
+  if (!product || !isPubliclySellableProduct(product) || !product.blindBoxSet || !version) {
     return NextResponse.json({ error: "BLIND_BOX_NOT_FOUND" }, { status: 404 });
   }
 
@@ -91,9 +90,7 @@ export async function GET(
     variants: version.entries.map((entry) => ({
       slotNumber: entry.slotNumber,
       productName: entry.product.title,
-      image: entry.product.mainImage.startsWith("/")
-        ? entry.product.mainImage
-        : `/${entry.product.mainImage}`,
+      image: normalizeCatalogImage(entry.product.mainImage),
       rarityTier: entry.rarityTier,
     })),
     publishedAt: version.publishedAt?.toISOString() ?? null,

@@ -116,14 +116,16 @@ const Stock = styled.div<{ $available: boolean }>`
 export default function ProductItem({
   product,
   compact = false,
+  viewOnly = false,
 }: {
   product: Product;
   compact?: boolean;
   color?: string;
+  viewOnly?: boolean;
 }) {
   const addToCart = useProductStore((state) => state.addToCart);
   const href = `/product/${product.slug}`;
-  const available = product.inStock > 0;
+  const available = viewOnly || product.inStock > 0;
 
   const handleAdd = () => {
     if (!available) return;
@@ -150,13 +152,19 @@ export default function ProductItem({
             style={{ objectFit: "contain" }}
           />
         </ImageLink>
-        <QuickAdd type="button" onClick={handleAdd} disabled={!available}>
-          {available ? "Thêm vào giỏ" : "Hết hàng"}
-        </QuickAdd>
+        {!viewOnly ? (
+          <QuickAdd type="button" onClick={handleAdd} disabled={!available}>
+            {available ? "Thêm vào giỏ" : "Hết hàng"}
+          </QuickAdd>
+        ) : null}
       </Media>
       <Name href={href}>{sanitize(product.title)}</Name>
-      <Price>{formatVnd(product.price)}</Price>
-      <Stock $available={available}>{available ? "Còn hàng" : "Hết hàng"}</Stock>
+      {!viewOnly ? (
+        <>
+          <Price>{formatVnd(product.price)}</Price>
+          <Stock $available={available}>{available ? "Còn hàng" : "Hết hàng"}</Stock>
+        </>
+      ) : null}
     </Card>
   );
 }

@@ -33,6 +33,15 @@ export default async function CollectorSetDetailPage({ params }: { params: Promi
         initialSlug={set.slug ?? ""}
         initialImage={set.image ?? ""}
         initialDescription={set.description ?? ""}
+        initialHeroImage={set.heroImage ?? ""}
+        initialHeroBadge={set.heroBadge ?? ""}
+        initialHeroTitle={set.heroTitle ?? ""}
+        initialHeroSubtitle={set.heroSubtitle ?? ""}
+        initialHeroPrimaryCtaLabel={set.heroPrimaryCtaLabel ?? ""}
+        initialHeroPrimaryCtaUrl={set.heroPrimaryCtaUrl ?? ""}
+        initialHeroSecondaryCtaLabel={set.heroSecondaryCtaLabel ?? ""}
+        initialHeroSecondaryCtaUrl={set.heroSecondaryCtaUrl ?? ""}
+        initialShowHero={set.showHero}
       />
       <section className="mt-8 grid grid-cols-2 gap-3 md:grid-cols-5">
         {Array.from({ length: 10 }, (_, index) => {

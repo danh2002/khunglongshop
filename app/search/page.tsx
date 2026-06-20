@@ -3,17 +3,17 @@ import { sanitize } from "@/lib/sanitize";
 import { SectionShell, Wrapper } from "@/components/design-system";
 import { getServerTranslator } from "@/lib/i18n-server";
 import { PUBLIC_STOREFRONT_PRODUCT_WHERE } from "@/lib/publicCatalog";
+import { normalizeSearchQuery } from "@/lib/search";
 import prisma from "@/utils/db";
 
 interface Props {
-  searchParams: Promise<{ search?: string }>;
+  searchParams: Promise<{ q?: string; search?: string }>;
 }
 
-// sending api request for search results for a given search text
 const SearchPage = async ({ searchParams }: Props) => {
   const sp = await searchParams;
   const { t } = await getServerTranslator();
-  const query = sp?.search?.trim() ?? "";
+  const query = normalizeSearchQuery(sp ?? {});
   const products = await prisma.product.findMany({
     where: {
       ...PUBLIC_STOREFRONT_PRODUCT_WHERE,
@@ -21,7 +21,6 @@ const SearchPage = async ({ searchParams }: Props) => {
         ? {
             OR: [
               { title: { contains: query } },
-              { description: { contains: query } },
               ...(/^vanie(?:\s|-)?(?:[1-9]|10)$/i.test(query)
                 ? [{ slug: "vanie-blind-box" }]
                 : []),
@@ -56,11 +55,11 @@ const SearchPage = async ({ searchParams }: Props) => {
       <SectionTitle title={t("search.page")} path={`${t("common.home")} | ${t("search.page")}`} />
       <SectionShell>
       <Wrapper>
-        {sp?.search && (
+        {query ? (
           <h3 className="text-4xl text-center py-10 max-sm:text-3xl text-white uppercase italic font-black">
-            {t("search.resultsFor")} {sanitize(sp?.search)}
+            {t("search.resultsFor")} {sanitize(query)}
           </h3>
-        )}
+        ) : null}
         <div className="grid grid-cols-4 justify-items-center gap-x-5 gap-y-8 max-[1300px]:grid-cols-3 max-lg:grid-cols-2 max-[500px]:grid-cols-1">
           {products.length > 0 ? (
             products.map((product) => (

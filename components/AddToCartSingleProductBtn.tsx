@@ -23,7 +23,6 @@ const AddToCartSingleProductBtn = ({ product, quantityCount } : SingleProductBtn
 
   const handleAddToCart = () => {
     if (
-      product.slug !== "vanie-blind-box" ||
       !product.isBlindBox ||
       product.isCollector ||
       product.isVisible === false

@@ -19,6 +19,7 @@ const emptyProduct: ProductFormValues = {
   categoryId: "",
   merchantId: "",
   isCollector: false,
+  isVisible: false,
   setId: null,
   setSlotNumber: null,
   isBlindBox: false,

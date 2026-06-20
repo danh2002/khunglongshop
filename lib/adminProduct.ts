@@ -54,6 +54,7 @@ export const adminProductSchema = z
     categoryId: z.string().trim().min(1, "Danh mục là bắt buộc"),
     merchantId: z.string().trim().min(1, "Merchant là bắt buộc"),
     isCollector: z.coerce.boolean().default(false),
+    isVisible: z.coerce.boolean().default(false),
     setId: z.string().trim().nullable().optional(),
     setSlotNumber: nullableSlotSchema.optional(),
     isBlindBox: z.coerce.boolean().default(false),
@@ -62,6 +63,7 @@ export const adminProductSchema = z
   .transform((value) => {
     return {
       ...value,
+      isVisible: value.isCollector ? false : value.isVisible,
       setId: value.isCollector ? value.setId : null,
       setSlotNumber: value.isCollector ? value.setSlotNumber : null,
       blindBoxSetId: value.isBlindBox ? value.blindBoxSetId : null,

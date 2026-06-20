@@ -73,7 +73,7 @@ const SearchInput = () => {
   const searchProducts = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const sanitizedSearch = sanitize(searchInput);
-    router.push(`/search?search=${encodeURIComponent(sanitizedSearch)}`);
+    router.push(`/search?q=${encodeURIComponent(sanitizedSearch)}`);
     setSearchInput("");
   };
 

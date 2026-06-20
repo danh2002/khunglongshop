@@ -82,12 +82,29 @@ describe("adminProductSchema image fields", () => {
     const result = adminProductSchema.safeParse({
       ...validProduct,
       isBlindBox: true,
+      isVisible: true,
       blindBoxSetId: "vanie-collection",
     });
 
     expect(result.success).toBe(true);
     if (result.success) {
       expect(result.data.blindBoxSetId).toBe("vanie-collection");
+      expect(result.data.isVisible).toBe(true);
+    }
+  });
+
+  it("keeps collector variants hidden even if a client sends isVisible", () => {
+    const result = adminProductSchema.safeParse({
+      ...validProduct,
+      isCollector: true,
+      isVisible: true,
+      setId: "vanie-collection",
+      setSlotNumber: 1,
+    });
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.isVisible).toBe(false);
     }
   });
 

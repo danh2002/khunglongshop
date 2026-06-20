@@ -17,6 +17,7 @@ export type ProductFormValues = {
   categoryId: string;
   merchantId: string;
   isCollector: boolean;
+  isVisible: boolean;
   setId: string | null;
   setSlotNumber: number | null;
   isBlindBox: boolean;
@@ -176,6 +177,7 @@ export default function AdminProductForm({
               onChange({
                 ...value,
                 isCollector: event.target.checked,
+                isVisible: event.target.checked ? false : value.isVisible,
                 setId: event.target.checked ? value.setId : null,
                 setSlotNumber: event.target.checked ? value.setSlotNumber : null,
                 isBlindBox: event.target.checked ? false : value.isBlindBox,
@@ -225,11 +227,27 @@ export default function AdminProductForm({
         <label className="flex items-center gap-3 text-sm font-black uppercase text-white/70">
           <input
             type="checkbox"
+            checked={value.isVisible}
+            disabled={value.isCollector}
+            onChange={(event) =>
+              onChange({
+                ...value,
+                isVisible: event.target.checked,
+              })
+            }
+          />
+          Hiển thị ở shop
+        </label>
+
+        <label className="flex items-center gap-3 text-sm font-black uppercase text-white/70">
+          <input
+            type="checkbox"
             checked={value.isBlindBox}
             onChange={(event) =>
               onChange({
                 ...value,
                 isBlindBox: event.target.checked,
+                isVisible: event.target.checked ? true : value.isVisible,
                 blindBoxSetId: event.target.checked ? value.blindBoxSetId : null,
                 isCollector: event.target.checked ? false : value.isCollector,
                 setId: event.target.checked ? null : value.setId,

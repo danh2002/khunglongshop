@@ -4,6 +4,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { createPagination, parseAdminPagination } from "@/lib/adminApi";
 import {
+  collectorSetHeroFieldSchemas,
+  normalizeCollectorSetHeroData,
+  validateCollectorSetHeroFields,
+} from "@/lib/collectorSetHeroAdmin";
+import {
   adminError,
   isPrismaUniqueError,
   normalizeDisplayName,
@@ -21,7 +26,8 @@ const setSchema = z.object({
   rewardDescription: z.string().trim().max(500).nullable().optional(),
   rewardCodeTemplate: z.string().trim().max(100).nullable().optional(),
   totalSlots: z.literal(10).default(10),
-});
+  ...collectorSetHeroFieldSchemas,
+}).superRefine(validateCollectorSetHeroFields);
 
 export async function GET(request: NextRequest) {
   const { response } = await requireAdminApi();
@@ -94,10 +100,12 @@ export async function POST(request: Request) {
         description: parsed.data.description || null,
         rewardDescription: parsed.data.rewardDescription || null,
         rewardCodeTemplate: parsed.data.rewardCodeTemplate || null,
+        ...normalizeCollectorSetHeroData(parsed.data),
       },
     });
     revalidateTag("navbar-navigation");
     revalidatePath("/", "layout");
+    revalidatePath("/bo-suu-tap");
     return NextResponse.json(collectorSet, { status: 201 });
   } catch (error) {
     if (isPrismaUniqueError(error)) {

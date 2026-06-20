@@ -2,6 +2,11 @@ import { NextResponse } from "next/server";
 import { revalidatePath, revalidateTag } from "next/cache";
 import { z } from "zod";
 import {
+  collectorSetHeroFieldSchemas,
+  normalizeCollectorSetHeroData,
+  validateCollectorSetHeroFields,
+} from "@/lib/collectorSetHeroAdmin";
+import {
   adminError,
   isPrismaUniqueError,
   normalizeDisplayName,
@@ -22,7 +27,8 @@ const updateSchema = z.object({
     .array(z.object({ slotNumber: z.number().int().min(1).max(10), productId: z.string().nullable() }))
     .length(10)
     .optional(),
-});
+  ...collectorSetHeroFieldSchemas,
+}).superRefine(validateCollectorSetHeroFields);
 
 async function findSet(id: string) {
   return prisma.collectorSet.findUnique({
@@ -131,11 +137,13 @@ export async function PATCH(
           ...(parsed.data.rewardCodeTemplate !== undefined
             ? { rewardCodeTemplate: parsed.data.rewardCodeTemplate || null }
             : {}),
+          ...normalizeCollectorSetHeroData(parsed.data),
         },
       });
     });
     revalidateTag("navbar-navigation");
     revalidatePath("/", "layout");
+    revalidatePath("/bo-suu-tap");
     return NextResponse.json(await findSet(id));
   } catch (error) {
     if (isPrismaUniqueError(error)) {
@@ -175,5 +183,6 @@ export async function DELETE(
   await prisma.collectorSet.delete({ where: { id } });
   revalidateTag("navbar-navigation");
   revalidatePath("/", "layout");
+  revalidatePath("/bo-suu-tap");
   return new NextResponse(null, { status: 204 });
 }

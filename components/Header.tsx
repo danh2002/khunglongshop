@@ -2,9 +2,9 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
-import { useEffect, useRef, useState } from "react";
+import { FormEvent, KeyboardEvent, useEffect, useRef, useState } from "react";
 import {
   FaBagShopping,
   FaBars,
@@ -203,6 +203,90 @@ const ActionLink = styled(Link)`
   }
 `;
 
+const ActionButton = styled.button`
+  position: relative;
+  display: grid;
+  width: 24px;
+  height: 40px;
+  place-items: center;
+  border: 0;
+  background: transparent;
+  color: #cccccc;
+  cursor: pointer;
+
+  svg {
+    width: 20px;
+    height: 20px;
+  }
+
+  &:hover {
+    color: #e85d00;
+  }
+
+  &:focus-visible {
+    outline: 2px solid #e85d00;
+    outline-offset: 4px;
+  }
+`;
+
+const SearchWrap = styled.div`
+  position: relative;
+  display: flex;
+  align-items: center;
+`;
+
+const SearchForm = styled.form<{ $open: boolean }>`
+  position: absolute;
+  top: 50%;
+  right: 0;
+  z-index: 20;
+  display: ${({ $open }) => ($open ? "flex" : "none")};
+  width: min(320px, calc(100vw - 48px));
+  height: 42px;
+  align-items: center;
+  overflow: hidden;
+  border: 1px solid rgba(232, 93, 0, 0.55);
+  border-radius: 6px;
+  background: #0a0a0a;
+  box-shadow: 0 14px 40px rgba(0, 0, 0, 0.5);
+  transform: translateY(-50%);
+`;
+
+const SearchField = styled.input`
+  min-width: 0;
+  flex: 1;
+  height: 100%;
+  border: 0;
+  background: transparent;
+  padding: 0 12px;
+  color: #ffffff;
+  font-family: var(--font-body), sans-serif;
+  font-size: 14px;
+  outline: none;
+
+  &::placeholder {
+    color: rgba(255, 255, 255, 0.45);
+  }
+`;
+
+const SearchSubmit = styled.button`
+  display: grid;
+  width: 44px;
+  height: 100%;
+  flex: 0 0 44px;
+  place-items: center;
+  border: 0;
+  border-left: 1px solid rgba(255, 255, 255, 0.08);
+  background: transparent;
+  color: #cccccc;
+  cursor: pointer;
+
+  &:hover,
+  &:focus-visible {
+    color: #e85d00;
+  }
+`;
+
 const Badge = styled.span`
   position: absolute;
   top: 2px;
@@ -289,6 +373,16 @@ const MobileLink = styled(Link)`
   text-transform: uppercase;
 `;
 
+const MobileSearchForm = styled.form`
+  display: flex;
+  height: 42px;
+  margin: 6px 0 10px;
+  overflow: hidden;
+  border: 1px solid rgba(232, 93, 0, 0.45);
+  border-radius: 6px;
+  background: #111111;
+`;
+
 const AdminActions = styled.div`
   display: flex;
   align-items: center;
@@ -316,43 +410,67 @@ export default function Header({
   collectorSets: NavigationCollectorSet[];
 }) {
   const pathname = usePathname();
+  const router = useRouter();
   const { status } = useSession();
   const cartQuantity = useProductStore((state) => state.allQuantity);
   const wishQuantity = useWishlistStore((state) => state.wishQuantity);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [openMenu, setOpenMenu] = useState<OpenMenu>(null);
   const [mobileMenu, setMobileMenu] = useState<OpenMenu>(null);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
   const navRef = useRef<HTMLDivElement>(null);
+  const searchRef = useRef<HTMLDivElement>(null);
+  const searchButtonRef = useRef<HTMLButtonElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
   const isAdmin = pathname.startsWith("/admin");
 
-  const dynamicCategories = categories.filter((category) => category.slug !== "hop-mu");
   const dynamicSets = collectorSets.filter((set) => set.slug !== "vanie");
 
   useEffect(() => {
     setMobileOpen(false);
     setOpenMenu(null);
     setMobileMenu(null);
+    setSearchOpen(false);
+    setSearchTerm("");
   }, [pathname]);
 
   useEffect(() => {
+    if (searchOpen) searchInputRef.current?.focus();
+  }, [searchOpen]);
+
+  useEffect(() => {
     const closeOutside = (event: MouseEvent) => {
-      if (!navRef.current?.contains(event.target as Node)) setOpenMenu(null);
+      const target = event.target as Node;
+      if (!navRef.current?.contains(target)) setOpenMenu(null);
+      if (searchOpen && !searchRef.current?.contains(target)) setSearchOpen(false);
     };
     document.addEventListener("mousedown", closeOutside);
     return () => document.removeEventListener("mousedown", closeOutside);
-  }, []);
+  }, [searchOpen]);
+
+  const submitSearch = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const query = searchTerm.trim();
+    if (!query) return;
+
+    const params = new URLSearchParams({ q: query });
+    setSearchOpen(false);
+    setMobileOpen(false);
+    router.push(`/search?${params.toString()}`);
+  };
+
+  const closeSearchWithEscape = (event: KeyboardEvent) => {
+    if (event.key !== "Escape") return;
+    setSearchOpen(false);
+    searchButtonRef.current?.focus();
+  };
 
   const renderCategoryLinks = () => (
     <>
       <DropdownLink href="/bo-suu-tap?category=hop-mu">
         Hộp mù
       </DropdownLink>
-      {dynamicCategories.map((category) => (
-        <DropdownLink href={`/bo-suu-tap?category=${category.slug}`} key={category.id}>
-          <CategoryThumb icon={category.icon} />
-          {category.name}
-        </DropdownLink>
-      ))}
       <DropdownLink href="/bo-suu-tap" $divider>
         Tất cả
       </DropdownLink>
@@ -374,7 +492,7 @@ export default function Header({
           {set.name}
         </DropdownLink>
       ))}
-      <DropdownLink href="/bo-suu-tap" $divider>
+      <DropdownLink href="/bo-suu-tap?nhanvat=all" $divider>
         Tất cả
       </DropdownLink>
     </>
@@ -437,7 +555,33 @@ export default function Header({
             </Links>
 
             <Actions>
-              <ActionLink href="/search" aria-label="Tìm kiếm"><FaMagnifyingGlass /></ActionLink>
+              <SearchWrap ref={searchRef}>
+                <ActionButton
+                  type="button"
+                  aria-label="Tìm kiếm"
+                  aria-expanded={searchOpen}
+                  onClick={() => {
+                    setOpenMenu(null);
+                    setSearchOpen((open) => !open);
+                  }}
+                  ref={searchButtonRef}
+                >
+                  <FaMagnifyingGlass />
+                </ActionButton>
+                <SearchForm $open={searchOpen} onSubmit={submitSearch} onKeyDown={closeSearchWithEscape}>
+                  <SearchField
+                    ref={searchInputRef}
+                    type="search"
+                    value={searchTerm}
+                    onChange={(event) => setSearchTerm(event.target.value)}
+                    placeholder="Tìm merch..."
+                    aria-label="Tìm merch"
+                  />
+                  <SearchSubmit type="submit" aria-label="Tìm kiếm">
+                    <FaMagnifyingGlass />
+                  </SearchSubmit>
+                </SearchForm>
+              </SearchWrap>
               <ActionLink href={status === "authenticated" ? "/account" : "/login"} aria-label="Tài khoản"><FaRegUser /></ActionLink>
               <ActionLink href="/wishlist" aria-label="Yêu thích">
                 <FaHeart />
@@ -453,6 +597,18 @@ export default function Header({
             </Actions>
 
             <MobilePanel $open={mobileOpen}>
+              <MobileSearchForm onSubmit={submitSearch} onKeyDown={closeSearchWithEscape}>
+                <SearchField
+                  type="search"
+                  value={searchTerm}
+                  onChange={(event) => setSearchTerm(event.target.value)}
+                  placeholder="Tìm merch..."
+                  aria-label="Tìm merch"
+                />
+                <SearchSubmit type="submit" aria-label="Tìm kiếm">
+                  <FaMagnifyingGlass />
+                </SearchSubmit>
+              </MobileSearchForm>
               <MobileTrigger type="button" $open={mobileMenu === "categories"} onClick={() => setMobileMenu((value) => value === "categories" ? null : "categories")}>
                 DANH MỤC <FaChevronDown />
               </MobileTrigger>

@@ -128,20 +128,29 @@ model Image {
 }
 
 model CollectorSet {
-  id                 String                @id @default(cuid())
-  name               String
-  slug               String?               @unique
-  image              String?
-  description        String?
-  totalSlots         Int
-  rewardDescription  String?
-  rewardCodeTemplate String?
-  products           Product[]
-  blindBoxProducts   Product[]             @relation("BlindBoxSellableProducts")
-  poolVersions       BlindBoxPoolVersion[]
-  setRewards         SetReward[]
-  createdAt          DateTime              @default(now())
-  updatedAt          DateTime              @updatedAt
+  id                    String                @id @default(cuid())
+  name                  String
+  slug                  String?               @unique
+  image                 String?
+  description           String?
+  heroImage             String?               @db.VarChar(500)
+  heroBadge             String?               @db.VarChar(80)
+  heroTitle             String?               @db.VarChar(180)
+  heroSubtitle          String?               @db.VarChar(300)
+  heroPrimaryCtaLabel   String?               @db.VarChar(80)
+  heroPrimaryCtaUrl     String?               @db.VarChar(500)
+  heroSecondaryCtaLabel String?               @db.VarChar(80)
+  heroSecondaryCtaUrl   String?               @db.VarChar(500)
+  showHero              Boolean               @default(true)
+  totalSlots            Int
+  rewardDescription     String?
+  rewardCodeTemplate    String?
+  products              Product[]
+  blindBoxProducts      Product[]             @relation("BlindBoxSellableProducts")
+  poolVersions          BlindBoxPoolVersion[]
+  setRewards            SetReward[]
+  createdAt             DateTime              @default(now())
+  updatedAt             DateTime              @updatedAt
 }
 
 model BlindBoxPoolVersion {

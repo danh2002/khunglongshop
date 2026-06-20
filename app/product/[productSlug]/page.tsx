@@ -1,5 +1,5 @@
 import Image from "next/image";
-import { notFound, permanentRedirect } from "next/navigation";
+import { notFound } from "next/navigation";
 import {
   ProductTabs,
   SingleProductDynamicFields,
@@ -7,9 +7,8 @@ import {
 } from "@/components";
 import { formatVnd } from "@/lib/currency";
 import {
+  buildPublicProductDetailWhere,
   normalizeCatalogImage,
-  PUBLIC_BLIND_BOX_SLUG,
-  PUBLIC_STOREFRONT_PRODUCT_WHERE,
 } from "@/lib/publicCatalog";
 import { sanitize } from "@/lib/sanitize";
 import prisma from "@/utils/db";
@@ -29,17 +28,12 @@ export default async function SingleProductPage({
   params: Promise<{ productSlug: string }>;
 }) {
   const { productSlug } = await params;
-  if (/^vanie-(?:[1-9]|10)$/.test(productSlug)) {
-    permanentRedirect(`/product/${PUBLIC_BLIND_BOX_SLUG}`);
-  }
 
   const product = await prisma.product.findFirst({
-    where: {
-      ...PUBLIC_STOREFRONT_PRODUCT_WHERE,
-      slug: productSlug,
-    },
+    where: buildPublicProductDetailWhere(productSlug),
     include: {
       category: { select: { name: true } },
+      set: { select: { id: true, name: true, totalSlots: true } },
       blindBoxSet: {
         select: {
           name: true,
@@ -71,6 +65,9 @@ export default async function SingleProductPage({
   if (!product) notFound();
 
   const variants = product.blindBoxSet?.poolVersions[0]?.entries ?? [];
+  const collectionName = product.blindBoxSet?.name ?? "Bộ sưu tập";
+  const collectionTotalSlots = product.blindBoxSet?.totalSlots ?? variants.length;
+  const isCollectorProduct = Boolean(product.isCollector);
 
   return (
     <main className="min-h-screen bg-[#070707] text-white">
@@ -87,29 +84,34 @@ export default async function SingleProductPage({
         </div>
         <div className="flex flex-col justify-center gap-6">
           <span className="w-fit bg-[#e85d00] px-3 py-1 text-xs font-black uppercase">
-            Túi mù
+            {isCollectorProduct ? "Mẫu móc khóa" : "Túi mù"}
           </span>
           <h1 className="text-4xl font-black uppercase italic">
             {sanitize(product.title)}
           </h1>
-          <p className="text-2xl font-black text-[#e85d00]">
-            {formatVnd(product.price)}
-          </p>
-          <StockAvailabillity stock={product.inStock} inStock={product.inStock} />
+          {!isCollectorProduct ? (
+            <>
+              <p className="text-2xl font-black text-[#e85d00]">
+                {formatVnd(product.price)}
+              </p>
+              <StockAvailabillity stock={product.inStock} inStock={product.inStock} />
+            </>
+          ) : null}
           <p className="leading-7 text-white/65">
             {sanitize(product.description)}
           </p>
-          <SingleProductDynamicFields product={product} />
+          {!isCollectorProduct ? <SingleProductDynamicFields product={product} /> : null}
         </div>
       </section>
 
-      <section className="mx-auto max-w-screen-xl px-5 pb-16">
+      {!isCollectorProduct ? (
+        <section className="mx-auto max-w-screen-xl px-5 pb-16">
         <div className="border-t border-orange-600/25 pt-10">
           <p className="text-xs font-black uppercase tracking-[0.28em] text-[#e85d00]">
-            Bộ sưu tập Vanie
+            Bộ sưu tập {sanitize(collectionName)}
           </p>
           <h2 className="mt-2 text-3xl font-black uppercase italic">
-            10 mẫu Vanie có thể nhận
+            {collectionTotalSlots} mẫu {sanitize(collectionName)} có thể nhận
           </h2>
           <p className="mt-3 max-w-2xl text-white/55">
             Mỗi túi chứa ngẫu nhiên một mẫu. Độ hiếm được công bố theo cấp,
@@ -148,7 +150,8 @@ export default async function SingleProductPage({
         <div className="py-12">
           <ProductTabs product={product} />
         </div>
-      </section>
+        </section>
+      ) : null}
     </main>
   );
 }

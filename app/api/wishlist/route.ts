@@ -45,7 +45,6 @@ export async function GET(request: NextRequest) {
               { isVisible: false },
               { isBlindBox: false },
               { isCollector: true },
-              { slug: { not: "vanie-blind-box" } },
             ],
           },
         },
