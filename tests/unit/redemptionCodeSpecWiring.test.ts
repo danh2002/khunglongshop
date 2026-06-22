@@ -83,10 +83,16 @@ describe("issue 5 redemption-code spec wiring", () => {
     expect(header).toContain('href="/bo-suu-tap?nhanvat=all"');
   });
 
-  it("renders the root layout dynamically so the navigation shell does not go stale", () => {
+  it("keeps the root layout static while hydrating locale client-side", () => {
     const layout = source("app/layout.tsx");
+    const languageProvider = source("components/LanguageProvider.tsx");
 
-    expect(layout).toContain('export const dynamic = "force-dynamic"');
+    expect(layout).not.toContain("force-dynamic");
+    expect(layout).not.toContain("getServerLocale");
+    expect(layout).not.toContain("getServerSession");
+    expect(languageProvider).toContain("initialLocale?: string");
+    expect(languageProvider).toContain("document.cookie.match");
+    expect(languageProvider).toContain("site_lang");
   });
 
   it("renders character collection cards as view-only", () => {

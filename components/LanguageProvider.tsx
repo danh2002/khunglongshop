@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import React, { createContext, useContext, useMemo, useState } from "react";
+import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { normalizeLocale, translate, type Locale, type TranslationKey } from "@/lib/i18n";
 
 type LanguageContextValue = {
@@ -17,10 +17,20 @@ export const LanguageProvider = ({
   initialLocale,
 }: {
   children: React.ReactNode;
-  initialLocale: Locale;
+  initialLocale?: string;
 }) => {
-  const [locale, setLocaleState] = useState<Locale>(normalizeLocale(initialLocale));
+  const [locale, setLocaleState] = useState<Locale>(
+    initialLocale ? normalizeLocale(initialLocale) : "vi"
+  );
   const router = useRouter();
+
+  useEffect(() => {
+    if (!initialLocale) {
+      const match = document.cookie.match(/(?:^|;\s*)site_lang=([^;]*)/);
+      const cookieLocale = match ? normalizeLocale(decodeURIComponent(match[1])) : "vi";
+      setLocaleState(cookieLocale);
+    }
+  }, [initialLocale]);
 
   const value = useMemo<LanguageContextValue>(
     () => ({
