@@ -206,24 +206,25 @@ export const useUnreadCount = () => {
     }
   }, [session?.user?.id, setUnreadCount]);
 
-  // Auto-refresh unread count every 30 seconds
   useEffect(() => {
-    fetchUnreadCount();
-    const interval = setInterval(fetchUnreadCount, 30000); // 30 seconds
-    
-    // Listen for order completed events to refresh immediately
-    const handleOrderCompleted = () => {
-      console.log('Order completed - refreshing notifications');
-      setTimeout(fetchUnreadCount, 1000); // Slight delay to ensure notification is created
+    if (!session?.user?.id) return;
+
+    const eventSource = new EventSource("/api/notifications/stream");
+
+    eventSource.onmessage = (event) => {
+      const data = JSON.parse(event.data) as { unreadCount?: number };
+      if (typeof data.unreadCount === "number") {
+        setUnreadCount(data.unreadCount);
+      }
     };
-    
-    window.addEventListener('orderCompleted', handleOrderCompleted);
-    
-    return () => {
-      clearInterval(interval);
-      window.removeEventListener('orderCompleted', handleOrderCompleted);
+
+    eventSource.onerror = () => {
+      eventSource.close();
+      void fetchUnreadCount();
     };
-  }, [fetchUnreadCount]);
+
+    return () => eventSource.close();
+  }, [fetchUnreadCount, session?.user?.id, setUnreadCount]);
 
   return {
     unreadCount,
