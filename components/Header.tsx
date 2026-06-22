@@ -23,14 +23,19 @@ import type {
 } from "@/lib/navigation";
 import NotificationBell from "./NotificationBell";
 
-const HeaderShell = styled.header`
+const HeaderShell = styled.header<{ $isAdmin: boolean }>`
   position: sticky;
   top: 0;
   z-index: 1000;
   height: 64px;
-  border-bottom: 1px solid #1a1a1a;
-  background: rgba(10, 10, 10, 0.94);
-  backdrop-filter: blur(12px);
+  border-bottom: 1px solid ${({ $isAdmin }) => ($isAdmin ? "#1a1a1a" : "rgba(242, 238, 231, 0.1)")};
+  background: ${({ $isAdmin }) =>
+    $isAdmin
+      ? "rgba(10, 10, 10, 0.94)"
+      : "linear-gradient(180deg, rgba(17, 16, 14, 0.96), rgba(7, 7, 7, 0.9))"};
+  box-shadow: ${({ $isAdmin }) =>
+    $isAdmin ? "none" : "0 16px 40px rgba(0, 0, 0, 0.34)"};
+  backdrop-filter: blur(14px);
 `;
 
 const Nav = styled.div`
@@ -45,6 +50,11 @@ const Nav = styled.div`
   @media (max-width: 1180px) {
     padding: 0 24px;
   }
+
+  @media (max-width: 520px) {
+    gap: 12px;
+    padding: 0 12px;
+  }
 `;
 
 const Logo = styled(Link)`
@@ -52,18 +62,32 @@ const Logo = styled(Link)`
   flex: 0 0 auto;
   align-items: center;
   gap: 10px;
-  color: #ffffff;
-  font-size: 14px;
-  font-weight: 900;
-  letter-spacing: 1px;
+  color: #f2eee7;
+  font-family: var(--font-display), var(--font-body), sans-serif;
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: 0.8px;
   text-decoration: none;
   text-transform: uppercase;
+
+  &:hover {
+    color: #ffb23f;
+  }
+
+  @media (max-width: 520px) {
+    gap: 0;
+
+    span {
+      display: none;
+    }
+  }
 `;
 
 const LogoImage = styled.span`
   position: relative;
   width: 38px;
   height: 38px;
+  filter: drop-shadow(0 0 18px rgba(232, 93, 0, 0.34));
 `;
 
 const Links = styled.nav`
@@ -92,11 +116,12 @@ const Trigger = styled.button<{ $open: boolean }>`
   border: 0;
   border-bottom: 2px solid ${({ $open }) => ($open ? "#e85d00" : "transparent")};
   background: transparent;
-  color: ${({ $open }) => ($open ? "#e85d00" : "#cccccc")};
+  color: ${({ $open }) => ($open ? "#ffb23f" : "rgba(242, 238, 231, 0.76)")};
   cursor: pointer;
-  font-size: 13px;
-  font-weight: 600;
-  letter-spacing: 1.5px;
+  font-family: var(--font-display), var(--font-body), sans-serif;
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: 1px;
   text-transform: uppercase;
 
   svg {
@@ -106,7 +131,12 @@ const Trigger = styled.button<{ $open: boolean }>`
   }
 
   &:hover {
-    color: #e85d00;
+    color: #ffb23f;
+  }
+
+  &:focus-visible {
+    outline: 2px solid #17d6c5;
+    outline-offset: -8px;
   }
 `;
 
@@ -115,15 +145,21 @@ const NavLink = styled(Link)<{ $active: boolean }>`
   display: inline-flex;
   align-items: center;
   border-bottom: 2px solid ${({ $active }) => ($active ? "#e85d00" : "transparent")};
-  color: ${({ $active }) => ($active ? "#e85d00" : "#cccccc")};
-  font-size: 13px;
-  font-weight: 600;
-  letter-spacing: 1.5px;
+  color: ${({ $active }) => ($active ? "#ffb23f" : "rgba(242, 238, 231, 0.76)")};
+  font-family: var(--font-display), var(--font-body), sans-serif;
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: 1px;
   text-decoration: none;
   text-transform: uppercase;
 
   &:hover {
-    color: #e85d00;
+    color: #ffb23f;
+  }
+
+  &:focus-visible {
+    outline: 2px solid #17d6c5;
+    outline-offset: -8px;
   }
 `;
 
@@ -132,12 +168,15 @@ const DropdownPanel = styled.div<{ $open: boolean }>`
   top: calc(100% + 8px);
   left: 0;
   z-index: 200;
-  min-width: 220px;
-  padding: 8px;
-  border: 1px solid #1e1e1e;
-  border-radius: 12px;
-  background: #111111;
-  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.6);
+  min-width: 250px;
+  padding: 10px;
+  border: 1px solid rgba(242, 238, 231, 0.14);
+  border-radius: 0;
+  background:
+    linear-gradient(135deg, rgba(232, 93, 0, 0.14), transparent 34%),
+    #11100e;
+  box-shadow: 0 18px 54px rgba(0, 0, 0, 0.68);
+  clip-path: polygon(0 6px, 6px 6px, 6px 0, calc(100% - 6px) 0, calc(100% - 6px) 6px, 100% 6px, 100% calc(100% - 6px), calc(100% - 6px) calc(100% - 6px), calc(100% - 6px) 100%, 6px 100%, 6px calc(100% - 6px), 0 calc(100% - 6px));
   opacity: ${({ $open }) => ($open ? 1 : 0)};
   visibility: ${({ $open }) => ($open ? "visible" : "hidden")};
   transform: translateY(${({ $open }) => ($open ? "0" : "-6px")});
@@ -148,19 +187,39 @@ const DropdownLink = styled(Link)<{ $divider?: boolean }>`
   display: flex;
   align-items: center;
   gap: 10px;
+  justify-content: space-between;
   margin-top: ${({ $divider }) => ($divider ? "4px" : "0")};
-  border-top: ${({ $divider }) => ($divider ? "1px solid #1e1e1e" : "0")};
-  border-radius: 8px;
+  border-top: ${({ $divider }) => ($divider ? "1px solid rgba(242, 238, 231, 0.12)" : "0")};
+  border-radius: 0;
   padding: ${({ $divider }) => ($divider ? "12px 16px 10px" : "10px 16px")};
-  color: #cccccc;
+  color: rgba(242, 238, 231, 0.78);
   font-size: 14px;
   text-decoration: none;
   white-space: nowrap;
 
   &:hover {
-    background: rgba(232, 93, 0, 0.1);
-    color: #e85d00;
+    background: rgba(232, 93, 0, 0.12);
+    color: #f2eee7;
   }
+`;
+
+const DropdownText = styled.span`
+  display: inline-flex;
+  min-width: 0;
+  align-items: center;
+  gap: 10px;
+`;
+
+const SpecimenCode = styled.span`
+  flex: 0 0 auto;
+  border: 1px solid rgba(255, 178, 63, 0.28);
+  padding: 2px 6px;
+  color: #ffb23f;
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: 1px;
+  line-height: 1.2;
+  text-transform: uppercase;
 `;
 
 const ItemThumb = styled.span`
@@ -171,9 +230,10 @@ const ItemThumb = styled.span`
   flex: 0 0 24px;
   place-items: center;
   overflow: hidden;
-  border-radius: 50%;
-  background: #1a1a1a;
-  color: #e85d00;
+  border: 1px solid rgba(23, 214, 197, 0.42);
+  border-radius: 3px;
+  background: #11100e;
+  color: #17d6c5;
   font-size: 14px;
 `;
 
@@ -182,6 +242,11 @@ const Actions = styled.div`
   flex: 0 0 auto;
   align-items: center;
   gap: 20px;
+
+  @media (max-width: 520px) {
+    gap: 13px;
+    margin-left: auto;
+  }
 `;
 
 const ActionLink = styled(Link)`
@@ -190,7 +255,7 @@ const ActionLink = styled(Link)`
   width: 24px;
   height: 40px;
   place-items: center;
-  color: #cccccc;
+  color: rgba(242, 238, 231, 0.76);
   text-decoration: none;
 
   svg {
@@ -199,7 +264,21 @@ const ActionLink = styled(Link)`
   }
 
   &:hover {
-    color: #e85d00;
+    color: #ffb23f;
+  }
+
+  &:focus-visible {
+    outline: 2px solid #17d6c5;
+    outline-offset: 4px;
+  }
+
+  @media (max-width: 520px) {
+    width: 22px;
+
+    svg {
+      width: 18px;
+      height: 18px;
+    }
   }
 `;
 
@@ -211,7 +290,7 @@ const ActionButton = styled.button`
   place-items: center;
   border: 0;
   background: transparent;
-  color: #cccccc;
+  color: rgba(242, 238, 231, 0.76);
   cursor: pointer;
 
   svg {
@@ -220,12 +299,21 @@ const ActionButton = styled.button`
   }
 
   &:hover {
-    color: #e85d00;
+    color: #ffb23f;
   }
 
   &:focus-visible {
-    outline: 2px solid #e85d00;
+    outline: 2px solid #17d6c5;
     outline-offset: 4px;
+  }
+
+  @media (max-width: 520px) {
+    width: 22px;
+
+    svg {
+      width: 18px;
+      height: 18px;
+    }
   }
 `;
 
@@ -245,10 +333,11 @@ const SearchForm = styled.form<{ $open: boolean }>`
   height: 42px;
   align-items: center;
   overflow: hidden;
-  border: 1px solid rgba(232, 93, 0, 0.55);
-  border-radius: 6px;
-  background: #0a0a0a;
+  border: 1px solid rgba(255, 178, 63, 0.38);
+  border-radius: 0;
+  background: #11100e;
   box-shadow: 0 14px 40px rgba(0, 0, 0, 0.5);
+  clip-path: polygon(0 6px, 6px 6px, 6px 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) calc(100% - 6px), calc(100% - 6px) 100%, 0 100%);
   transform: translateY(-50%);
 `;
 
@@ -283,7 +372,7 @@ const SearchSubmit = styled.button`
 
   &:hover,
   &:focus-visible {
-    color: #e85d00;
+    color: #ffb23f;
   }
 `;
 
@@ -301,6 +390,10 @@ const Badge = styled.span`
   color: #ffffff;
   font-size: 9px;
   font-weight: 800;
+
+  @media (max-width: 520px) {
+    right: -6px;
+  }
 `;
 
 const MenuButton = styled.button`
@@ -310,11 +403,15 @@ const MenuButton = styled.button`
   place-items: center;
   border: 0;
   background: transparent;
-  color: #cccccc;
+  color: rgba(242, 238, 231, 0.76);
   cursor: pointer;
 
   @media (max-width: 1020px) {
     display: grid;
+  }
+
+  @media (max-width: 520px) {
+    width: 34px;
   }
 `;
 
@@ -326,8 +423,8 @@ const MobilePanel = styled.div<{ $open: boolean }>`
   display: ${({ $open }) => ($open ? "grid" : "none")};
   max-height: calc(100vh - 64px);
   overflow-y: auto;
-  border-bottom: 1px solid #1e1e1e;
-  background: #0a0a0a;
+  border-bottom: 1px solid rgba(242, 238, 231, 0.1);
+  background: #11100e;
   padding: 12px 24px 24px;
 `;
 
@@ -337,11 +434,12 @@ const MobileTrigger = styled.button<{ $open: boolean }>`
   justify-content: space-between;
   padding: 15px 0;
   border: 0;
-  border-bottom: 1px solid #1a1a1a;
+  border-bottom: 1px solid rgba(242, 238, 231, 0.1);
   background: transparent;
-  color: ${({ $open }) => ($open ? "#e85d00" : "#cccccc")};
-  font-size: 13px;
-  font-weight: 700;
+  color: ${({ $open }) => ($open ? "#ffb23f" : "rgba(242, 238, 231, 0.78)")};
+  font-family: var(--font-display), var(--font-body), sans-serif;
+  font-size: 15px;
+  font-weight: 800;
   letter-spacing: 1px;
   text-transform: uppercase;
 
@@ -356,7 +454,7 @@ const MobileDropdown = styled.div<{ $open: boolean }>`
 
   a {
     padding: 10px 0;
-    color: #999999;
+    color: rgba(242, 238, 231, 0.62);
     font-size: 13px;
     text-decoration: none;
   }
@@ -364,10 +462,11 @@ const MobileDropdown = styled.div<{ $open: boolean }>`
 
 const MobileLink = styled(Link)`
   padding: 15px 0;
-  border-bottom: 1px solid #1a1a1a;
-  color: #cccccc;
-  font-size: 13px;
-  font-weight: 700;
+  border-bottom: 1px solid rgba(242, 238, 231, 0.1);
+  color: rgba(242, 238, 231, 0.78);
+  font-family: var(--font-display), var(--font-body), sans-serif;
+  font-size: 15px;
+  font-weight: 800;
   letter-spacing: 1px;
   text-decoration: none;
   text-transform: uppercase;
@@ -378,9 +477,9 @@ const MobileSearchForm = styled.form`
   height: 42px;
   margin: 6px 0 10px;
   overflow: hidden;
-  border: 1px solid rgba(232, 93, 0, 0.45);
-  border-radius: 6px;
-  background: #111111;
+  border: 1px solid rgba(255, 178, 63, 0.38);
+  border-radius: 0;
+  background: #070707;
 `;
 
 const AdminActions = styled.div`
@@ -402,6 +501,10 @@ function CategoryThumb({ icon }: { icon: string | null }) {
   );
 }
 
+function shortSpecimenId(id: string) {
+  return id.replace(/-/g, "").slice(0, 6).toUpperCase();
+}
+
 export default function Header({
   categories,
   collectorSets,
@@ -419,12 +522,13 @@ export default function Header({
   const [mobileMenu, setMobileMenu] = useState<OpenMenu>(null);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
-  const navRef = useRef<HTMLDivElement>(null);
+  const navRef = useRef<HTMLElement>(null);
   const searchRef = useRef<HTMLDivElement>(null);
   const searchButtonRef = useRef<HTMLButtonElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const isAdmin = pathname.startsWith("/admin");
 
+  const vanieSet = collectorSets.find((set) => set.slug === "vanie");
   const dynamicSets = collectorSets.filter((set) => set.slug !== "vanie");
 
   useEffect(() => {
@@ -469,10 +573,10 @@ export default function Header({
   const renderCategoryLinks = () => (
     <>
       <DropdownLink href="/bo-suu-tap?category=hop-mu">
-        Hộp mù
+        <DropdownText>Hộp mù</DropdownText>
       </DropdownLink>
       <DropdownLink href="/bo-suu-tap" $divider>
-        Tất cả
+        <DropdownText>Tất cả</DropdownText>
       </DropdownLink>
     </>
   );
@@ -480,26 +584,30 @@ export default function Header({
   const renderCharacterLinks = () => (
     <>
       <DropdownLink href="/bo-suu-tap?nhanvat=vanie">
-        Vanie
+        <DropdownText>Vanie</DropdownText>
+        {vanieSet ? <SpecimenCode title={vanieSet.id}>SET · {vanieSet.slug}</SpecimenCode> : null}
       </DropdownLink>
       {dynamicSets.map((set) => (
         <DropdownLink href={`/bo-suu-tap?nhanvat=${set.slug}`} key={set.id}>
-          {set.image ? (
-            <ItemThumb>
-              <Image src={set.image} alt="" fill sizes="24px" style={{ objectFit: "cover" }} />
-            </ItemThumb>
-          ) : null}
-          {set.name}
+          <DropdownText>
+            {set.image ? (
+              <ItemThumb>
+                <Image src={set.image} alt="" fill sizes="24px" style={{ objectFit: "cover" }} />
+              </ItemThumb>
+            ) : null}
+            {set.name}
+          </DropdownText>
+          <SpecimenCode title={set.id}>SET · {set.slug || shortSpecimenId(set.id)}</SpecimenCode>
         </DropdownLink>
       ))}
       <DropdownLink href="/bo-suu-tap?nhanvat=all" $divider>
-        Tất cả
+        <DropdownText>Tất cả</DropdownText>
       </DropdownLink>
     </>
   );
 
   return (
-    <HeaderShell ref={navRef}>
+    <HeaderShell ref={navRef} $isAdmin={isAdmin}>
       <Nav>
         <Logo href="/" aria-label="Khủng Long Shop">
           <LogoImage>

@@ -5,6 +5,25 @@ import {
   BulkActionPayload 
 } from '@/types/notification';
 
+export class NotificationRequestError extends Error {
+  status: number;
+  code?: string;
+
+  constructor(message: string, status: number, code?: string) {
+    super(message);
+    this.name = "NotificationRequestError";
+    this.status = status;
+    this.code = code;
+  }
+}
+
+export function isSilentUnreadCountError(error: unknown) {
+  return (
+    error instanceof NotificationRequestError &&
+    (error.status === 401 || error.code === "MAINTENANCE_MODE")
+  );
+}
+
 export function buildNotificationListPath(filters: NotificationFilters = {}) {
   const params = new URLSearchParams();
 
@@ -34,7 +53,8 @@ async function notificationRequest<T>(endpoint: string, init?: RequestInit): Pro
       payload?.error?.message ||
       payload?.error ||
       `Notification request failed (${response.status})`;
-    throw new Error(message);
+    const code = typeof payload?.error?.code === "string" ? payload.error.code : undefined;
+    throw new NotificationRequestError(message, response.status, code);
   }
 
   return response.json();

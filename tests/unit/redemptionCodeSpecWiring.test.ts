@@ -116,4 +116,19 @@ describe("issue 5 redemption-code spec wiring", () => {
     expect(item).toContain('src={normalizeCatalogImage(image || "/images/logo.png")}');
     expect(item).not.toContain("src={image ? `/${image}`");
   });
+
+  it("normalizes account order image paths before passing them to next/image", () => {
+    const ordersPage = source("app/account/orders/page.tsx");
+    const orderDetailPage = source("app/account/orders/[id]/page.tsx");
+
+    expect(ordersPage).toContain('import { normalizeCatalogImage } from "@/lib/publicCatalog"');
+    expect(ordersPage).toContain("src={normalizeCatalogImage(product.image)}");
+    expect(ordersPage).not.toContain("src={`/${product.image}`}");
+
+    expect(orderDetailPage).toContain('import { normalizeCatalogImage } from "@/lib/publicCatalog"');
+    expect(orderDetailPage).toContain("src={normalizeCatalogImage(product.image)}");
+    expect(orderDetailPage).toContain("src={normalizeCatalogImage(result.product.mainImage)}");
+    expect(orderDetailPage).not.toContain("src={`/${product.image}`}");
+    expect(orderDetailPage).not.toContain('startsWith("/")');
+  });
 });

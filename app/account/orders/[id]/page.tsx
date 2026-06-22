@@ -7,6 +7,7 @@ import toast from "react-hot-toast";
 import styled from "styled-components";
 import { Eyebrow, SectionShell, Wrapper } from "@/components/design-system";
 import { formatVndTotal } from "@/lib/currency";
+import { normalizeCatalogImage } from "@/lib/publicCatalog";
 
 type OrderStatus = "placed" | "packed" | "shipping" | "delivered" | "canceled" | "unknown";
 
@@ -279,7 +280,7 @@ export default function AccountOrderDetailPage({ params }: { params: Promise<{ i
                     <ProductRow key={product.id} href={`/product/${product.slug}`}>
                       <ProductImage>
                         {product.image ? (
-                          <Image src={`/${product.image}`} alt={product.title} fill sizes="72px" style={{ objectFit: "cover" }} />
+                          <Image src={normalizeCatalogImage(product.image)} alt={product.title} fill sizes="72px" style={{ objectFit: "cover" }} />
                         ) : null}
                       </ProductImage>
                       <div>
@@ -319,7 +320,7 @@ export default function AccountOrderDetailPage({ params }: { params: Promise<{ i
                     <RevealCard key={result.id}>
                       <ProductImage>
                         <Image
-                          src={result.product.mainImage.startsWith("/") ? result.product.mainImage : `/${result.product.mainImage}`}
+                          src={normalizeCatalogImage(result.product.mainImage)}
                           alt={result.product.title}
                           fill
                           sizes="72px"

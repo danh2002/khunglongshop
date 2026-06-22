@@ -1,7 +1,7 @@
 import { useCallback, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { useNotificationStore } from '@/app/_zustand/notificationStore';
-import { notificationApi } from '@/lib/notification-api';
+import { isSilentUnreadCountError, notificationApi } from '@/lib/notification-api';
 import { NotificationFilters } from '@/types/notification';
 import toast from 'react-hot-toast';
 
@@ -56,6 +56,10 @@ export const useNotifications = () => {
       const { unreadCount } = await notificationApi.getUnreadCount();
       setUnreadCount(unreadCount);
     } catch (error) {
+      if (isSilentUnreadCountError(error)) {
+        setUnreadCount(0);
+        return;
+      }
       console.error('Error fetching unread count:', error);
     }
   }, [session?.user?.id, setUnreadCount]);
@@ -194,6 +198,10 @@ export const useUnreadCount = () => {
       const { unreadCount } = await notificationApi.getUnreadCount();
       setUnreadCount(unreadCount);
     } catch (error) {
+      if (isSilentUnreadCountError(error)) {
+        setUnreadCount(0);
+        return;
+      }
       console.error('Error fetching unread count:', error);
     }
   }, [session?.user?.id, setUnreadCount]);

@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Barlow_Condensed, Be_Vietnam_Pro } from "next/font/google";
+import { Be_Vietnam_Pro, Saira_Condensed } from "next/font/google";
 import "./globals.css";
 import 'svgmap/dist/svgMap.min.css';
 import SessionProvider from "@/utils/SessionProvider";
@@ -17,9 +17,9 @@ const bodyFont = Be_Vietnam_Pro({
   variable: "--font-body",
 });
 
-const displayFont = Barlow_Condensed({
+const displayFont = Saira_Condensed({
   subsets: ["latin"],
-  weight: ["700", "800", "900"],
+  weight: ["700", "800"],
   variable: "--font-display",
 });
 

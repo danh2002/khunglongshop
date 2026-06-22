@@ -7,6 +7,7 @@ import { useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
 import styled from "styled-components";
 import { Eyebrow, PrimaryLink, SectionShell, Wrapper } from "@/components/design-system";
+import { normalizeCatalogImage } from "@/lib/publicCatalog";
 
 type OrderSummary = {
   id: string;
@@ -243,7 +244,7 @@ export default function AccountOrdersPage() {
                   {order.productsPreview.map((product) => (
                     <Thumb key={product.id}>
                       {product.image ? (
-                        <Image src={`/${product.image}`} alt={product.title} fill sizes="52px" style={{ objectFit: "cover" }} />
+                        <Image src={normalizeCatalogImage(product.image)} alt={product.title} fill sizes="52px" style={{ objectFit: "cover" }} />
                       ) : null}
                     </Thumb>
                   ))}
