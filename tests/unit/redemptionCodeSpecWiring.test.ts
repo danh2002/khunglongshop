@@ -131,4 +131,14 @@ describe("issue 5 redemption-code spec wiring", () => {
     expect(orderDetailPage).not.toContain("src={`/${product.image}`}");
     expect(orderDetailPage).not.toContain('startsWith("/")');
   });
+
+  it("keeps account profile stats on bounded database queries", () => {
+    const route = source("app/api/account/profile/route.ts");
+
+    expect(route).toContain("prisma.customer_order.count");
+    expect(route).not.toContain("orders.length");
+    expect(route).not.toContain("const [orders");
+    expect(route).toContain("prisma.redemptionCode.groupBy");
+    expect(route).toContain('by: ["productId"]');
+  });
 });
