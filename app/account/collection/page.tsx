@@ -551,7 +551,7 @@ export default function AccountCollectionPage() {
       setPage(payload.pagination.page);
       setTotalPages(payload.pagination.totalPages);
     } catch (error) {
-      toast.error("KhÃ´ng táº£i thÃªm Ä‘Æ°á»£c bá»™ sÆ°u táº­p");
+      toast.error("Không tải thêm được bộ sưu tập");
     } finally {
       setIsLoadingMore(false);
     }
@@ -727,7 +727,7 @@ export default function AccountCollectionPage() {
               {page < totalPages ? (
                 <LoadMoreWrap>
                   <LoadMoreButton type="button" onClick={loadMore} disabled={isLoadingMore}>
-                    {isLoadingMore ? "Loading..." : "Load more"}
+                    {isLoadingMore ? "Đang tải..." : "Tải thêm"}
                   </LoadMoreButton>
                 </LoadMoreWrap>
               ) : null}

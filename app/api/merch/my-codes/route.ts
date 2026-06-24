@@ -5,8 +5,10 @@ import prisma from "@/utils/db";
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
-  const page = Math.max(1, parseInt(searchParams.get("page") ?? "1", 10));
-  const limit = Math.min(50, parseInt(searchParams.get("limit") ?? "10", 10));
+  const parsedPage = parseInt(searchParams.get("page") ?? "1", 10);
+  const parsedLimit = parseInt(searchParams.get("limit") ?? "10", 10);
+  const page = Number.isFinite(parsedPage) && parsedPage > 0 ? parsedPage : 1;
+  const limit = Number.isFinite(parsedLimit) && parsedLimit > 0 ? Math.min(50, parsedLimit) : 10;
   const skip = (page - 1) * limit;
 
   const session = await getServerSession(authOptions);
