@@ -35,6 +35,16 @@ type CollectionSet = {
   } | null;
 };
 
+type CollectionResponse = {
+  sets: CollectionSet[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+};
+
 const PageShell = styled.main`
   min-height: 100vh;
   background: #070707;
@@ -406,6 +416,21 @@ const RedeemButton = styled(SmallPrimary)`
   }
 `;
 
+const LoadMoreWrap = styled.div`
+  display: flex;
+  justify-content: center;
+  margin-top: 2rem;
+`;
+
+const LoadMoreButton = styled(SmallPrimary)`
+  min-width: 180px;
+
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.55;
+  }
+`;
+
 const SecondaryButton = styled.button`
   min-height: 54px;
   padding: 0 1.4rem;
@@ -443,7 +468,10 @@ const slotMotion = {
 
 export default function AccountCollectionPage() {
   const [collections, setCollections] = useState<CollectionSet[]>([]);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [redeemCode, setRedeemCode] = useState("");
   const [isRedeeming, setIsRedeeming] = useState(false);
   const [completeModal, setCompleteModal] = useState<CollectionSet | null>(null);
@@ -453,15 +481,17 @@ export default function AccountCollectionPage() {
 
     async function loadCollection() {
       try {
-        const response = await fetch("/api/merch/my-collection", { cache: "no-store" });
+        const response = await fetch("/api/merch/my-collection?page=1&limit=10", { cache: "no-store" });
         if (!response.ok) throw new Error("Unable to load collection");
 
-        const payload = await response.json();
+        const payload = (await response.json()) as CollectionResponse;
         if (!mounted) return;
 
-        setCollections(payload);
+        setCollections(payload.sets);
+        setPage(payload.pagination.page);
+        setTotalPages(payload.pagination.totalPages);
 
-        const unseenCompleteSet = payload.find((item: CollectionSet) => {
+        const unseenCompleteSet = payload.sets.find((item) => {
           if (!item.isComplete) return false;
           return localStorage.getItem(`dkl-collection-complete-${item.set.id}`) !== "seen";
         });
@@ -497,12 +527,34 @@ export default function AccountCollectionPage() {
   };
 
   const refreshCollection = async () => {
-    const response = await fetch("/api/merch/my-collection", { cache: "no-store" });
+    const response = await fetch("/api/merch/my-collection?page=1&limit=10", { cache: "no-store" });
     if (!response.ok) throw new Error("Unable to load collection");
 
-    const payload = await response.json();
-    setCollections(payload);
-    return payload as CollectionSet[];
+    const payload = (await response.json()) as CollectionResponse;
+    setCollections(payload.sets);
+    setPage(payload.pagination.page);
+    setTotalPages(payload.pagination.totalPages);
+    return payload.sets;
+  };
+
+  const loadMore = async () => {
+    if (page >= totalPages || isLoadingMore) return;
+
+    setIsLoadingMore(true);
+
+    try {
+      const response = await fetch(`/api/merch/my-collection?page=${page + 1}&limit=10`, { cache: "no-store" });
+      if (!response.ok) throw new Error("Unable to load collection");
+
+      const payload = (await response.json()) as CollectionResponse;
+      setCollections((current) => [...current, ...payload.sets]);
+      setPage(payload.pagination.page);
+      setTotalPages(payload.pagination.totalPages);
+    } catch (error) {
+      toast.error("KhÃ´ng táº£i thÃªm Ä‘Æ°á»£c bá»™ sÆ°u táº­p");
+    } finally {
+      setIsLoadingMore(false);
+    }
   };
 
   const submitRedeemCode = async (event: FormEvent<HTMLFormElement>) => {
@@ -588,7 +640,8 @@ export default function AccountCollectionPage() {
           ) : !hasCollections ? (
             <Empty>Chưa có bộ sưu tập nào</Empty>
           ) : (
-            collections.map((collection) => {
+            <>
+              {collections.map((collection) => {
               const collected = collection.slots.filter((slot) => slot.isUnlocked ?? slot.isCollected).length;
               const percent = collection.set.totalSlots > 0 ? (collected / collection.set.totalSlots) * 100 : 0;
 
@@ -669,7 +722,16 @@ export default function AccountCollectionPage() {
                   </SlotGrid>
                 </SetSection>
               );
-            })
+              })}
+
+              {page < totalPages ? (
+                <LoadMoreWrap>
+                  <LoadMoreButton type="button" onClick={loadMore} disabled={isLoadingMore}>
+                    {isLoadingMore ? "Loading..." : "Load more"}
+                  </LoadMoreButton>
+                </LoadMoreWrap>
+              ) : null}
+            </>
           )}
         </Inner>
 

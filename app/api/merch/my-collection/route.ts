@@ -4,7 +4,12 @@ import { authOptions } from "@/utils/authOptions";
 import prisma from "@/utils/db";
 import { summarizeProductOwnership } from "@/lib/collectionOwnership";
 
-export async function GET() {
+export async function GET(req: Request) {
+  const { searchParams } = new URL(req.url);
+  const page = Math.max(1, parseInt(searchParams.get("page") ?? "1", 10));
+  const limit = Math.min(20, parseInt(searchParams.get("limit") ?? "10", 10));
+  const skip = (page - 1) * limit;
+
   const session = await getServerSession(authOptions);
   const userId = session?.user?.id;
 
@@ -12,9 +17,11 @@ export async function GET() {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const [sets, redemptionCodes, setRewards] = await Promise.all([
+  const [sets, totalSets, redemptionCodes, setRewards] = await Promise.all([
     prisma.collectorSet.findMany({
       orderBy: { createdAt: "asc" },
+      skip,
+      take: limit,
       include: {
         products: {
           where: { isCollector: true },
@@ -27,6 +34,7 @@ export async function GET() {
         },
       },
     }),
+    prisma.collectorSet.count(),
     prisma.redemptionCode.findMany({
       where: { userId },
       orderBy: { createdAt: "desc" },
@@ -41,8 +49,8 @@ export async function GET() {
 
   const rewardBySetId = new Map(setRewards.map((reward) => [reward.setId, reward]));
 
-  return NextResponse.json(
-    sets.map((collectorSet) => {
+  return NextResponse.json({
+    sets: sets.map((collectorSet) => {
       const productsBySlot = new Map(
         collectorSet.products
           .filter((product) => product.setSlotNumber !== null)
@@ -90,6 +98,12 @@ export async function GET() {
             }
           : null,
       };
-    })
-  );
+    }),
+    pagination: {
+      page,
+      limit,
+      total: totalSets,
+      totalPages: Math.ceil(totalSets / limit),
+    },
+  });
 }

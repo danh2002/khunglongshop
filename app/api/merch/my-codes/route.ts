@@ -3,7 +3,12 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/utils/authOptions";
 import prisma from "@/utils/db";
 
-export async function GET() {
+export async function GET(req: Request) {
+  const { searchParams } = new URL(req.url);
+  const page = Math.max(1, parseInt(searchParams.get("page") ?? "1", 10));
+  const limit = Math.min(50, parseInt(searchParams.get("limit") ?? "10", 10));
+  const skip = (page - 1) * limit;
+
   const session = await getServerSession(authOptions);
   const userId = session?.user?.id;
 
@@ -11,10 +16,12 @@ export async function GET() {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const [redemptionCodes, setRewards] = await Promise.all([
+  const [redemptionCodes, setRewards, total] = await Promise.all([
     prisma.redemptionCode.findMany({
       where: { userId },
       orderBy: { createdAt: "desc" },
+      skip,
+      take: limit,
       include: {
         allocation: {
           include: {
@@ -45,6 +52,7 @@ export async function GET() {
         set: true,
       },
     }),
+    prisma.redemptionCode.count({ where: { userId } }),
   ]);
   const productIds = [...new Set(redemptionCodes.map((code) => code.productId))];
   const products = await prisma.product.findMany({
@@ -102,5 +110,11 @@ export async function GET() {
         : null,
     })),
     setRewards,
+    pagination: {
+      page,
+      limit,
+      total,
+      totalPages: Math.ceil(total / limit),
+    },
   });
 }
