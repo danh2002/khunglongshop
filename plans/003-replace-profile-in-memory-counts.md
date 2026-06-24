@@ -1,7 +1,7 @@
 # 003 - Replace in-memory profile count aggregation with DB-level COUNT queries
 
-**Written against:** `05e69fd3395e4b36540c4f44c1ec900e9b063651`
-**Scope:** `app/api/account/profile/route.ts` lines 17-64
+**Written against:** `f6bb4e3df74c7d56239128fe04c7cacc694ec97a`
+**Scope:** `app/api/account/profile/route.ts` lines 17-64, `tests/unit/redemptionCodeSpecWiring.test.ts`
 **Out of scope:** profile UI, other account endpoints, auth logic
 **Executor model:** any with Prisma knowledge
 
@@ -30,9 +30,16 @@ needs specific row data.
 ## Pre-flight
 
 ```bash
-npm run type-check && npm test
+npm run db:generate
+npm run type-check
+npx vitest run --exclude "tests/otp/**"
 Get-Content -LiteralPath "app/api/account/profile/route.ts"
 ```
+
+> In an isolated executor worktree, use a shell-only dummy `DATABASE_URL` for
+> the Vitest command if `utils/db.ts` requires the variable at import time.
+> Do not write dummy or real secrets to any file. Full `npm test` remains a
+> manual DB-backed verification step.
 
 Read the current route before editing and preserve its response shape:
 
@@ -254,7 +261,7 @@ content wiring assertions.
 
 ```bash
 npm run type-check
-npm test
+npx vitest run --exclude "tests/otp/**"
 ```
 
 Manual smoke test:
@@ -275,5 +282,5 @@ Manual smoke test:
 - [ ] Redeemed-code ownership uses `groupBy`, `count`, or another bounded aggregation instead of fetching every code row
 - [ ] Response shape is unchanged for the profile UI
 - [ ] `npm run type-check` passes
-- [ ] `npm test` passes
+- [ ] `npx vitest run --exclude "tests/otp/**"` passes
 - [ ] Manual test: profile page loads without full history transfer

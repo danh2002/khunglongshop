@@ -1,6 +1,6 @@
 # 002 - Replace 30-second notification poll with SSE (or conditional fetch)
 
-**Written against:** `05e69fd3395e4b36540c4f44c1ec900e9b063651`
+**Written against:** `5b6a0873a3b104c7ab363ff15b4a10724da163a5`
 **Scope:** `hooks/useNotifications.ts`, `app/api/notifications/unread-count/route.ts`, `app/api/notifications/stream/route.ts`
 **Out of scope:** notification list UI, read/mark-read endpoints, push notifications
 **Executor model:** mid-tier or above (requires understanding SSE)
@@ -26,10 +26,19 @@ polling as a stopgap. Choose one; do not implement both.
 ## Pre-flight
 
 ```bash
-npm run type-check && npm test
-grep -n "setInterval" hooks/useNotifications.ts
+npm run db:generate
+npm run type-check
+
+# Run only non-DB unit tests; OTP requires live MySQL.
+npx vitest run --exclude "tests/otp/**"
+
+Get-Content hooks\useNotifications.ts | Select-String "setInterval"
 # expected: find the polling line around 209
 ```
+
+> In an isolated executor worktree, use a shell-only dummy `DATABASE_URL` for
+> the Vitest command if `utils/db.ts` requires the variable at import time.
+> Do not write dummy or real secrets to any file.
 
 ---
 
@@ -144,7 +153,7 @@ Remove the old `setInterval` / `clearInterval` block entirely.
 **Verification:**
 
 ```bash
-grep -n "setInterval" hooks/useNotifications.ts
+Get-Content hooks\useNotifications.ts | Select-String "setInterval"
 # expected: no output
 ```
 
@@ -184,5 +193,5 @@ because they are actively engaged.
 - [ ] No `setInterval` in `hooks/useNotifications.ts`
 - [ ] `EventSource("/api/notifications/stream")` or backoff `setTimeout` is in place
 - [ ] `npm run type-check` passes
-- [ ] `npm test` passes
+- [ ] `npx vitest run --exclude "tests/otp/**"` passes
 - [ ] Manual smoke test: log in, then verify the notification bell updates without a hard refresh
