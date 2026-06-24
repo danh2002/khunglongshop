@@ -33,6 +33,7 @@ export async function GET(request: NextRequest) {
       ? {
           OR: [
             { id: { contains: search } },
+            { orderNumber: Number.isFinite(Number(search)) ? Number(search) : undefined },
             { email: { contains: search } },
             { name: { contains: search } },
             { lastname: { contains: search } },
@@ -50,6 +51,7 @@ export async function GET(request: NextRequest) {
       orderBy: { [sort]: direction },
       select: {
         id: true,
+        orderNumber: true,
         name: true,
         lastname: true,
         email: true,

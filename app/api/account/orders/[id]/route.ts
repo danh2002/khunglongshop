@@ -64,6 +64,7 @@ export async function GET(
 
   return NextResponse.json({
     id: order.id,
+    orderNumber: order.orderNumber,
     dateTime: toIsoDate(order.dateTime),
     status: normalizeAccountOrderStatus(order.status),
     rawStatus: order.status,

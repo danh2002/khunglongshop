@@ -10,6 +10,14 @@ import {
 } from "@/components/admin/AdminUi";
 import OrderStatusForm from "@/components/admin/OrderStatusForm";
 import prisma from "@/utils/db";
+import type { OrderStatus } from "@prisma/client";
+
+const STATUS_LABEL: Record<OrderStatus, string> = {
+  PENDING_PAYMENT: "Chờ thanh toán",
+  PROCESSING: "Đang xử lý",
+  COMPLETED: "Hoàn thành",
+  CANCELLED: "Đã huỷ",
+};
 
 export default async function OrderDetailPage({
   params,
@@ -41,19 +49,19 @@ export default async function OrderDetailPage({
   return (
     <AdminPage>
       <AdminPageHeader
-        title={`Đơn #${order.id.slice(0, 10)}`}
+        title={`Đơn #${order.orderNumber}`}
         description={order.dateTime?.toLocaleString("vi-VN") ?? "Không có thời gian"}
         action={
           <AdminStatusBadge
             tone={
-              order.status === "DELIVERED"
+              order.status === "COMPLETED"
                 ? "success"
                 : order.status === "CANCELLED"
                   ? "danger"
                   : "warning"
             }
           >
-            {order.status}
+            {STATUS_LABEL[order.status]}
           </AdminStatusBadge>
         }
       />

@@ -1,15 +1,21 @@
+import type { OrderStatus } from "@prisma/client";
+
 type SessionUser = {
   id: string;
   email?: string | null;
 };
 
-export type AccountOrderStatus = "placed" | "packed" | "shipping" | "delivered" | "canceled" | "unknown";
+export type AccountOrderStatus =
+  | "pending_payment"
+  | "processing"
+  | "completed"
+  | "canceled"
+  | "unknown";
 
 export const ACCOUNT_ORDER_STATUS_LABELS: Record<AccountOrderStatus, string> = {
-  placed: "Đã đặt",
-  packed: "Đã đóng gói",
-  shipping: "Đang giao",
-  delivered: "Đã giao",
+  pending_payment: "Chờ thanh toán",
+  processing: "Đang xử lý",
+  completed: "Hoàn thành",
   canceled: "Đã hủy",
   unknown: "Không xác định",
 };
@@ -17,10 +23,9 @@ export const ACCOUNT_ORDER_STATUS_LABELS: Record<AccountOrderStatus, string> = {
 export function normalizeAccountOrderStatus(status: string | null | undefined): AccountOrderStatus {
   const value = String(status || "").toLowerCase();
 
-  if (["pending", "confirmed", "processing", "paid"].includes(value)) return "placed";
-  if (["packed", "packaged"].includes(value)) return "packed";
-  if (["shipping", "shipped", "in_transit"].includes(value)) return "shipping";
-  if (["delivered", "completed"].includes(value)) return "delivered";
+  if (["pending_payment", "pending", "confirmed"].includes(value)) return "pending_payment";
+  if (["processing", "paid", "packed", "packaged"].includes(value)) return "processing";
+  if (value === "completed") return "completed";
   if (["canceled", "cancelled"].includes(value)) return "canceled";
 
   return "unknown";
@@ -46,14 +51,12 @@ export function getAccountOrderOwnershipWhere(user: SessionUser) {
 
 export function getStatusRawValues(status: string | null) {
   switch (status) {
-    case "placed":
-      return ["PENDING", "PROCESSING"] satisfies OrderStatus[];
-    case "packed":
+    case "pending_payment":
+      return ["PENDING_PAYMENT"] satisfies OrderStatus[];
+    case "processing":
       return ["PROCESSING"] satisfies OrderStatus[];
-    case "shipping":
-      return ["SHIPPED"] satisfies OrderStatus[];
-    case "delivered":
-      return ["DELIVERED"] satisfies OrderStatus[];
+    case "completed":
+      return ["COMPLETED"] satisfies OrderStatus[];
     case "canceled":
       return ["CANCELLED"] satisfies OrderStatus[];
     default:
@@ -65,4 +68,3 @@ export function toIsoDate(value: Date | string | null | undefined) {
   if (!value) return null;
   return value instanceof Date ? value.toISOString() : new Date(value).toISOString();
 }
-import type { OrderStatus } from "@prisma/client";

@@ -67,6 +67,7 @@ export async function GET(request: NextRequest) {
   return NextResponse.json({
     orders: orders.map((order) => ({
       id: order.id,
+      orderNumber: order.orderNumber,
       dateTime: toIsoDate(order.dateTime),
       status: normalizeAccountOrderStatus(order.status),
       rawStatus: order.status,

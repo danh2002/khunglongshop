@@ -1,10 +1,9 @@
 import type { OrderStatus } from "@prisma/client";
 
 export const ORDER_STATUS_TRANSITIONS: Record<OrderStatus, OrderStatus[]> = {
-  PENDING: ["PROCESSING", "CANCELLED"],
-  PROCESSING: ["SHIPPED", "CANCELLED"],
-  SHIPPED: ["DELIVERED"],
-  DELIVERED: [],
+  PENDING_PAYMENT: ["PROCESSING", "CANCELLED"],
+  PROCESSING: ["COMPLETED", "CANCELLED"],
+  COMPLETED: [],
   CANCELLED: [],
 };
 

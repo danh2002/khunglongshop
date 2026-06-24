@@ -41,6 +41,7 @@ const createOrderSchema = z.object({
 type OrderResponse = {
   order: {
     id: string;
+    orderNumber: number;
     status: "PROCESSING";
     total: number;
     createdAt: string;
@@ -126,6 +127,7 @@ async function loadOrderResponse(
   return {
     order: {
       id: order.id,
+      orderNumber: order.orderNumber,
       status: "PROCESSING",
       total: order.total,
       createdAt: (order.dateTime ?? new Date()).toISOString(),
@@ -296,7 +298,7 @@ export async function POST(request: Request) {
             country: shipping.country,
             orderNotice: shipping.orderNotice,
             total,
-            status: "PENDING",
+            status: "PENDING_PAYMENT",
           },
         });
 

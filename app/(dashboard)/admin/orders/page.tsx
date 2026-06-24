@@ -15,6 +15,13 @@ import prisma from "@/utils/db";
 
 const PAGE_SIZE = 20;
 
+const STATUS_LABEL: Record<OrderStatus, string> = {
+  PENDING_PAYMENT: "Chờ thanh toán",
+  PROCESSING: "Đang xử lý",
+  COMPLETED: "Hoàn thành",
+  CANCELLED: "Đã huỷ",
+};
+
 export default async function OrdersPage({
   searchParams,
 }: {
@@ -33,6 +40,7 @@ export default async function OrdersPage({
       ? {
           OR: [
             { id: { contains: search } },
+            { orderNumber: Number.isFinite(Number(search)) ? Number(search) : undefined },
             { email: { contains: search } },
             { name: { contains: search } },
             { lastname: { contains: search } },
@@ -66,7 +74,7 @@ export default async function OrdersPage({
           <option value="">Tất cả trạng thái</option>
           {Object.values(OrderStatus).map((value) => (
             <option key={value} value={value}>
-              {value}
+              {STATUS_LABEL[value]}
             </option>
           ))}
         </select>
@@ -91,7 +99,7 @@ export default async function OrdersPage({
           <tbody>
             {orders.map((order) => (
               <tr key={order.id}>
-                <AdminTd className="font-mono">#{order.id.slice(0, 10)}</AdminTd>
+                <AdminTd className="font-mono">#{order.orderNumber}</AdminTd>
                 <AdminTd>{`${order.name} ${order.lastname}`.trim()}</AdminTd>
                 <AdminTd>
                   <div>{order.email}</div>
@@ -100,14 +108,14 @@ export default async function OrdersPage({
                 <AdminTd>
                   <AdminStatusBadge
                     tone={
-                      order.status === "DELIVERED"
+                      order.status === "COMPLETED"
                         ? "success"
                         : order.status === "CANCELLED"
                           ? "danger"
                           : "warning"
                     }
                   >
-                    {order.status}
+                    {STATUS_LABEL[order.status]}
                   </AdminStatusBadge>
                 </AdminTd>
                 <AdminTd>{order.total.toLocaleString("vi-VN")}đ</AdminTd>

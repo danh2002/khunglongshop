@@ -76,6 +76,7 @@ declare global {
 
   interface Order {
     id: string;
+    orderNumber: number;
     adress: string;
     apartment: string;
     company: string;
@@ -85,7 +86,7 @@ declare global {
     name: string;
     phone: string;
     postalCode: string;
-    status: "processing" | "canceled" | "delivered";
+    status: "PENDING_PAYMENT" | "PROCESSING" | "COMPLETED" | "CANCELLED";
     city: string;
     country: string;
     orderNotice: string?;

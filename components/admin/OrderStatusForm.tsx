@@ -7,11 +7,17 @@ import toast from "react-hot-toast";
 import { adminInputClass, adminSecondaryButtonClass } from "./AdminUi";
 
 const transitions: Record<OrderStatus, OrderStatus[]> = {
-  PENDING: ["PROCESSING", "CANCELLED"],
-  PROCESSING: ["SHIPPED", "CANCELLED"],
-  SHIPPED: ["DELIVERED"],
-  DELIVERED: [],
+  PENDING_PAYMENT: ["PROCESSING", "CANCELLED"],
+  PROCESSING: ["COMPLETED", "CANCELLED"],
+  COMPLETED: [],
   CANCELLED: [],
+};
+
+const STATUS_LABEL: Record<OrderStatus, string> = {
+  PENDING_PAYMENT: "Chờ thanh toán",
+  PROCESSING: "Đang xử lý",
+  COMPLETED: "Hoàn thành",
+  CANCELLED: "Đã huỷ",
 };
 
 export default function OrderStatusForm({
@@ -36,8 +42,8 @@ export default function OrderStatusForm({
       return;
     }
     if (
-      (nextStatus === "CANCELLED" || nextStatus === "DELIVERED") &&
-      !window.confirm(`Xác nhận chuyển đơn sang ${nextStatus}?`)
+      (nextStatus === "CANCELLED" || nextStatus === "COMPLETED") &&
+      !window.confirm(`Xác nhận chuyển đơn sang ${STATUS_LABEL[nextStatus]}?`)
     ) {
       return;
     }
@@ -77,7 +83,7 @@ export default function OrderStatusForm({
         >
           {options.map((option) => (
             <option key={option} value={option}>
-              {option}
+              {STATUS_LABEL[option]}
             </option>
           ))}
         </select>

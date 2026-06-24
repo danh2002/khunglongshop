@@ -26,10 +26,9 @@ enum RedemptionCodeStatus {
 }
 
 enum OrderStatus {
-  PENDING
+  PENDING_PAYMENT
   PROCESSING
-  SHIPPED
-  DELIVERED
+  COMPLETED
   CANCELLED
 }
 
@@ -280,6 +279,7 @@ model User {
 
 model Customer_order {
   id                     String                   @id @default(uuid())
+  orderNumber            Int                      @unique @default(autoincrement())
   userId                 String?
   user                   User?                    @relation(fields: [userId], references: [id], onDelete: SetNull)
   name                   String
@@ -291,7 +291,7 @@ model Customer_order {
   apartment              String
   postalCode             String
   dateTime               DateTime?                @default(now())
-  status                 OrderStatus              @default(PENDING)
+  status                 OrderStatus              @default(PENDING_PAYMENT)
   city                   String
   country                String
   orderNotice            String?
@@ -307,6 +307,7 @@ model Customer_order {
   @@index([email])
   @@index([userId, dateTime])
   @@index([status])
+  @@index([orderNumber])
   @@index([dateTime])
 }
 

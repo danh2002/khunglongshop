@@ -34,7 +34,7 @@ export async function cancelOrder(input: {
 
       if (!order) throw new OrderCancellationError("ORDER_NOT_FOUND");
       if (order.status === "CANCELLED") return order;
-      if (order.status === "SHIPPED" || order.status === "DELIVERED") {
+      if (order.status === "COMPLETED") {
         throw new OrderCancellationError("ORDER_NOT_CANCELLABLE");
       }
 

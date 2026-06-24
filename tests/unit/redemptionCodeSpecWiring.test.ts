@@ -127,7 +127,8 @@ describe("issue 5 redemption-code spec wiring", () => {
 
     expect(orderDetailPage).toContain('import { normalizeCatalogImage } from "@/lib/publicCatalog"');
     expect(orderDetailPage).toContain("src={normalizeCatalogImage(product.image)}");
-    expect(orderDetailPage).toContain("src={normalizeCatalogImage(result.product.mainImage)}");
+    expect(orderDetailPage).not.toContain("result.product.mainImage");
+    expect(orderDetailPage).not.toContain("blindBoxResults");
     expect(orderDetailPage).not.toContain("src={`/${product.image}`}");
     expect(orderDetailPage).not.toContain('startsWith("/")');
   });

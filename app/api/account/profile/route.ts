@@ -22,7 +22,7 @@ export async function GET() {
           orderWhere,
           {
             status: {
-              in: getStatusRawValues("delivered") ?? [],
+              in: getStatusRawValues("completed") ?? [],
             },
           },
         ],

@@ -11,8 +11,9 @@ import { normalizeCatalogImage } from "@/lib/publicCatalog";
 
 type OrderSummary = {
   id: string;
+  orderNumber: number;
   dateTime: string | null;
-  status: "placed" | "packed" | "shipping" | "delivered" | "canceled" | "unknown";
+  status: "pending_payment" | "processing" | "completed" | "canceled" | "unknown";
   rawStatus: string;
   total: number;
   itemCount: number;
@@ -33,20 +34,18 @@ type OrdersResponse = {
 };
 
 const statusLabels: Record<OrderSummary["status"], string> = {
-  placed: "Đã đặt",
-  packed: "Đã đóng gói",
-  shipping: "Đang giao",
-  delivered: "Đã giao",
+  pending_payment: "Chờ thanh toán",
+  processing: "Đang xử lý",
+  completed: "Hoàn thành",
   canceled: "Đã hủy",
   unknown: "Không xác định",
 };
 
 const filters = [
   { value: "", label: "Tất cả" },
-  { value: "placed", label: "Đã đặt" },
-  { value: "packed", label: "Đã đóng gói" },
-  { value: "shipping", label: "Đang giao" },
-  { value: "delivered", label: "Đã giao" },
+  { value: "pending_payment", label: "Chờ thanh toán" },
+  { value: "processing", label: "Đang xử lý" },
+  { value: "completed", label: "Hoàn thành" },
 ];
 
 const Shell = styled(SectionShell)`
@@ -133,13 +132,13 @@ const Badge = styled.span<{ $status: OrderSummary["status"] }>`
   width: fit-content;
   padding: 0.35rem 0.6rem;
   background: ${({ $status }) =>
-    $status === "delivered"
+    $status === "completed"
       ? "rgba(0, 200, 100, 0.14)"
       : $status === "canceled"
         ? "rgba(255, 60, 60, 0.14)"
         : "rgba(255, 106, 0, 0.12)"};
   border: 1px solid rgba(255, 106, 0, 0.28);
-  color: ${({ $status }) => ($status === "delivered" ? "#00c864" : $status === "canceled" ? "#ff6565" : "#f47912")};
+  color: ${({ $status }) => ($status === "completed" ? "#00c864" : $status === "canceled" ? "#ff6565" : "#f47912")};
   font-size: 0.68rem;
   font-weight: 900;
   text-transform: uppercase;
@@ -235,7 +234,7 @@ export default function AccountOrdersPage() {
               <OrderCard key={order.id} href={`/account/orders/${order.id}`}>
                 <div>
                   <Badge $status={order.status}>{statusLabels[order.status]}</Badge>
-                  <OrderTitle>Đơn #{order.id}</OrderTitle>
+                  <OrderTitle>Đơn #{order.orderNumber}</OrderTitle>
                   <Meta>
                     {order.dateTime ? new Date(order.dateTime).toLocaleDateString("vi-VN") : "Chưa có ngày"} · {order.itemCount} sản phẩm · ${order.total}
                   </Meta>

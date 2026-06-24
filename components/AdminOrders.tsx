@@ -61,7 +61,7 @@ const AdminOrders = () => {
 
                   <td>
                     <div>
-                      <p className="font-bold">#{order?.id}</p>
+                      <p className="font-bold">#{order?.orderNumber}</p>
                     </div>
                   </td>
 

@@ -9,10 +9,11 @@ import { Eyebrow, SectionShell, Wrapper } from "@/components/design-system";
 import { formatVndTotal } from "@/lib/currency";
 import { normalizeCatalogImage } from "@/lib/publicCatalog";
 
-type OrderStatus = "placed" | "packed" | "shipping" | "delivered" | "canceled" | "unknown";
+type OrderStatus = "pending_payment" | "processing" | "completed" | "canceled" | "unknown";
 
 type OrderDetail = {
   id: string;
+  orderNumber: number;
   dateTime: string | null;
   status: OrderStatus;
   rawStatus: string;
@@ -35,36 +36,12 @@ type OrderDetail = {
     price: number;
     quantity: number;
   }>;
-  blindBoxResults: Array<{
-    id: string;
-    unitIndex: number;
-    rarityTier: "COMMON" | "RARE" | "EPIC" | "LEGENDARY";
-    product: {
-      title: string;
-      slug: string;
-      mainImage: string;
-      setSlotNumber: number | null;
-    };
-    redemptionCode: {
-      code: string;
-      status: string;
-      usedAt: string | null;
-    } | null;
-  }>;
 };
 
-const rarityLabel = {
-  COMMON: "Phổ biến",
-  RARE: "Hiếm",
-  EPIC: "Sử thi",
-  LEGENDARY: "Huyền thoại",
-} as const;
-
 const statusSteps: Array<{ key: Exclude<OrderStatus, "canceled" | "unknown">; label: string }> = [
-  { key: "placed", label: "Đã đặt" },
-  { key: "packed", label: "Đã đóng gói" },
-  { key: "shipping", label: "Đang giao" },
-  { key: "delivered", label: "Đã giao" },
+  { key: "pending_payment", label: "Chờ thanh toán" },
+  { key: "processing", label: "Đang xử lý" },
+  { key: "completed", label: "Hoàn thành" },
 ];
 
 const Shell = styled(SectionShell)`
@@ -127,7 +104,7 @@ const PanelTitle = styled.h2`
 
 const Timeline = styled.div`
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 0.6rem;
 
   @media (max-width: 640px) {
@@ -200,18 +177,6 @@ const Total = styled.strong`
   font-style: italic;
 `;
 
-const RevealGrid = styled.div`
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 0.8rem;
-`;
-
-const RevealCard = styled.article`
-  padding: 1rem;
-  background: #070707;
-  border: 1px solid rgba(232, 93, 0, 0.35);
-`;
-
 export default function AccountOrderDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const [order, setOrder] = useState<OrderDetail | null>(null);
@@ -250,7 +215,7 @@ export default function AccountOrderDetailPage({ params }: { params: Promise<{ i
             <header>
               <Eyebrow>Đơn hàng</Eyebrow>
               <Title>
-                Đơn <span>#{order.id}</span>
+                Đơn <span>#{order.orderNumber}</span>
               </Title>
               <Meta>{order.dateTime ? new Date(order.dateTime).toLocaleDateString("vi-VN") : "Chưa có ngày"}</Meta>
             </header>
@@ -312,32 +277,6 @@ export default function AccountOrderDetailPage({ params }: { params: Promise<{ i
                 </Address>
               </Panel>
             </Grid>
-            {order.blindBoxResults.length > 0 ? (
-              <Panel>
-                <PanelTitle>Kết quả túi mù</PanelTitle>
-                <RevealGrid>
-                  {order.blindBoxResults.map((result) => (
-                    <RevealCard key={result.id}>
-                      <ProductImage>
-                        <Image
-                          src={normalizeCatalogImage(result.product.mainImage)}
-                          alt={result.product.title}
-                          fill
-                          sizes="72px"
-                          style={{ objectFit: "contain" }}
-                        />
-                      </ProductImage>
-                      <Meta>{rarityLabel[result.rarityTier]}</Meta>
-                      <ProductName>{result.product.title}</ProductName>
-                      <Meta>Slot {result.product.setSlotNumber ?? "-"}</Meta>
-                      {result.redemptionCode ? (
-                        <Meta>Mã mở khóa: {result.redemptionCode.code}</Meta>
-                      ) : null}
-                    </RevealCard>
-                  ))}
-                </RevealGrid>
-              </Panel>
-            ) : null}
           </>
         ) : (
           <Panel>Không tìm thấy đơn hàng.</Panel>
