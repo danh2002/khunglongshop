@@ -1,24 +1,25 @@
 import { prisma } from "@/lib/prisma";
 import { runOtpCleanup } from "@/lib/otp/cleanupJob";
-import { sendSms } from "@/lib/otp/smsProvider";
+import { sendOtpEmail } from "@/lib/email";
 import {
   cleanupStaleReservations,
   consumeToken,
-  normalizePhone,
+  maskEmail,
+  normalizeOtpEmail,
   requestOtp,
   verifyOtp,
 } from "@/lib/otp/otpService";
 import bcrypt from "bcryptjs";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-vi.mock("@/lib/otp/smsProvider", () => ({
-  sendSms: vi.fn(),
+vi.mock("@/lib/email", () => ({
+  sendOtpEmail: vi.fn(),
 }));
 
-const TEST_PHONE = "0912345678";
-const SECOND_PHONE = "0387654321";
+const TEST_EMAIL = "collector@example.com";
+const SECOND_EMAIL = "hunter@example.com";
 const TEST_IP = "127.0.0.1";
-const TEST_EMAILS = ["existing@test.com"];
+const TEST_EMAILS = [TEST_EMAIL, SECOND_EMAIL, "existing@test.com"];
 
 async function cleanOtpData() {
   await prisma.otpAuditLog.deleteMany({});
@@ -29,19 +30,16 @@ async function cleanOtpData() {
 async function cleanUsers(emails = TEST_EMAILS) {
   await prisma.user.deleteMany({
     where: {
-      OR: [
-        { email: { in: emails } },
-        { phone: { in: [TEST_PHONE, SECOND_PHONE] } },
-      ],
+      email: { in: emails },
     },
   });
 }
 
-async function createTestUser(phone: string, email: string) {
+async function createTestUser(email: string) {
   return prisma.user.create({
     data: {
       email,
-      phone,
+      phone: null,
       password: "hashed",
       role: "user",
       firstName: "Test",
@@ -50,14 +48,14 @@ async function createTestUser(phone: string, email: string) {
   });
 }
 
-async function createPendingChallenge(code: string, phone = TEST_PHONE) {
+async function createPendingChallenge(code: string, email = TEST_EMAIL) {
   const otpHash = await bcrypt.hash(code, 10);
   return prisma.otpChallenge.create({
     data: {
-      phone,
+      phone: email,
       otpHash,
       status: "PENDING",
-      expiresAt: new Date(Date.now() + 5 * 60_000),
+      expiresAt: new Date(Date.now() + 10 * 60_000),
     },
   });
 }
@@ -65,7 +63,7 @@ async function createPendingChallenge(code: string, phone = TEST_PHONE) {
 beforeEach(async () => {
   await cleanOtpData();
   await cleanUsers();
-  vi.mocked(sendSms).mockResolvedValue({ success: true, messageId: "test-msg-id" });
+  vi.mocked(sendOtpEmail).mockResolvedValue({ success: true, messageId: "test-email-id" });
 });
 
 afterEach(async () => {
@@ -73,78 +71,76 @@ afterEach(async () => {
   await cleanUsers();
 });
 
-describe("normalizePhone", () => {
-  it("keeps 0xxxxxxxxx unchanged", () => {
-    expect(normalizePhone("0912345678")).toBe("0912345678");
+describe("normalizeOtpEmail", () => {
+  it("trims and lowercases email", () => {
+    expect(normalizeOtpEmail(" Collector@Example.COM ")).toBe(TEST_EMAIL);
   });
 
-  it("converts +84xxxxxxxxx to 0xxxxxxxxx", () => {
-    expect(normalizePhone("+84912345678")).toBe("0912345678");
+  it("throws INVALID_EMAIL_FORMAT for invalid email", () => {
+    expect(() => normalizeOtpEmail("not-an-email")).toThrow("INVALID_EMAIL_FORMAT");
   });
+});
 
-  it("throws INVALID_PHONE_FORMAT for US number", () => {
-    expect(() => normalizePhone("+1234567890")).toThrow("INVALID_PHONE_FORMAT");
-  });
-
-  it("throws INVALID_PHONE_FORMAT for 9-digit number", () => {
-    expect(() => normalizePhone("091234567")).toThrow("INVALID_PHONE_FORMAT");
-  });
-
-  it("throws INVALID_PHONE_FORMAT for landline prefix", () => {
-    expect(() => normalizePhone("0112345678")).toThrow("INVALID_PHONE_FORMAT");
-  });
-
-  it("throws INVALID_PHONE_FORMAT for non-numeric", () => {
-    expect(() => normalizePhone("abc1234567")).toThrow("INVALID_PHONE_FORMAT");
+describe("maskEmail", () => {
+  it("masks the local part and keeps the domain visible", () => {
+    expect(maskEmail(TEST_EMAIL)).toBe("co***@example.com");
   });
 });
 
 describe("requestOtp", () => {
-  it("happy path: returns challengeId, SMS sent", async () => {
-    const result = await requestOtp(TEST_PHONE, TEST_IP);
+  it("happy path: returns challengeId, masked email, and sends email", async () => {
+    const before = Date.now();
+    const result = await requestOtp(TEST_EMAIL, TEST_IP);
 
     expect(result.challengeId).toBeDefined();
+    expect(result.emailMasked).toBe("co***@example.com");
     expect(result.resendAfterSeconds).toBe(60);
-    expect(sendSms).toHaveBeenCalledOnce();
+    expect(result.expiresAt.getTime()).toBeGreaterThanOrEqual(before + 9.5 * 60_000);
+    expect(result.expiresAt.getTime()).toBeLessThanOrEqual(Date.now() + 10.1 * 60_000);
+    expect(sendOtpEmail).toHaveBeenCalledOnce();
+    expect(sendOtpEmail).toHaveBeenCalledWith(TEST_EMAIL, expect.stringMatching(/^\d{6}$/));
 
     const challenge = await prisma.otpChallenge.findFirst({
-      where: { phone: TEST_PHONE },
+      where: { phone: TEST_EMAIL },
     });
     expect(challenge?.status).toBe("PENDING");
   });
 
-  it("within 60s: throws OTP_RESEND_NOT_READY, no new SMS", async () => {
-    await requestOtp(TEST_PHONE, TEST_IP);
+  it("within 60s: throws OTP_RESEND_NOT_READY, no new email", async () => {
+    await requestOtp(TEST_EMAIL, TEST_IP);
     vi.clearAllMocks();
 
-    await expect(requestOtp(TEST_PHONE, TEST_IP)).rejects.toMatchObject({
+    await expect(requestOtp(TEST_EMAIL, TEST_IP)).rejects.toMatchObject({
       code: "OTP_RESEND_NOT_READY",
+      meta: expect.objectContaining({
+        emailMasked: "co***@example.com",
+      }),
     });
 
-    expect(sendSms).not.toHaveBeenCalled();
+    expect(sendOtpEmail).not.toHaveBeenCalled();
     await expect(
-      prisma.otpChallenge.count({ where: { phone: TEST_PHONE } })
+      prisma.otpChallenge.count({ where: { phone: TEST_EMAIL } })
     ).resolves.toBe(1);
   });
 
-  it("after 60s: old challenge EXPIRED, new SMS sent", async () => {
+  it("after 60s: old challenge EXPIRED, new email sent", async () => {
     await prisma.otpChallenge.create({
       data: {
-        phone: TEST_PHONE,
+        phone: TEST_EMAIL,
         otpHash: "oldhash",
         status: "PENDING",
-        expiresAt: new Date(Date.now() + 5 * 60_000),
+        expiresAt: new Date(Date.now() + 10 * 60_000),
         createdAt: new Date(Date.now() - 61_000),
         updatedAt: new Date(Date.now() - 61_000),
       },
     });
 
-    const result = await requestOtp(TEST_PHONE, TEST_IP);
+    const result = await requestOtp(TEST_EMAIL, TEST_IP);
     expect(result.challengeId).toBeDefined();
-    expect(sendSms).toHaveBeenCalledOnce();
+    expect(sendOtpEmail).toHaveBeenCalledOnce();
 
     const challenges = await prisma.otpChallenge.findMany({
-      where: { phone: TEST_PHONE },
+      where: { phone: TEST_EMAIL },
       orderBy: { createdAt: "desc" },
     });
     expect(challenges[0]?.status).toBe("PENDING");
@@ -154,38 +150,45 @@ describe("requestOtp", () => {
   it("4th request in 15min: throws TOO_MANY_OTP_REQUESTS", async () => {
     await prisma.otpRateLimitEvent.createMany({
       data: [
-        { key: `phone:${TEST_PHONE}`, status: "SENT" },
-        { key: `phone:${TEST_PHONE}`, status: "SENT" },
-        { key: `phone:${TEST_PHONE}`, status: "SENT" },
+        { key: `email:${TEST_EMAIL}`, status: "SENT" },
+        { key: `email:${TEST_EMAIL}`, status: "SENT" },
+        { key: `email:${TEST_EMAIL}`, status: "SENT" },
       ],
     });
 
-    await expect(requestOtp(TEST_PHONE, TEST_IP)).rejects.toMatchObject({
+    await expect(requestOtp(TEST_EMAIL, TEST_IP)).rejects.toMatchObject({
       code: "TOO_MANY_OTP_REQUESTS",
     });
-    expect(sendSms).not.toHaveBeenCalled();
+    expect(sendOtpEmail).not.toHaveBeenCalled();
   });
 
-  it("SMS fails: challenge EXPIRED, throws SMS_PROVIDER_UNAVAILABLE", async () => {
-    vi.mocked(sendSms).mockResolvedValueOnce({ success: false, error: "timeout" });
+  it("email provider fails: challenge EXPIRED, throws EMAIL_PROVIDER_UNAVAILABLE", async () => {
+    vi.mocked(sendOtpEmail).mockResolvedValueOnce({ success: false, error: "timeout" });
 
-    await expect(requestOtp(TEST_PHONE, TEST_IP)).rejects.toMatchObject({
-      code: "SMS_PROVIDER_UNAVAILABLE",
+    await expect(requestOtp(TEST_EMAIL, TEST_IP)).rejects.toMatchObject({
+      code: "EMAIL_PROVIDER_UNAVAILABLE",
     });
 
     const challenge = await prisma.otpChallenge.findFirst({
-      where: { phone: TEST_PHONE },
+      where: { phone: TEST_EMAIL },
     });
     expect(challenge?.status).toBe("EXPIRED");
   });
 
-  it("phone already registered: throws PHONE_ALREADY_REGISTERED", async () => {
-    await createTestUser(TEST_PHONE, "existing@test.com");
+  it("email already registered: throws EMAIL_ALREADY_EXISTS", async () => {
+    await createTestUser(TEST_EMAIL);
 
-    await expect(requestOtp(TEST_PHONE, TEST_IP)).rejects.toMatchObject({
-      code: "PHONE_ALREADY_REGISTERED",
+    await expect(requestOtp(TEST_EMAIL, TEST_IP)).rejects.toMatchObject({
+      code: "EMAIL_ALREADY_EXISTS",
     });
-    expect(sendSms).not.toHaveBeenCalled();
+    expect(sendOtpEmail).not.toHaveBeenCalled();
+  });
+
+  it("invalid email: throws INVALID_EMAIL_FORMAT", async () => {
+    await expect(requestOtp("bad-email", TEST_IP)).rejects.toMatchObject({
+      code: "INVALID_EMAIL_FORMAT",
+    });
+    expect(sendOtpEmail).not.toHaveBeenCalled();
   });
 
   it("10 FAILED from IP: throws PROVIDER_FAILURE_THROTTLE", async () => {
@@ -196,7 +199,7 @@ describe("requestOtp", () => {
       })),
     });
 
-    await expect(requestOtp(TEST_PHONE, TEST_IP)).rejects.toMatchObject({
+    await expect(requestOtp(TEST_EMAIL, TEST_IP)).rejects.toMatchObject({
       code: "PROVIDER_FAILURE_THROTTLE",
     });
   });
@@ -289,16 +292,17 @@ describe("consumeToken", () => {
     validToken = result.token;
   });
 
-  it("happy path: status becomes CONSUMED", async () => {
-    await prisma.$transaction(async (tx) => {
-      await consumeToken(tx, challengeId, validToken);
+  it("happy path: status becomes CONSUMED and returns email", async () => {
+    const result = await prisma.$transaction(async (tx) => {
+      return consumeToken(tx, challengeId, validToken);
     });
 
+    expect(result.email).toBe(TEST_EMAIL);
     const challenge = await prisma.otpChallenge.findUnique({ where: { id: challengeId } });
     expect(challenge?.status).toBe("CONSUMED");
   });
 
-  it("expired tokenExpiry: throws PHONE_VERIFICATION_EXPIRED", async () => {
+  it("expired tokenExpiry: throws EMAIL_VERIFICATION_EXPIRED", async () => {
     await prisma.otpChallenge.update({
       where: { id: challengeId },
       data: { tokenExpiry: new Date(Date.now() - 1000) },
@@ -306,7 +310,7 @@ describe("consumeToken", () => {
 
     await expect(
       prisma.$transaction(async (tx) => consumeToken(tx, challengeId, validToken))
-    ).rejects.toMatchObject({ code: "PHONE_VERIFICATION_EXPIRED" });
+    ).rejects.toMatchObject({ code: "EMAIL_VERIFICATION_EXPIRED" });
   });
 
   it("wrong token: throws INVALID_TOKEN", async () => {
@@ -330,7 +334,7 @@ describe("cleanupStaleReservations", () => {
   it("RESERVED older than 2min -> FAILED_STALE", async () => {
     await prisma.otpRateLimitEvent.create({
       data: {
-        key: `phone:${TEST_PHONE}`,
+        key: `email:${TEST_EMAIL}`,
         status: "RESERVED",
         createdAt: new Date(Date.now() - 3 * 60_000),
       },
@@ -348,7 +352,7 @@ describe("runOtpCleanup", () => {
   it("Phase 0: RESERVED older than 2min -> FAILED_STALE", async () => {
     await prisma.otpRateLimitEvent.create({
       data: {
-        key: `phone:${TEST_PHONE}`,
+        key: `email:${TEST_EMAIL}`,
         status: "RESERVED",
         createdAt: new Date(Date.now() - 3 * 60_000),
       },
@@ -364,7 +368,7 @@ describe("runOtpCleanup", () => {
   it("Phase 1: PENDING past expiresAt -> EXPIRED", async () => {
     await prisma.otpChallenge.create({
       data: {
-        phone: TEST_PHONE,
+        phone: TEST_EMAIL,
         otpHash: "x",
         status: "PENDING",
         expiresAt: new Date(Date.now() - 1000),
@@ -378,7 +382,7 @@ describe("runOtpCleanup", () => {
   it("Phase 1: VERIFIED past tokenExpiry -> EXPIRED", async () => {
     await prisma.otpChallenge.create({
       data: {
-        phone: TEST_PHONE,
+        phone: TEST_EMAIL,
         otpHash: "x",
         status: "VERIFIED",
         expiresAt: new Date(Date.now() + 60_000),
@@ -394,7 +398,7 @@ describe("runOtpCleanup", () => {
     const old = new Date(Date.now() - 8 * 24 * 60 * 60_000);
     await prisma.otpChallenge.create({
       data: {
-        phone: TEST_PHONE,
+        phone: TEST_EMAIL,
         otpHash: "x",
         status: "CONSUMED",
         expiresAt: old,
@@ -411,7 +415,7 @@ describe("runOtpCleanup", () => {
     const old = new Date(Date.now() - 91 * 24 * 60 * 60_000);
     await prisma.otpAuditLog.create({
       data: {
-        phoneMasked: "091****678",
+        phoneMasked: "co***@example.com",
         event: "REQUEST",
         ip: TEST_IP,
         challengeId: "old-id",
@@ -426,7 +430,7 @@ describe("runOtpCleanup", () => {
   it("Phase 4: OtpRateLimitEvent older than 7 days -> deleted", async () => {
     const old = new Date(Date.now() - 8 * 24 * 60 * 60_000);
     await prisma.otpRateLimitEvent.create({
-      data: { key: "phone:test", status: "SENT", createdAt: old },
+      data: { key: `email:${TEST_EMAIL}`, status: "SENT", createdAt: old },
     });
 
     const result = await runOtpCleanup();

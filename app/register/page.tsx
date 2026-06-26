@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import type { FormEvent } from "react";
 import React, { useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
-import { FaArrowRight, FaEye, FaEyeSlash, FaKey, FaLock, FaPhone, FaRegUser } from "react-icons/fa6";
+import { FaArrowRight, FaEye, FaEyeSlash, FaKey, FaLock, FaRegUser } from "react-icons/fa6";
 import styled from "styled-components";
 
 type ApiPayload = {
@@ -16,7 +16,7 @@ type ApiPayload = {
   retryAfterSeconds?: number;
   token?: string;
   tokenExpiry?: string;
-  phoneMasked?: string;
+  emailMasked?: string;
   attemptsRemaining?: number;
 };
 
@@ -25,7 +25,6 @@ type PasswordStrength = {
   label: string;
 };
 
-const PHONE_REGEX = /^(0|\+84)(3|5|7|8|9)\d{8}$/;
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const PASSWORD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/;
 const SKIP_OTP = process.env.NEXT_PUBLIC_SKIP_OTP === "true";
@@ -277,19 +276,6 @@ const LoginPrompt = styled.p`
   }
 `;
 
-function compactPhone(value: string) {
-  return value.replace(/[\s().-]/g, "");
-}
-
-function isValidVietnamPhone(value: string) {
-  return PHONE_REGEX.test(compactPhone(value));
-}
-
-function normalizePhone(value: string) {
-  const compact = compactPhone(value);
-  return compact.startsWith("+84") ? `0${compact.slice(3)}` : compact;
-}
-
 function getPasswordStrength(password: string): PasswordStrength | null {
   if (!password) return null;
 
@@ -314,9 +300,10 @@ async function readJson(response: Response): Promise<ApiPayload> {
 const RegisterPage = () => {
   const router = useRouter();
   const [email, setEmail] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [phone, setPhone] = useState("");
   const [otpCode, setOtpCode] = useState("");
   const [challengeId, setChallengeId] = useState("");
   const [token, setToken] = useState("");
@@ -335,7 +322,8 @@ const RegisterPage = () => {
   }, []);
 
   const resendSeconds = Math.max(0, Math.ceil((resendReadyAt - now) / 1000));
-  const phoneIsValid = useMemo(() => isValidVietnamPhone(phone), [phone]);
+  const normalizedEmail = useMemo(() => email.trim().toLowerCase(), [email]);
+  const emailIsValid = useMemo(() => EMAIL_REGEX.test(normalizedEmail), [normalizedEmail]);
   const passwordStrength = useMemo(() => getPasswordStrength(password), [password]);
 
   const setErrorMessage = (value: string) => {
@@ -345,8 +333,8 @@ const RegisterPage = () => {
   };
 
   const requestOtp = async () => {
-    if (!phoneIsValid) {
-      setErrorMessage("Số điện thoại không hợp lệ");
+    if (!emailIsValid) {
+      setErrorMessage("Email không hợp lệ");
       return;
     }
 
@@ -358,7 +346,7 @@ const RegisterPage = () => {
       const response = await fetch("/api/otp/request", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phone }),
+        body: JSON.stringify({ email: normalizedEmail }),
       });
       const payload = await readJson(response);
 
@@ -373,19 +361,19 @@ const RegisterPage = () => {
           return;
         }
 
-        const targetPhone = payload.phoneMasked || normalizePhone(phone);
-        setMessage(`Đã gửi mã OTP đến số ${targetPhone}`);
+        const targetEmail = payload.emailMasked || normalizedEmail;
+        setMessage(`Đã gửi mã OTP đến email ${targetEmail}`);
         toast.success("Đã gửi mã OTP");
         return;
       }
 
       const messages: Record<string, string> = {
-        PHONE_ALREADY_REGISTERED: "Số điện thoại đã được đăng ký",
+        EMAIL_ALREADY_EXISTS: "Email đã được sử dụng",
         TOO_MANY_OTP_REQUESTS: "Bạn đã yêu cầu quá nhiều mã",
         IP_RATE_LIMITED: "Có quá nhiều yêu cầu từ mạng này",
-        SMS_PROVIDER_UNAVAILABLE: "Không thể gửi SMS lúc này",
-        PROVIDER_FAILURE_THROTTLE: "Không thể gửi SMS lúc này",
-        INVALID_PHONE_FORMAT: "Số điện thoại không hợp lệ",
+        EMAIL_PROVIDER_UNAVAILABLE: "Không thể gửi email lúc này",
+        PROVIDER_FAILURE_THROTTLE: "Không thể gửi email lúc này",
+        INVALID_EMAIL_FORMAT: "Email không hợp lệ",
       };
       setErrorMessage(messages[payload.error || ""] || "Không thể lấy mã xác thực");
     } catch {
@@ -396,7 +384,7 @@ const RegisterPage = () => {
   };
 
   const validateForm = () => {
-    if (!EMAIL_REGEX.test(email.trim())) {
+    if (!emailIsValid) {
       setErrorMessage("Email không hợp lệ");
       return false;
     }
@@ -408,16 +396,6 @@ const RegisterPage = () => {
 
     if (password !== confirmPassword) {
       setErrorMessage("Mật khẩu nhập lại không khớp");
-      return false;
-    }
-
-    if (!SKIP_OTP && !phoneIsValid) {
-      setErrorMessage("Số điện thoại không hợp lệ");
-      return false;
-    }
-
-    if (SKIP_OTP && phone.trim() && !phoneIsValid) {
-      setErrorMessage("Số điện thoại không hợp lệ");
       return false;
     }
 
@@ -453,7 +431,7 @@ const RegisterPage = () => {
       INVALID_OTP: "Mã xác thực không đúng",
       CHALLENGE_LOCKED: "Bạn đã nhập sai quá nhiều lần",
       CHALLENGE_EXPIRED: "Mã xác thực đã hết hạn",
-      PHONE_VERIFICATION_EXPIRED: "Phiên xác thực đã hết hạn",
+      EMAIL_VERIFICATION_EXPIRED: "Phiên xác thực đã hết hạn",
       TOKEN_ALREADY_CONSUMED: "Mã xác thực đã được sử dụng",
       OTP_NOT_FOUND: "Mã xác thực không tồn tại",
     };
@@ -476,9 +454,8 @@ const RegisterPage = () => {
         body: JSON.stringify({
           email: email.trim().toLowerCase(),
           password,
-          firstName: "",
-          lastName: "",
-          phone: phone.trim() ? normalizePhone(phone) : "",
+          firstName: firstName.trim(),
+          lastName: lastName.trim(),
           challengeId: SKIP_OTP ? "SKIP_OTP_DEV" : challengeId,
           token: verifiedToken,
         }),
@@ -493,9 +470,9 @@ const RegisterPage = () => {
 
       const messages: Record<string, string> = {
         EMAIL_ALREADY_EXISTS: "Email đã được sử dụng",
-        PHONE_ALREADY_REGISTERED: "Số điện thoại đã được đăng ký",
         TOKEN_ALREADY_CONSUMED: "Mã xác thực đã được sử dụng",
-        PHONE_VERIFICATION_EXPIRED: "Phiên xác thực đã hết hạn",
+        EMAIL_VERIFICATION_EXPIRED: "Phiên xác thực đã hết hạn",
+        EMAIL_VERIFICATION_INVALID: "Email chưa được xác thực",
         INVALID_TOKEN: "Phiên xác thực không hợp lệ",
         VALIDATION_ERROR: "Vui lòng kiểm tra lại thông tin đăng ký",
       };
@@ -525,10 +502,45 @@ const RegisterPage = () => {
                 id="register-email"
                 type="email"
                 value={email}
-                onChange={(event) => setEmail(event.target.value)}
+                onChange={(event) => {
+                  setEmail(event.target.value);
+                  setChallengeId("");
+                  setToken("");
+                  setOtpCode("");
+                }}
                 placeholder="Email"
                 autoComplete="email"
                 required
+              />
+            </InputGroup>
+          </FieldBlock>
+
+          <FieldBlock>
+            <Label htmlFor="register-first-name">Tên</Label>
+            <InputGroup>
+              <InputIcon><FaRegUser /></InputIcon>
+              <Field
+                id="register-first-name"
+                type="text"
+                value={firstName}
+                onChange={(event) => setFirstName(event.target.value)}
+                placeholder="Tên"
+                autoComplete="given-name"
+              />
+            </InputGroup>
+          </FieldBlock>
+
+          <FieldBlock>
+            <Label htmlFor="register-last-name">Họ</Label>
+            <InputGroup>
+              <InputIcon><FaRegUser /></InputIcon>
+              <Field
+                id="register-last-name"
+                type="text"
+                value={lastName}
+                onChange={(event) => setLastName(event.target.value)}
+                placeholder="Họ"
+                autoComplete="family-name"
               />
             </InputGroup>
           </FieldBlock>
@@ -576,26 +588,6 @@ const RegisterPage = () => {
               <ToggleButton type="button" onClick={() => setShowConfirmPassword((value) => !value)} aria-label="Hiện hoặc ẩn mật khẩu nhập lại">
                 {showConfirmPassword ? <FaEyeSlash /> : <FaEye />}
               </ToggleButton>
-            </InputGroup>
-          </FieldBlock>
-
-          <FieldBlock>
-            <Label htmlFor="register-phone">Số điện thoại</Label>
-            <InputGroup>
-              <InputIcon><FaPhone /></InputIcon>
-              <Field
-                id="register-phone"
-                type="tel"
-                value={phone}
-                onChange={(event) => {
-                  setPhone(event.target.value);
-                  setChallengeId("");
-                  setToken("");
-                }}
-                placeholder="0912 345 678"
-                autoComplete="tel"
-                required={!SKIP_OTP}
-              />
             </InputGroup>
           </FieldBlock>
 

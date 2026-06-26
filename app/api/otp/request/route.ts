@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 
 const requestOtpSchema = z.object({
-  phone: z.string().min(1),
+  email: z.string().email(),
 });
 
 function getClientIp(request: NextRequest) {
@@ -30,13 +30,13 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    const result = await requestOtp(parsed.data.phone, getClientIp(request));
+    const result = await requestOtp(parsed.data.email, getClientIp(request));
 
     return NextResponse.json({
       challengeId: result.challengeId,
       expiresAt: result.expiresAt,
       resendAfterSeconds: result.resendAfterSeconds,
-      phoneMasked: result.phoneMasked,
+      emailMasked: result.emailMasked,
     });
   } catch (error) {
     if (error instanceof SyntaxError) {

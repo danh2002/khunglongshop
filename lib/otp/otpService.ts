@@ -2,7 +2,7 @@ import { Prisma, PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
 import { randomBytes, randomInt } from "crypto";
 import prisma from "@/utils/db";
-import { sendSms } from "./smsProvider";
+import { sendOtpEmail } from "@/lib/email";
 
 type PrismaLike = PrismaClient | Prisma.TransactionClient;
 
@@ -26,7 +26,7 @@ type RequestOtpResult = {
   challengeId: string;
   expiresAt: Date;
   resendAfterSeconds: number;
-  phoneMasked: string;
+  emailMasked: string;
 };
 
 type VerifyOtpResult = {
@@ -35,11 +35,11 @@ type VerifyOtpResult = {
 };
 
 type ConsumeTokenResult = {
-  phone: string;
+  email: string;
 };
 
-const PHONE_REGEX = /^(0|\+84)(3|5|7|8|9)\d{8}$/;
-const OTP_TTL_MS = 5 * 60 * 1000;
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const OTP_TTL_MS = 10 * 60 * 1000;
 const TOKEN_TTL_MS = 15 * 60 * 1000;
 const RESEND_WINDOW_MS = 60 * 1000;
 const RATE_WINDOW_MS = 15 * 60 * 1000;
@@ -55,23 +55,21 @@ function futureDate(ms: number) {
   return new Date(Date.now() + ms);
 }
 
-export function normalizePhone(phone: string) {
-  const compact = phone.replace(/[\s().-]/g, "");
+export function normalizeOtpEmail(email: string) {
+  const normalized = email.trim().toLowerCase();
 
-  if (!PHONE_REGEX.test(compact)) {
-    throw new OtpServiceError("INVALID_PHONE_FORMAT", 422);
+  if (!EMAIL_REGEX.test(normalized)) {
+    throw new OtpServiceError("INVALID_EMAIL_FORMAT", 422);
   }
 
-  if (compact.startsWith("+84")) {
-    return `0${compact.slice(3)}`;
-  }
-
-  return compact;
+  return normalized;
 }
 
-export function maskPhone(phone: string) {
-  const normalized = normalizePhone(phone);
-  return `${normalized.slice(0, 3)}****${normalized.slice(-3)}`;
+export function maskEmail(email: string) {
+  const normalized = normalizeOtpEmail(email);
+  const [localPart, domain] = normalized.split("@");
+  const visibleLocal = localPart.length <= 2 ? localPart[0] : `${localPart.slice(0, 2)}***`;
+  return `${visibleLocal}@${domain}`;
 }
 
 function generateOtpCode() {
@@ -82,29 +80,29 @@ function generateToken() {
   return randomBytes(32).toString("hex");
 }
 
-async function assertPhoneIsAvailable(phone: string) {
+async function assertEmailIsAvailable(email: string) {
   const rows = await prisma.$queryRaw<Array<{ id: string }>>`
     SELECT id FROM \`User\`
-    WHERE phone = ${phone}
+    WHERE email = ${email}
     LIMIT 1
   `;
 
   if (rows.length > 0) {
-    throw new OtpServiceError("PHONE_ALREADY_REGISTERED", 409);
+    throw new OtpServiceError("EMAIL_ALREADY_EXISTS", 409);
   }
 }
 
 async function writeAuditLog(
   client: PrismaLike,
   event: string,
-  phone: string,
+  email: string,
   ip: string,
   challengeId: string
 ) {
   await client.otpAuditLog.create({
     data: {
       event,
-      phoneMasked: maskPhone(phone),
+      phoneMasked: maskEmail(email),
       ip,
       challengeId,
     },
@@ -127,17 +125,17 @@ export async function cleanupStaleReservations(client: PrismaLike = prisma) {
 
 async function getExistingPendingChallengeForUpdate(
   tx: Prisma.TransactionClient,
-  phone: string
+  email: string
 ) {
   await tx.$queryRaw<Array<{ id: string }>>`
     SELECT id FROM OtpChallenge
-    WHERE phone = ${phone} AND status = 'PENDING'
+    WHERE phone = ${email} AND status = 'PENDING'
     FOR UPDATE
   `;
 
   return tx.otpChallenge.findFirst({
     where: {
-      phone,
+      phone: email,
       status: "PENDING",
     },
     orderBy: {
@@ -175,13 +173,13 @@ async function expireChallenge(challengeId: string) {
   });
 }
 
-export async function requestOtp(phone: string, ip: string): Promise<RequestOtpResult> {
-  const normalizedPhone = normalizePhone(phone);
-  const phoneMasked = maskPhone(normalizedPhone);
-  const phoneKey = `phone:${normalizedPhone}`;
+export async function requestOtp(email: string, ip: string): Promise<RequestOtpResult> {
+  const normalizedEmail = normalizeOtpEmail(email);
+  const emailMasked = maskEmail(normalizedEmail);
+  const emailKey = `email:${normalizedEmail}`;
   const ipKey = `ip:${ip}`;
 
-  await assertPhoneIsAvailable(normalizedPhone);
+  await assertEmailIsAvailable(normalizedEmail);
 
   const code = generateOtpCode();
   const otpHash = await bcrypt.hash(code, BCRYPT_ROUNDS);
@@ -190,11 +188,11 @@ export async function requestOtp(phone: string, ip: string): Promise<RequestOtpR
   const transactionResult = await prisma.$transaction(async (tx) => {
     await cleanupStaleReservations(tx);
 
-    const existingPending = await getExistingPendingChallengeForUpdate(tx, normalizedPhone);
+    const existingPending = await getExistingPendingChallengeForUpdate(tx, normalizedEmail);
     if (existingPending && existingPending.createdAt > nowMinus(RESEND_WINDOW_MS)) {
-      const phoneReservation = await tx.otpRateLimitEvent.create({
+      const emailReservation = await tx.otpRateLimitEvent.create({
         data: {
-          key: phoneKey,
+          key: emailKey,
           status: "RESERVED",
         },
       });
@@ -207,7 +205,7 @@ export async function requestOtp(phone: string, ip: string): Promise<RequestOtpR
       await tx.otpRateLimitEvent.updateMany({
         where: {
           id: {
-            in: [phoneReservation.id, ipReservation.id],
+            in: [emailReservation.id, ipReservation.id],
           },
         },
         data: {
@@ -230,10 +228,10 @@ export async function requestOtp(phone: string, ip: string): Promise<RequestOtpR
       };
     }
 
-    const [phoneSentCount, ipSentCount, providerFailureCount] = await Promise.all([
+    const [emailSentCount, ipSentCount, providerFailureCount] = await Promise.all([
       tx.otpRateLimitEvent.count({
         where: {
-          key: phoneKey,
+          key: emailKey,
           status: "SENT",
           createdAt: {
             gt: nowMinus(RATE_WINDOW_MS),
@@ -260,7 +258,7 @@ export async function requestOtp(phone: string, ip: string): Promise<RequestOtpR
       }),
     ]);
 
-    if (phoneSentCount >= 3) {
+    if (emailSentCount >= 3) {
       return { kind: "error" as const, error: new OtpServiceError("TOO_MANY_OTP_REQUESTS", 429) };
     }
 
@@ -285,7 +283,8 @@ export async function requestOtp(phone: string, ip: string): Promise<RequestOtpR
 
     const challenge = await tx.otpChallenge.create({
       data: {
-        phone: normalizedPhone,
+        // OtpChallenge.phone stores the normalized email until a future schema rename.
+        phone: normalizedEmail,
         otpHash,
         status: "PENDING",
         expiresAt,
@@ -293,9 +292,9 @@ export async function requestOtp(phone: string, ip: string): Promise<RequestOtpR
       },
     });
 
-    const phoneReservation = await tx.otpRateLimitEvent.create({
+    const emailReservation = await tx.otpRateLimitEvent.create({
       data: {
-        key: phoneKey,
+        key: emailKey,
         status: "RESERVED",
       },
     });
@@ -309,7 +308,7 @@ export async function requestOtp(phone: string, ip: string): Promise<RequestOtpR
     return {
       kind: "created" as const,
       challenge,
-      reservationIds: [phoneReservation.id, ipReservation.id],
+      reservationIds: [emailReservation.id, ipReservation.id],
     };
   });
 
@@ -318,7 +317,7 @@ export async function requestOtp(phone: string, ip: string): Promise<RequestOtpR
       challengeId: transactionResult.challengeId,
       expiresAt: transactionResult.expiresAt,
       retryAfterSeconds: transactionResult.retryAfterSeconds,
-      phoneMasked,
+      emailMasked,
     });
   }
 
@@ -326,29 +325,29 @@ export async function requestOtp(phone: string, ip: string): Promise<RequestOtpR
     throw transactionResult.error;
   }
 
-  const smsResult = await sendSms(normalizedPhone, code);
-  if (!smsResult.success) {
+  const emailResult = await sendOtpEmail(normalizedEmail, code);
+  if (!emailResult.success) {
     await Promise.all([
       expireChallenge(transactionResult.challenge.id),
       markRateLimitEvents(transactionResult.reservationIds, "FAILED"),
-      writeAuditLog(prisma, "EXPIRED", normalizedPhone, ip, transactionResult.challenge.id),
+      writeAuditLog(prisma, "EXPIRED", normalizedEmail, ip, transactionResult.challenge.id),
     ]);
 
-    throw new OtpServiceError("SMS_PROVIDER_UNAVAILABLE", 503, {
-      error: smsResult.error,
+    throw new OtpServiceError("EMAIL_PROVIDER_UNAVAILABLE", 503, {
+      error: emailResult.error,
     });
   }
 
   await Promise.all([
     markRateLimitEvents(transactionResult.reservationIds, "SENT"),
-    writeAuditLog(prisma, "REQUEST", normalizedPhone, ip, transactionResult.challenge.id),
+    writeAuditLog(prisma, "REQUEST", normalizedEmail, ip, transactionResult.challenge.id),
   ]);
 
   return {
     challengeId: transactionResult.challenge.id,
     expiresAt: transactionResult.challenge.expiresAt,
     resendAfterSeconds: 60,
-    phoneMasked,
+    emailMasked,
   };
 }
 
@@ -400,7 +399,7 @@ export async function verifyOtp(challengeId: string, code: string): Promise<Veri
 
   if (challenge.status === "VERIFIED" && challenge.tokenExpiry && challenge.tokenExpiry < new Date()) {
     await markExpired(prisma, challenge.id);
-    throw new OtpServiceError("PHONE_VERIFICATION_EXPIRED", 410);
+    throw new OtpServiceError("EMAIL_VERIFICATION_EXPIRED", 410);
   }
 
   if (challenge.status === "LOCKED") {
@@ -485,7 +484,7 @@ export async function consumeToken(
 
   if (challenge.status === "VERIFIED" && challenge.tokenExpiry && challenge.tokenExpiry < new Date()) {
     await markExpired(tx, challenge.id);
-    throw new OtpServiceError("PHONE_VERIFICATION_EXPIRED", 410);
+    throw new OtpServiceError("EMAIL_VERIFICATION_EXPIRED", 410);
   }
 
   if (challenge.status === "CONSUMED") {
@@ -493,7 +492,7 @@ export async function consumeToken(
   }
 
   if (challenge.status === "EXPIRED") {
-    throw new OtpServiceError("PHONE_VERIFICATION_EXPIRED", 410);
+    throw new OtpServiceError("EMAIL_VERIFICATION_EXPIRED", 410);
   }
 
   if (challenge.status === "LOCKED") {
@@ -501,7 +500,7 @@ export async function consumeToken(
   }
 
   if (challenge.status !== "VERIFIED" || !challenge.tokenHash) {
-    throw new OtpServiceError("PHONE_VERIFICATION_INVALID", 401);
+    throw new OtpServiceError("EMAIL_VERIFICATION_INVALID", 401);
   }
 
   const tokenMatches = await bcrypt.compare(token, challenge.tokenHash);
@@ -520,6 +519,6 @@ export async function consumeToken(
   await writeAuditLog(tx, "CONSUMED", challenge.phone, "unknown", challenge.id);
 
   return {
-    phone: challenge.phone,
+    email: challenge.phone,
   };
 }

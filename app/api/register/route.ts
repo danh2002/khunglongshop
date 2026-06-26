@@ -1,4 +1,4 @@
-import { consumeToken, OtpServiceError } from "@/lib/otp/otpService";
+import { consumeToken, normalizeOtpEmail, OtpServiceError } from "@/lib/otp/otpService";
 import prisma from "@/utils/db";
 import { commonValidations, sanitizeInput } from "@/utils/validation";
 import { Prisma } from "@prisma/client";
@@ -12,7 +12,6 @@ const registerSchema = z.object({
   password: commonValidations.password,
   firstName: z.string().trim().max(80),
   lastName: z.string().trim().max(80),
-  phone: z.string().trim().optional().default(""),
   challengeId: z.string().min(1),
   token: z.string().min(1),
 });
@@ -61,7 +60,7 @@ export async function POST(request: Request) {
         data: {
           id: nanoid(),
           email,
-          phone: parsed.data.phone.trim() || null,
+          phone: null,
           firstName,
           lastName,
           password: hashedPassword,
@@ -73,13 +72,16 @@ export async function POST(request: Request) {
     }
 
     await prisma.$transaction(async (tx) => {
-      const { phone } = await consumeToken(tx, parsed.data.challengeId, parsed.data.token);
+      const { email: verifiedEmail } = await consumeToken(tx, parsed.data.challengeId, parsed.data.token);
+      if (normalizeOtpEmail(verifiedEmail) !== email) {
+        throw new OtpServiceError("EMAIL_VERIFICATION_INVALID", 401);
+      }
 
       await tx.user.create({
         data: {
           id: nanoid(),
           email,
-          phone,
+          phone: null,
           firstName,
           lastName,
           password: hashedPassword,
@@ -97,12 +99,6 @@ export async function POST(request: Request) {
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
       if (isUniqueTarget(error, "email")) {
         return errorResponse("EMAIL_ALREADY_EXISTS", 409);
-      }
-
-      if (isUniqueTarget(error, "phone")) {
-        return errorResponse("PHONE_ALREADY_REGISTERED", 409, {
-          loginUrl: "/login",
-        });
       }
     }
 
