@@ -1,11 +1,18 @@
 import { randomBytes } from "crypto";
 
+const CHARSET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+
+function randomCode(length: number): string {
+  const bytes = randomBytes(length);
+  return Array.from(bytes)
+    .map((b) => CHARSET[b % CHARSET.length])
+    .join("");
+}
+
 export function generateRedemptionCode(): string {
-  const part = () => randomBytes(2).toString("hex").toUpperCase();
-  return `DKL-${part()}-${part()}-${part()}`;
+  return randomCode(8);
 }
 
 export function generateSetRewardCode(): string {
-  const part = () => randomBytes(2).toString("hex").toUpperCase();
-  return `DKLS-${part()}-${part()}`;
+  return randomCode(8);
 }
