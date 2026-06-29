@@ -11,6 +11,14 @@ type EmailSender = (to: string, code: string) => Promise<EmailProviderResult>;
 
 let testSender: EmailSender | null = null;
 
+function normalizeEmailProviderError(message: string) {
+  if (/testing emails|verify a domain|resend\.com\/domains/i.test(message)) {
+    return "EMAIL_PROVIDER_DOMAIN_NOT_VERIFIED";
+  }
+
+  return message;
+}
+
 export async function sendOtpEmail(to: string, code: string): Promise<EmailProviderResult> {
   if (testSender) {
     return testSender(to, code).catch((error) => ({
@@ -36,14 +44,14 @@ export async function sendOtpEmail(to: string, code: string): Promise<EmailProvi
     });
 
     if (result.error) {
-      return { success: false, error: result.error.message };
+      return { success: false, error: normalizeEmailProviderError(result.error.message) };
     }
 
     return { success: true, messageId: result.data?.id };
   } catch (error) {
     return {
       success: false,
-      error: error instanceof Error ? error.message : "EMAIL_PROVIDER_ERROR",
+      error: error instanceof Error ? normalizeEmailProviderError(error.message) : "EMAIL_PROVIDER_ERROR",
     };
   }
 }

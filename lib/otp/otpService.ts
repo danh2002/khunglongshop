@@ -333,9 +333,11 @@ export async function requestOtp(email: string, ip: string): Promise<RequestOtpR
       writeAuditLog(prisma, "EXPIRED", normalizedEmail, ip, transactionResult.challenge.id),
     ]);
 
-    throw new OtpServiceError("EMAIL_PROVIDER_UNAVAILABLE", 503, {
-      error: emailResult.error,
-    });
+    if (emailResult.error === "EMAIL_PROVIDER_DOMAIN_NOT_VERIFIED") {
+      throw new OtpServiceError("EMAIL_PROVIDER_DOMAIN_NOT_VERIFIED", 503);
+    }
+
+    throw new OtpServiceError("EMAIL_PROVIDER_UNAVAILABLE", 503);
   }
 
   await Promise.all([

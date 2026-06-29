@@ -59,6 +59,16 @@ describe("issue 5 redemption-code spec wiring", () => {
     expect(footer).toContain('href="/account/collection" prefetch={false}');
   });
 
+  it("returns a clear registration error when Resend domain is not verified", () => {
+    const email = source("lib/email.ts");
+    const otpService = source("lib/otp/otpService.ts");
+    const registerPage = source("app/register/page.tsx");
+
+    expect(email).toContain("EMAIL_PROVIDER_DOMAIN_NOT_VERIFIED");
+    expect(otpService).toContain('OtpServiceError("EMAIL_PROVIDER_DOMAIN_NOT_VERIFIED", 503)');
+    expect(registerPage).toContain("EMAIL_PROVIDER_DOMAIN_NOT_VERIFIED");
+  });
+
   it("exposes a manual-copy fallback for generated codes", () => {
     const form = source("components/admin/RedemptionCodeCreateForm.tsx");
 
