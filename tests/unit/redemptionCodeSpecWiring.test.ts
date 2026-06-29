@@ -48,6 +48,16 @@ describe("issue 5 redemption-code spec wiring", () => {
     expect(page).toContain("normalizeCatalogImage(slot.product.image)");
   });
 
+  it("disables prefetch for protected account collection links", () => {
+    const accountPage = source("app/account/page.tsx");
+    const header = source("components/Header.tsx");
+    const footer = source("components/Footer.tsx");
+
+    expect(accountPage).toContain('href="/account/collection" prefetch={false}');
+    expect(header).toContain('href="/account/collection" prefetch={false}');
+    expect(footer).toContain('href="/account/collection" prefetch={false}');
+  });
+
   it("exposes a manual-copy fallback for generated codes", () => {
     const form = source("components/admin/RedemptionCodeCreateForm.tsx");
 

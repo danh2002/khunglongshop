@@ -245,7 +245,7 @@ export default function AccountPage() {
                 <CardTitle>Đơn hàng đã mua</CardTitle>
                 <CardMeta>{profile.stats.activeOrderCount} đơn đang xử lý</CardMeta>
               </LinkCard>
-              <LinkCard href="/account/collection">
+              <LinkCard href="/account/collection" prefetch={false}>
                 <CardTitle>Bộ sưu tập</CardTitle>
                 <CardMeta>Xem các slot đã mở và còn thiếu</CardMeta>
               </LinkCard>

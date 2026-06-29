@@ -138,7 +138,7 @@ export default function Footer() {
             <Heading>Khám phá</Heading>
             <List>
               <li><Link href="/">Trang chủ</Link></li>
-              <li><Link href="/account/collection">Bộ sưu tập</Link></li>
+              <li><Link href="/account/collection" prefetch={false}>Bộ sưu tập</Link></li>
               <li><Link href="/shop?type=blind-box">Túi mù</Link></li>
               <li><Link href="/account/codes">Mã của tôi</Link></li>
             </List>

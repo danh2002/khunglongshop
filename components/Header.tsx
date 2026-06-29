@@ -658,7 +658,7 @@ export default function Header({
                 </DropdownPanel>
               </DropdownWrap>
 
-              <NavLink href="/account/collection" $active={pathname.startsWith("/account/collection")}>BỘ SƯU TẬP</NavLink>
+              <NavLink href="/account/collection" prefetch={false} $active={pathname.startsWith("/account/collection")}>BỘ SƯU TẬP</NavLink>
               <NavLink href="/about" $active={pathname.startsWith("/about")}>GIỚI THIỆU</NavLink>
             </Links>
 
@@ -725,7 +725,7 @@ export default function Header({
                 NHÂN VẬT <FaChevronDown />
               </MobileTrigger>
               <MobileDropdown $open={mobileMenu === "characters"}>{renderCharacterLinks()}</MobileDropdown>
-              <MobileLink href="/account/collection">BỘ SƯU TẬP</MobileLink>
+              <MobileLink href="/account/collection" prefetch={false}>BỘ SƯU TẬP</MobileLink>
               <MobileLink href="/about">GIỚI THIỆU</MobileLink>
             </MobilePanel>
           </>

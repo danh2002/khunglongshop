@@ -131,7 +131,7 @@ export default function CollectorBanner() {
             </Step>
           ))}
         </Steps>
-        <Cta href="/account/collection">Tìm hiểu cách hoạt động</Cta>
+        <Cta href="/account/collection" prefetch={false}>Tìm hiểu cách hoạt động</Cta>
       </Inner>
     </Section>
   );
