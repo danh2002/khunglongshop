@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -283,14 +283,14 @@ function getPasswordStrength(password: string): PasswordStrength | null {
   const hasNumber = /\d/.test(password);
 
   if (password.length >= 8 && hasMixedCase && hasNumber) {
-    return { level: "strong", label: "Máº­t kháº©u máº¡nh" };
+    return { level: "strong", label: "Mật khẩu mạnh" };
   }
 
   if (password.length >= 6 && (hasMixedCase || hasNumber)) {
-    return { level: "medium", label: "Máº­t kháº©u trung bÃ¬nh" };
+    return { level: "medium", label: "Mật khẩu trung bình" };
   }
 
-  return { level: "weak", label: "Máº­t kháº©u yáº¿u" };
+  return { level: "weak", label: "Mật khẩu yếu" };
 }
 
 async function readJson(response: Response): Promise<ApiPayload> {
@@ -334,7 +334,7 @@ const RegisterPage = () => {
 
   const requestOtp = async () => {
     if (!emailIsValid) {
-      setErrorMessage("Email khÃ´ng há»£p lá»‡");
+      setErrorMessage("Email không hợp lệ");
       return;
     }
 
@@ -357,28 +357,28 @@ const RegisterPage = () => {
         setToken("");
 
         if (payload.error === "OTP_RESEND_NOT_READY") {
-          setError("Vui lÃ²ng Ä‘á»£i trÆ°á»›c khi láº¥y mÃ£ má»›i");
+          setError("Vui lòng đợi trước khi lấy mã mới");
           return;
         }
 
         const targetEmail = payload.emailMasked || normalizedEmail;
-        setMessage(`ÄÃ£ gá»­i mÃ£ OTP Ä‘áº¿n email ${targetEmail}`);
-        toast.success("ÄÃ£ gá»­i mÃ£ OTP");
+        setMessage(`Đã gửi mã OTP đến email ${targetEmail}`);
+        toast.success("Đã gửi mã OTP");
         return;
       }
 
       const messages: Record<string, string> = {
-        EMAIL_ALREADY_EXISTS: "Email Ä‘Ã£ Ä‘Æ°á»£c sá»­ dá»¥ng",
-        TOO_MANY_OTP_REQUESTS: "Báº¡n Ä‘Ã£ yÃªu cáº§u quÃ¡ nhiá»u mÃ£",
-        IP_RATE_LIMITED: "CÃ³ quÃ¡ nhiá»u yÃªu cáº§u tá»« máº¡ng nÃ y",
+        EMAIL_ALREADY_EXISTS: "Email đã được sử dụng",
+        TOO_MANY_OTP_REQUESTS: "Bạn đã yêu cầu quá nhiều mã",
+        IP_RATE_LIMITED: "Có quá nhiều yêu cầu từ mạng này",
         EMAIL_PROVIDER_DOMAIN_NOT_VERIFIED: "Email chỉ gửi được sau khi cấu hình domain gửi mail",
-        EMAIL_PROVIDER_UNAVAILABLE: "KhÃ´ng thá»ƒ gá»­i email lÃºc nÃ y",
-        PROVIDER_FAILURE_THROTTLE: "KhÃ´ng thá»ƒ gá»­i email lÃºc nÃ y",
-        INVALID_EMAIL_FORMAT: "Email khÃ´ng há»£p lá»‡",
+        EMAIL_PROVIDER_UNAVAILABLE: "Không thể gửi email lúc này",
+        PROVIDER_FAILURE_THROTTLE: "Không thể gửi email lúc này",
+        INVALID_EMAIL_FORMAT: "Email không hợp lệ",
       };
-      setErrorMessage(messages[payload.error || ""] || "KhÃ´ng thá»ƒ láº¥y mÃ£ xÃ¡c thá»±c");
+      setErrorMessage(messages[payload.error || ""] || "Không thể lấy mã xác thực");
     } catch {
-      setErrorMessage("KhÃ´ng thá»ƒ láº¥y mÃ£ xÃ¡c thá»±c");
+      setErrorMessage("Không thể lấy mã xác thực");
     } finally {
       setIsRequestingOtp(false);
     }
@@ -386,27 +386,27 @@ const RegisterPage = () => {
 
   const validateForm = () => {
     if (!emailIsValid) {
-      setErrorMessage("Email khÃ´ng há»£p lá»‡");
+      setErrorMessage("Email không hợp lệ");
       return false;
     }
 
     if (!PASSWORD_REGEX.test(password) || password.length < 8) {
-      setErrorMessage("Máº­t kháº©u cáº§n cÃ³ chá»¯ hoa, chá»¯ thÆ°á»ng, sá»‘ vÃ  kÃ½ tá»± Ä‘áº·c biá»‡t");
+      setErrorMessage("Mật khẩu cần có chữ hoa, chữ thường, số và ký tự đặc biệt");
       return false;
     }
 
     if (password !== confirmPassword) {
-      setErrorMessage("Máº­t kháº©u nháº­p láº¡i khÃ´ng khá»›p");
+      setErrorMessage("Mật khẩu nhập lại không khớp");
       return false;
     }
 
     if (!SKIP_OTP && !challengeId) {
-      setErrorMessage("Vui lÃ²ng láº¥y mÃ£ xÃ¡c thá»±c");
+      setErrorMessage("Vui lòng lấy mã xác thực");
       return false;
     }
 
     if (!SKIP_OTP && !/^\d{6}$/.test(otpCode)) {
-      setErrorMessage("Vui lÃ²ng nháº­p mÃ£ xÃ¡c thá»±c 6 sá»‘");
+      setErrorMessage("Vui lòng nhập mã xác thực 6 số");
       return false;
     }
 
@@ -429,14 +429,14 @@ const RegisterPage = () => {
     }
 
     const messages: Record<string, string> = {
-      INVALID_OTP: "MÃ£ xÃ¡c thá»±c khÃ´ng Ä‘Ãºng",
-      CHALLENGE_LOCKED: "Báº¡n Ä‘Ã£ nháº­p sai quÃ¡ nhiá»u láº§n",
-      CHALLENGE_EXPIRED: "MÃ£ xÃ¡c thá»±c Ä‘Ã£ háº¿t háº¡n",
-      EMAIL_VERIFICATION_EXPIRED: "PhiÃªn xÃ¡c thá»±c Ä‘Ã£ háº¿t háº¡n",
-      TOKEN_ALREADY_CONSUMED: "MÃ£ xÃ¡c thá»±c Ä‘Ã£ Ä‘Æ°á»£c sá»­ dá»¥ng",
-      OTP_NOT_FOUND: "MÃ£ xÃ¡c thá»±c khÃ´ng tá»“n táº¡i",
+      INVALID_OTP: "Mã xác thực không đúng",
+      CHALLENGE_LOCKED: "Bạn đã nhập sai quá nhiều lần",
+      CHALLENGE_EXPIRED: "Mã xác thực đã hết hạn",
+      EMAIL_VERIFICATION_EXPIRED: "Phiên xác thực đã hết hạn",
+      TOKEN_ALREADY_CONSUMED: "Mã xác thực đã được sử dụng",
+      OTP_NOT_FOUND: "Mã xác thực không tồn tại",
     };
-    throw new Error(messages[payload.error || ""] || "KhÃ´ng thá»ƒ xÃ¡c thá»±c mÃ£ OTP");
+    throw new Error(messages[payload.error || ""] || "Không thể xác thực mã OTP");
   };
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
@@ -464,22 +464,22 @@ const RegisterPage = () => {
       const payload = await readJson(response);
 
       if (response.status === 201) {
-        toast.success("ÄÄƒng kÃ½ thÃ nh cÃ´ng!");
+        toast.success("Đăng ký thành công!");
         router.push("/login");
         return;
       }
 
       const messages: Record<string, string> = {
-        EMAIL_ALREADY_EXISTS: "Email Ä‘Ã£ Ä‘Æ°á»£c sá»­ dá»¥ng",
-        TOKEN_ALREADY_CONSUMED: "MÃ£ xÃ¡c thá»±c Ä‘Ã£ Ä‘Æ°á»£c sá»­ dá»¥ng",
-        EMAIL_VERIFICATION_EXPIRED: "PhiÃªn xÃ¡c thá»±c Ä‘Ã£ háº¿t háº¡n",
-        EMAIL_VERIFICATION_INVALID: "Email chÆ°a Ä‘Æ°á»£c xÃ¡c thá»±c",
-        INVALID_TOKEN: "PhiÃªn xÃ¡c thá»±c khÃ´ng há»£p lá»‡",
-        VALIDATION_ERROR: "Vui lÃ²ng kiá»ƒm tra láº¡i thÃ´ng tin Ä‘Äƒng kÃ½",
+        EMAIL_ALREADY_EXISTS: "Email đã được sử dụng",
+        TOKEN_ALREADY_CONSUMED: "Mã xác thực đã được sử dụng",
+        EMAIL_VERIFICATION_EXPIRED: "Phiên xác thực đã hết hạn",
+        EMAIL_VERIFICATION_INVALID: "Email chưa được xác thực",
+        INVALID_TOKEN: "Phiên xác thực không hợp lệ",
+        VALIDATION_ERROR: "Vui lòng kiểm tra lại thông tin đăng ký",
       };
-      setErrorMessage(messages[payload.error || ""] || "KhÃ´ng thá»ƒ Ä‘Äƒng kÃ½");
+      setErrorMessage(messages[payload.error || ""] || "Không thể đăng ký");
     } catch (submitError) {
-      setErrorMessage(submitError instanceof Error ? submitError.message : "KhÃ´ng thá»ƒ Ä‘Äƒng kÃ½");
+      setErrorMessage(submitError instanceof Error ? submitError.message : "Không thể đăng ký");
     } finally {
       setIsSubmitting(false);
     }
@@ -489,9 +489,9 @@ const RegisterPage = () => {
     <PageShell>
       <Card>
         <Header>
-          <Logo src="/images/logo.png" alt="Khá»§ng Long Shop" />
-          <Title>Khá»§ng Long Shop</Title>
-          <Subtitle>Táº¡o tÃ i khoáº£n Ä‘á»ƒ báº¯t Ä‘áº§u sÆ°u táº§m!</Subtitle>
+          <Logo src="/images/logo.png" alt="Khủng Long Shop" />
+          <Title>Khủng Long Shop</Title>
+          <Subtitle>Tạo tài khoản để bắt đầu sưu tầm!</Subtitle>
         </Header>
 
         <Form onSubmit={handleSubmit}>
@@ -517,7 +517,7 @@ const RegisterPage = () => {
           </FieldBlock>
 
           <FieldBlock>
-            <Label htmlFor="register-first-name">TÃªn</Label>
+            <Label htmlFor="register-first-name">Tên</Label>
             <InputGroup>
               <InputIcon><FaRegUser /></InputIcon>
               <Field
@@ -525,14 +525,14 @@ const RegisterPage = () => {
                 type="text"
                 value={firstName}
                 onChange={(event) => setFirstName(event.target.value)}
-                placeholder="TÃªn"
+                placeholder="Tên"
                 autoComplete="given-name"
               />
             </InputGroup>
           </FieldBlock>
 
           <FieldBlock>
-            <Label htmlFor="register-last-name">Há»</Label>
+            <Label htmlFor="register-last-name">Họ</Label>
             <InputGroup>
               <InputIcon><FaRegUser /></InputIcon>
               <Field
@@ -540,14 +540,14 @@ const RegisterPage = () => {
                 type="text"
                 value={lastName}
                 onChange={(event) => setLastName(event.target.value)}
-                placeholder="Há»"
+                placeholder="Họ"
                 autoComplete="family-name"
               />
             </InputGroup>
           </FieldBlock>
 
           <FieldBlock>
-            <Label htmlFor="register-password">Máº­t kháº©u *</Label>
+            <Label htmlFor="register-password">Mật khẩu *</Label>
             <InputGroup>
               <InputIcon><FaLock /></InputIcon>
               <PasswordField
@@ -555,11 +555,11 @@ const RegisterPage = () => {
                 type={showPassword ? "text" : "password"}
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
-                placeholder="Máº­t kháº©u"
+                placeholder="Mật khẩu"
                 autoComplete="new-password"
                 required
               />
-              <ToggleButton type="button" onClick={() => setShowPassword((value) => !value)} aria-label="Hiá»‡n hoáº·c áº©n máº­t kháº©u">
+              <ToggleButton type="button" onClick={() => setShowPassword((value) => !value)} aria-label="Hiện hoặc ẩn mật khẩu">
                 {showPassword ? <FaEyeSlash /> : <FaEye />}
               </ToggleButton>
             </InputGroup>
@@ -574,7 +574,7 @@ const RegisterPage = () => {
           </FieldBlock>
 
           <FieldBlock>
-            <Label htmlFor="register-confirm-password">Nháº­p láº¡i máº­t kháº©u *</Label>
+            <Label htmlFor="register-confirm-password">Nhập lại mật khẩu *</Label>
             <InputGroup>
               <InputIcon><FaLock /></InputIcon>
               <PasswordField
@@ -582,11 +582,11 @@ const RegisterPage = () => {
                 type={showConfirmPassword ? "text" : "password"}
                 value={confirmPassword}
                 onChange={(event) => setConfirmPassword(event.target.value)}
-                placeholder="Nháº­p láº¡i máº­t kháº©u"
+                placeholder="Nhập lại mật khẩu"
                 autoComplete="new-password"
                 required
               />
-              <ToggleButton type="button" onClick={() => setShowConfirmPassword((value) => !value)} aria-label="Hiá»‡n hoáº·c áº©n máº­t kháº©u nháº­p láº¡i">
+              <ToggleButton type="button" onClick={() => setShowConfirmPassword((value) => !value)} aria-label="Hiện hoặc ẩn mật khẩu nhập lại">
                 {showConfirmPassword ? <FaEyeSlash /> : <FaEye />}
               </ToggleButton>
             </InputGroup>
@@ -594,7 +594,7 @@ const RegisterPage = () => {
 
           {!SKIP_OTP && (
             <FieldBlock>
-              <Label htmlFor="register-otp">MÃ£ xÃ¡c thá»±c 6 sá»‘ *</Label>
+              <Label htmlFor="register-otp">Mã xác thực 6 số *</Label>
               <OtpRow>
                 <InputGroup>
                   <InputIcon><FaKey /></InputIcon>
@@ -608,12 +608,12 @@ const RegisterPage = () => {
                       setOtpCode(event.target.value.replace(/\D/g, "").slice(0, 6));
                       setToken("");
                     }}
-                    placeholder="MÃ£ xÃ¡c thá»±c 6 sá»‘"
+                    placeholder="Mã xác thực 6 số"
                     required
                   />
                 </InputGroup>
                 <OtpButton type="button" disabled={isRequestingOtp || resendSeconds > 0} onClick={requestOtp}>
-                  {resendSeconds > 0 ? `${resendSeconds}s` : "Láº¥y mÃ£ xÃ¡c thá»±c"}
+                  {resendSeconds > 0 ? `${resendSeconds}s` : "Lấy mã xác thực"}
                 </OtpButton>
               </OtpRow>
             </FieldBlock>
@@ -622,13 +622,13 @@ const RegisterPage = () => {
           {(message || error) && <Message $tone={message ? "success" : "error"}>{message || error}</Message>}
 
           <SubmitButton type="submit" disabled={isSubmitting}>
-            <span>ÄÄƒng kÃ½ <FaArrowRight /></span>
+            <span>Đăng ký <FaArrowRight /></span>
           </SubmitButton>
         </Form>
 
         <LoginPrompt>
-          ÄÃ£ cÃ³ tÃ i khoáº£n?
-          <Link href="/login">ÄÄƒng nháº­p ngay â†’</Link>
+          Đã có tài khoản?
+          <Link href="/login">Đăng nhập ngay →</Link>
         </LoginPrompt>
       </Card>
     </PageShell>

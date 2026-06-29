@@ -69,6 +69,17 @@ describe("issue 5 redemption-code spec wiring", () => {
     expect(registerPage).toContain("EMAIL_PROVIDER_DOMAIN_NOT_VERIFIED");
   });
 
+  it("keeps register page Vietnamese text encoded as UTF-8", () => {
+    const registerPage = source("app/register/page.tsx");
+
+    expect(registerPage).toContain("Khủng Long Shop");
+    expect(registerPage).toContain("Tạo tài khoản để bắt đầu sưu tầm!");
+    expect(registerPage).toContain("Mật khẩu");
+    expect(registerPage).toContain("Lấy mã xác thực");
+    expect(registerPage).toContain("Đăng nhập ngay");
+    expect(registerPage).not.toMatch(/Ã|Â|Ä|áº|Æ|â†/);
+  });
+
   it("exposes a manual-copy fallback for generated codes", () => {
     const form = source("components/admin/RedemptionCodeCreateForm.tsx");
 
