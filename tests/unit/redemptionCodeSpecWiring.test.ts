@@ -14,6 +14,7 @@ describe("issue 5 redemption-code spec wiring", () => {
     expect(route).not.toContain("orderId: z.string()");
     expect(route).not.toContain("userId: z.string()");
     expect(route).toContain("prisma.$transaction");
+    expect(route).toContain("redemptionCode.createMany");
     expect(route).toContain("REDEMPTION_CODES_CREATED");
     expect(route).toContain("userId: null");
     expect(route).toContain("orderId: null");

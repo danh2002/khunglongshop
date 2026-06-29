@@ -3,10 +3,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { createPagination, parseAdminPagination } from "@/lib/adminApi";
 import { adminError, isPrismaUniqueError, validationError } from "@/lib/adminResponses";
-import {
-  createUniqueRedemptionCodeValue,
-  RedemptionCodeGenerationError,
-} from "@/lib/redemptionCodes";
+import { generateRedemptionCode } from "@/lib/codes";
+import { RedemptionCodeGenerationError } from "@/lib/redemptionCodes";
 import { requireAdminApi } from "@/utils/adminAuth";
 import prisma from "@/utils/db";
 
@@ -16,6 +14,34 @@ const createSchema = z
     quantity: z.number().int().min(1).max(500),
   })
   .strict();
+
+async function createUniqueRedemptionCodeValues(
+  quantity: number,
+  maxAttempts = 10
+) {
+  const codes = new Set<string>();
+
+  for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+    while (codes.size < quantity) {
+      codes.add(generateRedemptionCode());
+    }
+
+    const existingCodes = await prisma.redemptionCode.findMany({
+      where: { code: { in: [...codes] } },
+      select: { code: true },
+    });
+
+    for (const existing of existingCodes) {
+      codes.delete(existing.code);
+    }
+
+    if (codes.size === quantity) {
+      return [...codes];
+    }
+  }
+
+  throw new RedemptionCodeGenerationError();
+}
 
 export async function GET(request: NextRequest) {
   const { response } = await requireAdminApi();
@@ -103,31 +129,24 @@ export async function POST(request: Request) {
   }
 
   try {
+    const codeValues = await createUniqueRedemptionCodeValues(parsed.data.quantity);
     const created = await prisma.$transaction(async (tx) => {
-      const codes = [];
+      await tx.redemptionCode.createMany({
+        data: codeValues.map((code) => ({
+          code,
+          productId: product.id,
+          userId: null,
+          orderId: null,
+          status: "ACTIVE",
+          isUsed: false,
+          usedAt: null,
+        })),
+      });
 
-      for (let index = 0; index < parsed.data.quantity; index += 1) {
-        for (let attempt = 0; attempt < 10; attempt += 1) {
-          try {
-            codes.push(
-              await tx.redemptionCode.create({
-                data: {
-                  code: await createUniqueRedemptionCodeValue(tx),
-                  productId: product.id,
-                  userId: null,
-                  orderId: null,
-                  status: "ACTIVE",
-                  isUsed: false,
-                  usedAt: null,
-                },
-              })
-            );
-            break;
-          } catch (error) {
-            if (!isPrismaUniqueError(error) || attempt === 9) throw error;
-          }
-        }
-      }
+      const codes = await tx.redemptionCode.findMany({
+        where: { code: { in: codeValues } },
+        orderBy: { createdAt: "desc" },
+      });
 
       await tx.adminAuditLog.create({
         data: {
