@@ -10,16 +10,10 @@ export const PUBLIC_STOREFRONT_PRODUCT_WHERE = {
 } satisfies Prisma.ProductWhereInput;
 
 export const PUBLIC_COLLECTOR_PRODUCT_WHERE = {
+  isVisible: true,
   isCollector: true,
   setId: { not: null },
   setSlotNumber: { not: null },
-  poolEntries: {
-    some: {
-      poolVersion: {
-        status: "ACTIVE",
-      },
-    },
-  },
 } satisfies Prisma.ProductWhereInput;
 
 export type PublicStorefrontFilters = {

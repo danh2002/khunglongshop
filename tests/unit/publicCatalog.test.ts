@@ -56,6 +56,7 @@ describe("public catalog policy", () => {
       isCollector: false,
     });
     expect(buildCollectorGalleryWhere({ characterSlug: "ricon" })).toMatchObject({
+      isVisible: true,
       isCollector: true,
       setId: { not: null },
       setSlotNumber: { not: null },
@@ -66,51 +67,40 @@ describe("public catalog policy", () => {
       },
     });
     expect(buildCollectorGalleryWhere({ characterSlug: "all" })).toMatchObject({
+      isVisible: true,
       isCollector: true,
       setId: { not: null },
       setSlotNumber: { not: null },
     });
   });
 
-  it("includes collector gallery products only when they belong to an active pool version", () => {
-    expect(buildCollectorGalleryWhere({ characterSlug: "ricon" })).toMatchObject({
+  it("includes visible collector gallery products without requiring active pool entries", () => {
+    expect(buildCollectorGalleryWhere({ characterSlug: "ricon" })).toEqual({
+      isVisible: true,
       isCollector: true,
       setId: { not: null },
       setSlotNumber: { not: null },
-      poolEntries: {
-        some: {
-          poolVersion: {
-            status: "ACTIVE",
-          },
+      set: {
+        is: {
+          OR: [{ slug: "ricon" }, { name: "ricon" }],
         },
       },
     });
   });
 
-  it("excludes collector products that only have draft or no pool versions from the gallery", () => {
+  it("does not require blind-box pool entries for collector gallery products", () => {
     const where = buildCollectorGalleryWhere();
 
-    expect(where).toMatchObject({
-      poolEntries: {
-        some: {
-          poolVersion: {
-            status: "ACTIVE",
-          },
-        },
-      },
+    expect(where).toEqual({
+      isVisible: true,
+      isCollector: true,
+      setId: { not: null },
+      setSlotNumber: { not: null },
     });
-    expect(where).not.toMatchObject({
-      poolEntries: {
-        some: {
-          poolVersion: {
-            status: "DRAFT",
-          },
-        },
-      },
-    });
+    expect(where).not.toHaveProperty("poolEntries");
   });
 
-  it("builds product detail queries so draft collector direct URLs return 404", () => {
+  it("builds product detail queries for visible collector direct URLs", () => {
     expect(buildPublicProductDetailWhere("draft-collector")).toEqual({
       slug: "draft-collector",
       OR: [
@@ -120,16 +110,10 @@ describe("public catalog policy", () => {
           isCollector: false,
         },
         {
+          isVisible: true,
           isCollector: true,
           setId: { not: null },
           setSlotNumber: { not: null },
-          poolEntries: {
-            some: {
-              poolVersion: {
-                status: "ACTIVE",
-              },
-            },
-          },
         },
       ],
     });

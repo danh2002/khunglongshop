@@ -177,7 +177,6 @@ export default function AdminProductForm({
               onChange({
                 ...value,
                 isCollector: event.target.checked,
-                isVisible: event.target.checked ? false : value.isVisible,
                 setId: event.target.checked ? value.setId : null,
                 setSlotNumber: event.target.checked ? value.setSlotNumber : null,
                 isBlindBox: event.target.checked ? false : value.isBlindBox,
@@ -228,7 +227,6 @@ export default function AdminProductForm({
           <input
             type="checkbox"
             checked={value.isVisible}
-            disabled={value.isCollector}
             onChange={(event) =>
               onChange({
                 ...value,

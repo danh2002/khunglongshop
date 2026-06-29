@@ -6,6 +6,7 @@ import {
   parseProductImages,
   serializeProductImages,
 } from "@/lib/adminProduct";
+import { Prisma } from "@prisma/client";
 
 type RouteContext = {
   params: Promise<{ id: string }>;
@@ -182,6 +183,7 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
     data: {
       ...parsed.data,
       images: serializeProductImages(parsed.data.images),
+      isVisible: parsed.data.isVisible,
     },
     include: {
       category: { select: { id: true, name: true } },
@@ -200,11 +202,12 @@ export async function PUT(request: NextRequest, context: RouteContext) {
   return PATCH(request, context);
 }
 
-export async function DELETE(_request: NextRequest, context: RouteContext) {
+export async function DELETE(request: NextRequest, context: RouteContext) {
   const { response } = await requireAdminApi();
   if (response) return response;
 
   const { id } = await context.params;
+  const force = request.nextUrl.searchParams.get("force") === "true";
   const product = await prisma.product.findUnique({
     where: { id },
     select: { id: true, setId: true },
@@ -215,6 +218,43 @@ export async function DELETE(_request: NextRequest, context: RouteContext) {
       { error: { code: "PRODUCT_NOT_FOUND", message: "Không tìm thấy sản phẩm" } },
       { status: 404 }
     );
+  }
+
+  if (force) {
+    try {
+      await prisma.$transaction(async (tx) => {
+        await tx.redemptionCode.deleteMany({ where: { productId: id } });
+        await tx.blindBoxAllocation.deleteMany({ where: { productId: id } });
+        await tx.blindBoxPoolEntry.deleteMany({ where: { productId: id } });
+        await tx.wishlist.deleteMany({ where: { productId: id } });
+        await tx.product.update({
+          where: { id },
+          data: {
+            setId: null,
+            blindBoxSetId: null,
+          },
+        });
+        await tx.product.delete({ where: { id } });
+      });
+
+      return new NextResponse(null, { status: 204 });
+    } catch (error) {
+      const prismaCode = error instanceof Prisma.PrismaClientKnownRequestError ? error.code : undefined;
+      const prismaMessage = error instanceof Error ? error.message : String(error);
+
+      console.error("Force product delete failed", error);
+      return NextResponse.json(
+        {
+          error: {
+            code: "PRODUCT_FORCE_DELETE_FAILED",
+            message: "Không thể xóa cưỡng bức sản phẩm",
+            prismaCode,
+            prismaMessage,
+          },
+        },
+        { status: 409 }
+      );
+    }
   }
 
   if (product.setId) {

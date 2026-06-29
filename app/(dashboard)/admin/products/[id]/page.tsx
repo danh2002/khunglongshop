@@ -133,6 +133,22 @@ export default function DashboardProductDetails({ params }: DashboardProductDeta
     toast.error(payload?.error?.message || "Không thể xóa sản phẩm");
   }
 
+  async function forceDeleteProduct() {
+    if (!product) return;
+    if (!window.confirm("Xóa cưỡng bức sẽ xóa toàn bộ mã mở khóa liên quan. Bạn có chắc không?")) return;
+
+    const response = await fetch(`/api/admin/products/${id}?force=true`, { method: "DELETE" });
+
+    if (response.status === 204) {
+      toast.success("Đã xóa cưỡng bức sản phẩm");
+      router.push("/admin/products");
+      return;
+    }
+
+    const payload = await response.json().catch(() => null);
+    toast.error(payload?.error?.message || "Không thể xóa cưỡng bức sản phẩm");
+  }
+
   return (
     <main className="min-h-screen bg-[#070707] text-white">
       <div className="mx-auto flex max-w-screen-2xl max-xl:flex-col">
@@ -182,9 +198,14 @@ export default function DashboardProductDetails({ params }: DashboardProductDeta
                   )}
                   {product.setId ? <p className="text-[#e85d00]">Sản phẩm đang nằm trong bộ sưu tập nên không thể xóa trực tiếp.</p> : null}
                 </div>
-                <button type="button" onClick={deleteProduct} className="mt-5 min-h-12 border border-red-500 px-5 font-black uppercase text-red-300 hover:bg-red-500 hover:text-white">
-                  Xóa sản phẩm
-                </button>
+                <div className="mt-5 flex flex-wrap gap-3">
+                  <button type="button" onClick={deleteProduct} className="min-h-12 border border-red-500 px-5 font-black uppercase text-red-300 hover:bg-red-500 hover:text-white">
+                    Xóa sản phẩm
+                  </button>
+                  <button type="button" onClick={forceDeleteProduct} className="min-h-12 bg-red-700 px-5 font-black uppercase text-white hover:bg-red-600">
+                    XÓA CƯỠNG BỨC
+                  </button>
+                </div>
               </aside>
             </div>
           )}

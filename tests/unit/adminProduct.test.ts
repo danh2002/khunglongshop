@@ -17,6 +17,7 @@ const validProduct = {
   inStock: 3,
   categoryId: "category-id",
   merchantId: "merchant-id",
+  isVisible: false,
   isCollector: false,
   setId: null,
   setSlotNumber: null,
@@ -93,7 +94,7 @@ describe("adminProductSchema image fields", () => {
     }
   });
 
-  it("keeps collector variants hidden even if a client sends isVisible", () => {
+  it("keeps collector visibility independently controllable", () => {
     const result = adminProductSchema.safeParse({
       ...validProduct,
       isCollector: true,
@@ -104,7 +105,7 @@ describe("adminProductSchema image fields", () => {
 
     expect(result.success).toBe(true);
     if (result.success) {
-      expect(result.data.isVisible).toBe(false);
+      expect(result.data.isVisible).toBe(true);
     }
   });
 

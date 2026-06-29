@@ -13,6 +13,7 @@ import {
   PrimaryLink,
   smoothEase,
 } from "@/components/design-system";
+import { normalizeCatalogImage } from "@/lib/publicCatalog";
 
 type ProductCode = {
   id: string;
@@ -511,7 +512,7 @@ export default function AccountCodesPage() {
                       <Thumbnail>
                         {item.product?.mainImage ? (
                           <Image
-                            src={`/${item.product.mainImage}`}
+                            src={normalizeCatalogImage(item.product.mainImage)}
                             alt={item.product.title}
                             width={80}
                             height={80}
