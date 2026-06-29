@@ -3,21 +3,13 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { FormEvent } from "react";
-import React, { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import toast from "react-hot-toast";
-import { FaArrowRight, FaEye, FaEyeSlash, FaKey, FaLock, FaRegUser } from "react-icons/fa6";
+import { FaArrowRight, FaEnvelope, FaEye, FaEyeSlash, FaLock, FaRegUser } from "react-icons/fa6";
 import styled from "styled-components";
 
 type ApiPayload = {
   error?: string;
-  challengeId?: string;
-  expiresAt?: string;
-  resendAfterSeconds?: number;
-  retryAfterSeconds?: number;
-  token?: string;
-  tokenExpiry?: string;
-  emailMasked?: string;
-  attemptsRemaining?: number;
 };
 
 type PasswordStrength = {
@@ -27,7 +19,6 @@ type PasswordStrength = {
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const PASSWORD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/;
-const SKIP_OTP = process.env.NEXT_PUBLIC_SKIP_OTP === "true";
 
 const PageShell = styled.main`
   min-height: calc(100vh - 120px);
@@ -190,32 +181,6 @@ const StrengthText = styled.span<{ $level: PasswordStrength["level"] }>`
   font-size: 12px;
 `;
 
-const OtpRow = styled.div`
-  display: flex;
-  gap: 8px;
-
-  input {
-    flex: 1;
-  }
-`;
-
-const OtpButton = styled.button`
-  background: #e85d00;
-  color: white;
-  border: none;
-  border-radius: 10px;
-  padding: 0 16px;
-  font-weight: 700;
-  font-size: 13px;
-  white-space: nowrap;
-  cursor: pointer;
-
-  &:disabled {
-    background: #888;
-    cursor: not-allowed;
-  }
-`;
-
 const SubmitButton = styled.button`
   width: 100%;
   min-height: 52px;
@@ -299,29 +264,16 @@ async function readJson(response: Response): Promise<ApiPayload> {
 
 const RegisterPage = () => {
   const router = useRouter();
+  const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
-  const [firstName, setFirstName] = useState("");
-  const [lastName, setLastName] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [otpCode, setOtpCode] = useState("");
-  const [challengeId, setChallengeId] = useState("");
-  const [token, setToken] = useState("");
-  const [resendReadyAt, setResendReadyAt] = useState(0);
-  const [now, setNow] = useState(Date.now());
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [isRequestingOtp, setIsRequestingOtp] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  useEffect(() => {
-    const timer = window.setInterval(() => setNow(Date.now()), 1000);
-    return () => window.clearInterval(timer);
-  }, []);
-
-  const resendSeconds = Math.max(0, Math.ceil((resendReadyAt - now) / 1000));
   const normalizedEmail = useMemo(() => email.trim().toLowerCase(), [email]);
   const emailIsValid = useMemo(() => EMAIL_REGEX.test(normalizedEmail), [normalizedEmail]);
   const passwordStrength = useMemo(() => getPasswordStrength(password), [password]);
@@ -332,59 +284,12 @@ const RegisterPage = () => {
     toast.error(value);
   };
 
-  const requestOtp = async () => {
-    if (!emailIsValid) {
-      setErrorMessage("Email không hợp lệ");
-      return;
-    }
-
-    setIsRequestingOtp(true);
-    setError("");
-    setMessage("");
-
-    try {
-      const response = await fetch("/api/otp/request", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: normalizedEmail }),
-      });
-      const payload = await readJson(response);
-
-      if (response.ok || payload.error === "OTP_RESEND_NOT_READY") {
-        if (payload.challengeId) setChallengeId(payload.challengeId);
-        const waitSeconds = payload.resendAfterSeconds ?? payload.retryAfterSeconds ?? 60;
-        setResendReadyAt(Date.now() + waitSeconds * 1000);
-        setToken("");
-
-        if (payload.error === "OTP_RESEND_NOT_READY") {
-          setError("Vui lòng đợi trước khi lấy mã mới");
-          return;
-        }
-
-        const targetEmail = payload.emailMasked || normalizedEmail;
-        setMessage(`Đã gửi mã OTP đến email ${targetEmail}`);
-        toast.success("Đã gửi mã OTP");
-        return;
-      }
-
-      const messages: Record<string, string> = {
-        EMAIL_ALREADY_EXISTS: "Email đã được sử dụng",
-        TOO_MANY_OTP_REQUESTS: "Bạn đã yêu cầu quá nhiều mã",
-        IP_RATE_LIMITED: "Có quá nhiều yêu cầu từ mạng này",
-        EMAIL_PROVIDER_DOMAIN_NOT_VERIFIED: "Email chỉ gửi được sau khi cấu hình domain gửi mail",
-        EMAIL_PROVIDER_UNAVAILABLE: "Không thể gửi email lúc này",
-        PROVIDER_FAILURE_THROTTLE: "Không thể gửi email lúc này",
-        INVALID_EMAIL_FORMAT: "Email không hợp lệ",
-      };
-      setErrorMessage(messages[payload.error || ""] || "Không thể lấy mã xác thực");
-    } catch {
-      setErrorMessage("Không thể lấy mã xác thực");
-    } finally {
-      setIsRequestingOtp(false);
-    }
-  };
-
   const validateForm = () => {
+    if (!fullName.trim()) {
+      setErrorMessage("Vui lòng nhập họ và tên");
+      return false;
+    }
+
     if (!emailIsValid) {
       setErrorMessage("Email không hợp lệ");
       return false;
@@ -400,43 +305,7 @@ const RegisterPage = () => {
       return false;
     }
 
-    if (!SKIP_OTP && !challengeId) {
-      setErrorMessage("Vui lòng lấy mã xác thực");
-      return false;
-    }
-
-    if (!SKIP_OTP && !/^\d{6}$/.test(otpCode)) {
-      setErrorMessage("Vui lòng nhập mã xác thực 6 số");
-      return false;
-    }
-
     return true;
-  };
-
-  const verifyOtp = async () => {
-    if (token) return token;
-
-    const response = await fetch("/api/otp/verify", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ challengeId, code: otpCode }),
-    });
-    const payload = await readJson(response);
-
-    if (response.ok && payload.token) {
-      setToken(payload.token);
-      return payload.token;
-    }
-
-    const messages: Record<string, string> = {
-      INVALID_OTP: "Mã xác thực không đúng",
-      CHALLENGE_LOCKED: "Bạn đã nhập sai quá nhiều lần",
-      CHALLENGE_EXPIRED: "Mã xác thực đã hết hạn",
-      EMAIL_VERIFICATION_EXPIRED: "Phiên xác thực đã hết hạn",
-      TOKEN_ALREADY_CONSUMED: "Mã xác thực đã được sử dụng",
-      OTP_NOT_FOUND: "Mã xác thực không tồn tại",
-    };
-    throw new Error(messages[payload.error || ""] || "Không thể xác thực mã OTP");
   };
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
@@ -448,17 +317,13 @@ const RegisterPage = () => {
     setMessage("");
 
     try {
-      const verifiedToken = SKIP_OTP ? "SKIP_OTP_DEV" : await verifyOtp();
       const response = await fetch("/api/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          email: email.trim().toLowerCase(),
+          fullName: fullName.trim(),
+          email: normalizedEmail,
           password,
-          firstName: firstName.trim(),
-          lastName: lastName.trim(),
-          challengeId: SKIP_OTP ? "SKIP_OTP_DEV" : challengeId,
-          token: verifiedToken,
         }),
       });
       const payload = await readJson(response);
@@ -471,10 +336,7 @@ const RegisterPage = () => {
 
       const messages: Record<string, string> = {
         EMAIL_ALREADY_EXISTS: "Email đã được sử dụng",
-        TOKEN_ALREADY_CONSUMED: "Mã xác thực đã được sử dụng",
-        EMAIL_VERIFICATION_EXPIRED: "Phiên xác thực đã hết hạn",
-        EMAIL_VERIFICATION_INVALID: "Email chưa được xác thực",
-        INVALID_TOKEN: "Phiên xác thực không hợp lệ",
+        REGISTRATION_RATE_LIMITED: "Bạn đã đăng ký quá nhiều lần, vui lòng thử lại sau",
         VALIDATION_ERROR: "Vui lòng kiểm tra lại thông tin đăng ký",
       };
       setErrorMessage(messages[payload.error || ""] || "Không thể đăng ký");
@@ -490,26 +352,37 @@ const RegisterPage = () => {
       <Card>
         <Header>
           <Logo src="/images/logo.png" alt="Khủng Long Shop" />
-          <Title>Khủng Long Shop</Title>
-          <Subtitle>Tạo tài khoản để bắt đầu sưu tầm!</Subtitle>
+          <Title>Đăng ký</Title>
+          <Subtitle>Tạo tài khoản mới</Subtitle>
         </Header>
 
         <Form onSubmit={handleSubmit}>
           <FieldBlock>
-            <Label htmlFor="register-email">Email *</Label>
+            <Label htmlFor="register-full-name">Họ và tên</Label>
             <InputGroup>
               <InputIcon><FaRegUser /></InputIcon>
+              <Field
+                id="register-full-name"
+                type="text"
+                value={fullName}
+                onChange={(event) => setFullName(event.target.value)}
+                placeholder="Vui lòng nhập họ và tên"
+                autoComplete="name"
+                required
+              />
+            </InputGroup>
+          </FieldBlock>
+
+          <FieldBlock>
+            <Label htmlFor="register-email">Email</Label>
+            <InputGroup>
+              <InputIcon><FaEnvelope /></InputIcon>
               <Field
                 id="register-email"
                 type="email"
                 value={email}
-                onChange={(event) => {
-                  setEmail(event.target.value);
-                  setChallengeId("");
-                  setToken("");
-                  setOtpCode("");
-                }}
-                placeholder="Email"
+                onChange={(event) => setEmail(event.target.value)}
+                placeholder="Vui lòng nhập email"
                 autoComplete="email"
                 required
               />
@@ -517,37 +390,7 @@ const RegisterPage = () => {
           </FieldBlock>
 
           <FieldBlock>
-            <Label htmlFor="register-first-name">Tên</Label>
-            <InputGroup>
-              <InputIcon><FaRegUser /></InputIcon>
-              <Field
-                id="register-first-name"
-                type="text"
-                value={firstName}
-                onChange={(event) => setFirstName(event.target.value)}
-                placeholder="Tên"
-                autoComplete="given-name"
-              />
-            </InputGroup>
-          </FieldBlock>
-
-          <FieldBlock>
-            <Label htmlFor="register-last-name">Họ</Label>
-            <InputGroup>
-              <InputIcon><FaRegUser /></InputIcon>
-              <Field
-                id="register-last-name"
-                type="text"
-                value={lastName}
-                onChange={(event) => setLastName(event.target.value)}
-                placeholder="Họ"
-                autoComplete="family-name"
-              />
-            </InputGroup>
-          </FieldBlock>
-
-          <FieldBlock>
-            <Label htmlFor="register-password">Mật khẩu *</Label>
+            <Label htmlFor="register-password">Mật khẩu</Label>
             <InputGroup>
               <InputIcon><FaLock /></InputIcon>
               <PasswordField
@@ -555,7 +398,7 @@ const RegisterPage = () => {
                 type={showPassword ? "text" : "password"}
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
-                placeholder="Mật khẩu"
+                placeholder="Từ 8 ký tự"
                 autoComplete="new-password"
                 required
               />
@@ -574,7 +417,7 @@ const RegisterPage = () => {
           </FieldBlock>
 
           <FieldBlock>
-            <Label htmlFor="register-confirm-password">Nhập lại mật khẩu *</Label>
+            <Label htmlFor="register-confirm-password">Xác nhận mật khẩu</Label>
             <InputGroup>
               <InputIcon><FaLock /></InputIcon>
               <PasswordField
@@ -591,33 +434,6 @@ const RegisterPage = () => {
               </ToggleButton>
             </InputGroup>
           </FieldBlock>
-
-          {!SKIP_OTP && (
-            <FieldBlock>
-              <Label htmlFor="register-otp">Mã xác thực 6 số *</Label>
-              <OtpRow>
-                <InputGroup>
-                  <InputIcon><FaKey /></InputIcon>
-                  <Field
-                    id="register-otp"
-                    type="text"
-                    inputMode="numeric"
-                    maxLength={6}
-                    value={otpCode}
-                    onChange={(event) => {
-                      setOtpCode(event.target.value.replace(/\D/g, "").slice(0, 6));
-                      setToken("");
-                    }}
-                    placeholder="Mã xác thực 6 số"
-                    required
-                  />
-                </InputGroup>
-                <OtpButton type="button" disabled={isRequestingOtp || resendSeconds > 0} onClick={requestOtp}>
-                  {resendSeconds > 0 ? `${resendSeconds}s` : "Lấy mã xác thực"}
-                </OtpButton>
-              </OtpRow>
-            </FieldBlock>
-          )}
 
           {(message || error) && <Message $tone={message ? "success" : "error"}>{message || error}</Message>}
 

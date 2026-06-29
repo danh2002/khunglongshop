@@ -1,4 +1,3 @@
-import { consumeToken, normalizeOtpEmail, OtpServiceError } from "@/lib/otp/otpService";
 import prisma from "@/utils/db";
 import { commonValidations, sanitizeInput } from "@/utils/validation";
 import { Prisma } from "@prisma/client";
@@ -10,10 +9,9 @@ import { z } from "zod";
 const registerSchema = z.object({
   email: commonValidations.email,
   password: commonValidations.password,
-  firstName: z.string().trim().max(80),
-  lastName: z.string().trim().max(80),
-  challengeId: z.string().min(1),
-  token: z.string().min(1),
+  fullName: z.string().trim().min(1).max(160).optional(),
+  firstName: z.string().trim().max(80).optional(),
+  lastName: z.string().trim().max(80).optional(),
 });
 
 function getClientIp(request: Request) {
@@ -34,6 +32,17 @@ function isUniqueTarget(error: Prisma.PrismaClientKnownRequestError, field: stri
   return Array.isArray(target) && target.includes(field);
 }
 
+function splitFullName(fullName: string) {
+  const parts = fullName.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return { firstName: "", lastName: "" };
+  if (parts.length === 1) return { firstName: parts[0], lastName: "" };
+
+  return {
+    firstName: parts.slice(0, -1).join(" "),
+    lastName: parts.at(-1) ?? "",
+  };
+}
+
 export async function POST(request: Request) {
   try {
     const clientIP = getClientIp(request);
@@ -51,51 +60,28 @@ export async function POST(request: Request) {
     }
 
     const email = parsed.data.email.trim().toLowerCase();
-    const firstName = parsed.data.firstName.trim();
-    const lastName = parsed.data.lastName.trim();
+    const nameParts = parsed.data.fullName
+      ? splitFullName(parsed.data.fullName)
+      : {
+          firstName: parsed.data.firstName?.trim() ?? "",
+          lastName: parsed.data.lastName?.trim() ?? "",
+        };
     const hashedPassword = await bcrypt.hash(parsed.data.password, 14);
 
-    if (process.env.SKIP_OTP === "true" && parsed.data.challengeId === "SKIP_OTP_DEV") {
-      await prisma.user.create({
-        data: {
-          id: nanoid(),
-          email,
-          phone: null,
-          firstName,
-          lastName,
-          password: hashedPassword,
-          role: "user",
-        },
-      });
-
-      return NextResponse.json({ message: "Tài khoản đã được tạo" }, { status: 201 });
-    }
-
-    await prisma.$transaction(async (tx) => {
-      const { email: verifiedEmail } = await consumeToken(tx, parsed.data.challengeId, parsed.data.token);
-      if (normalizeOtpEmail(verifiedEmail) !== email) {
-        throw new OtpServiceError("EMAIL_VERIFICATION_INVALID", 401);
-      }
-
-      await tx.user.create({
-        data: {
-          id: nanoid(),
-          email,
-          phone: null,
-          firstName,
-          lastName,
-          password: hashedPassword,
-          role: "user",
-        },
-      });
+    await prisma.user.create({
+      data: {
+        id: nanoid(),
+        email,
+        phone: null,
+        firstName: nameParts.firstName,
+        lastName: nameParts.lastName,
+        password: hashedPassword,
+        role: "user",
+      },
     });
 
     return NextResponse.json({ message: "Tài khoản đã được tạo" }, { status: 201 });
   } catch (error) {
-    if (error instanceof OtpServiceError) {
-      return errorResponse(error.code, error.status, error.meta);
-    }
-
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
       if (isUniqueTarget(error, "email")) {
         return errorResponse("EMAIL_ALREADY_EXISTS", 409);

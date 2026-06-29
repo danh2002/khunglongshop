@@ -59,24 +59,27 @@ describe("issue 5 redemption-code spec wiring", () => {
     expect(footer).toContain('href="/account/collection" prefetch={false}');
   });
 
-  it("returns a clear registration error when Resend domain is not verified", () => {
+  it("returns a clear OTP request error when Resend domain is not verified", () => {
     const email = source("lib/email.ts");
     const otpService = source("lib/otp/otpService.ts");
-    const registerPage = source("app/register/page.tsx");
 
     expect(email).toContain("EMAIL_PROVIDER_DOMAIN_NOT_VERIFIED");
     expect(otpService).toContain('OtpServiceError("EMAIL_PROVIDER_DOMAIN_NOT_VERIFIED", 503)');
-    expect(registerPage).toContain("EMAIL_PROVIDER_DOMAIN_NOT_VERIFIED");
   });
 
-  it("keeps register page Vietnamese text encoded as UTF-8", () => {
+  it("keeps register page simple and without OTP fields", () => {
     const registerPage = source("app/register/page.tsx");
+    const registerRoute = source("app/api/register/route.ts");
 
-    expect(registerPage).toContain("Khủng Long Shop");
-    expect(registerPage).toContain("Tạo tài khoản để bắt đầu sưu tầm!");
+    expect(registerPage).toContain("Họ và tên");
+    expect(registerPage).toContain("Vui lòng nhập email");
     expect(registerPage).toContain("Mật khẩu");
-    expect(registerPage).toContain("Lấy mã xác thực");
+    expect(registerPage).toContain("Xác nhận mật khẩu");
     expect(registerPage).toContain("Đăng nhập ngay");
+    expect(registerPage).not.toContain("Lấy mã xác thực");
+    expect(registerPage).not.toContain("Mã xác thực");
+    expect(registerRoute).not.toContain("challengeId");
+    expect(registerRoute).not.toContain("consumeToken");
     expect(registerPage).not.toMatch(/Ã|Â|Ä|áº|Æ|â†/);
   });
 
