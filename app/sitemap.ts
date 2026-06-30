@@ -7,6 +7,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const products = await prisma.product.findMany({
     where: PUBLIC_STOREFRONT_PRODUCT_WHERE,
     select: { slug: true },
+  }).catch((error) => {
+    console.error("[sitemap] Failed to load product URLs", error);
+    return [];
   });
 
   return [
