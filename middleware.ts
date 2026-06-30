@@ -12,15 +12,24 @@ async function isMaintenanceEnabled() {
   const now = Date.now();
   if (maintenanceCache.expiresAt > now) return maintenanceCache.value;
 
-  const settings = await prisma.siteSettings.findUnique({
-    where: { id: 1 },
-    select: { maintenanceMode: true },
-  });
-  maintenanceCache = {
-    value: settings?.maintenanceMode ?? false,
-    expiresAt: now + 5_000,
-  };
-  return maintenanceCache.value;
+  try {
+    const settings = await prisma.siteSettings.findUnique({
+      where: { id: 1 },
+      select: { maintenanceMode: true },
+    });
+    maintenanceCache = {
+      value: settings?.maintenanceMode ?? false,
+      expiresAt: now + 5_000,
+    };
+    return maintenanceCache.value;
+  } catch (error) {
+    console.error("[middleware] Failed to read maintenance mode", error);
+    maintenanceCache = {
+      value: false,
+      expiresAt: now + 5_000,
+    };
+    return false;
+  }
 }
 
 export default withAuth(
