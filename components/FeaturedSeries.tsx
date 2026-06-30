@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import styled from "styled-components";
+import type { HomepageProduct } from "@/lib/homepage-products";
 import { normalizeCatalogImage } from "@/lib/publicCatalog";
 import { revealSection } from "./homeStyles";
 
@@ -142,7 +143,7 @@ export default function FeaturedSeries({
   product,
   images,
 }: {
-  product?: Product;
+  product?: HomepageProduct;
   images: string[];
 }) {
   if (!product) return null;

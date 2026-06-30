@@ -1,4 +1,5 @@
 import styled from "styled-components";
+import type { HomepageProduct } from "@/lib/homepage-products";
 import ProductItem from "./ProductItem";
 
 const Grid = styled.div`
@@ -16,7 +17,7 @@ const Grid = styled.div`
   }
 `;
 
-export default function FeaturedProductsGrid({ products }: { products: Product[] }) {
+export default function FeaturedProductsGrid({ products }: { products: HomepageProduct[] }) {
   return (
     <Grid>
       {products.map((product) => (

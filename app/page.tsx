@@ -1,4 +1,5 @@
-import { Hero, ProductsSection } from "@/components";
+import Hero from "@/components/Hero";
+import ProductsSection from "@/components/ProductsSection";
 import CollectorBanner from "@/components/CollectorBanner";
 import FeaturedSeries from "@/components/FeaturedSeries";
 import HomeMarquee from "@/components/HomeMarquee";

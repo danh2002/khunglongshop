@@ -1,5 +1,6 @@
 import Link from "next/link";
 import styled from "styled-components";
+import type { HomepageProduct } from "@/lib/homepage-products";
 import FeaturedProductsGrid from "./FeaturedProductsGrid";
 import { revealSection } from "./homeStyles";
 
@@ -60,7 +61,7 @@ const State = styled.div`
   text-align: center;
 `;
 
-const sortFeatured = (products: Product[]) =>
+const sortFeatured = (products: HomepageProduct[]) =>
   [...products]
     .sort((a, b) => Number(Boolean(b.isCollector)) - Number(Boolean(a.isCollector)))
     .slice(0, 12);
@@ -71,7 +72,7 @@ export default function ProductsSection({
   initialProducts,
   initialError = false,
 }: {
-  initialProducts: Product[];
+  initialProducts: HomepageProduct[];
   initialError?: boolean;
 }) {
   const products = sortFeatured(initialProducts);

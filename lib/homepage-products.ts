@@ -1,7 +1,27 @@
 import prisma from "@/utils/db";
 import { PUBLIC_STOREFRONT_PRODUCT_WHERE } from "@/lib/publicCatalog";
 
-type HomepageProductWithMedia = Product & {
+export type HomepageProduct = {
+  id: string;
+  slug: string;
+  title: string;
+  price: number;
+  mainImage: string;
+  images?: string | null;
+  inStock: number;
+  isCollector?: boolean;
+  blindBoxSet?: {
+    poolVersions?: Array<{
+      entries?: Array<{
+        product: {
+          mainImage: string | null;
+        };
+      }>;
+    }>;
+  } | null;
+};
+
+type HomepageProductWithMedia = HomepageProduct & {
   images?: string | null;
   blindBoxSet?: {
     poolVersions?: Array<{
@@ -14,7 +34,7 @@ type HomepageProductWithMedia = Product & {
   } | null;
 };
 
-export function chooseHomepageProducts(products: Product[]) {
+export function chooseHomepageProducts(products: HomepageProduct[]) {
   return products;
 }
 
@@ -49,7 +69,7 @@ export function getHomepageVariantImages(product: HomepageProductWithMedia | nul
 }
 
 export async function getHomepageProducts(): Promise<{
-  products: Product[];
+  products: HomepageProduct[];
   variantImages: string[];
   hasError: boolean;
 }> {
@@ -62,24 +82,10 @@ export async function getHomepageProducts(): Promise<{
         slug: true,
         title: true,
         price: true,
-        rating: true,
-        description: true,
         mainImage: true,
         images: true,
-        manufacturer: true,
-        categoryId: true,
         inStock: true,
-        setId: true,
-        setSlotNumber: true,
         isCollector: true,
-        isBlindBox: true,
-        isVisible: true,
-        blindBoxSetId: true,
-        category: {
-          select: {
-            name: true,
-          },
-        },
         blindBoxSet: {
           select: {
             poolVersions: {

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import styled from "styled-components";
+import type { HomepageProduct } from "@/lib/homepage-products";
 import ProductItem from "./ProductItem";
 import { revealSection } from "./homeStyles";
 
@@ -68,7 +69,7 @@ const Row = styled.div`
   }
 `;
 
-export default function NewArrivals({ products }: { products: Product[] }) {
+export default function NewArrivals({ products }: { products: HomepageProduct[] }) {
   if (products.length === 0) return null;
 
   return (

@@ -6,6 +6,7 @@ import toast from "react-hot-toast";
 import styled from "styled-components";
 import { useProductStore } from "@/app/_zustand/store";
 import { formatVnd } from "@/lib/currency";
+import type { HomepageProduct } from "@/lib/homepage-products";
 import { normalizeCatalogImage } from "@/lib/publicCatalog";
 import { sanitize } from "@/lib/sanitize";
 
@@ -118,7 +119,7 @@ export default function ProductItem({
   compact = false,
   viewOnly = false,
 }: {
-  product: Product;
+  product: HomepageProduct;
   compact?: boolean;
   color?: string;
   viewOnly?: boolean;
