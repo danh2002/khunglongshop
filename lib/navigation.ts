@@ -30,27 +30,35 @@ export function getCollectorNavigationSlug(name: string, slug: string | null) {
 
 export const getNavigationData = unstable_cache(
   async () => {
-    const [categories, collectorSets] = await Promise.all([
-      prisma.category.findMany({
-        orderBy: { name: "asc" },
-        select: { id: true, name: true, slug: true, icon: true },
-      }),
-      prisma.collectorSet.findMany({
-        orderBy: { name: "asc" },
-        select: { id: true, name: true, slug: true, image: true },
-      }),
-    ]);
+    try {
+      const [categories, collectorSets] = await Promise.all([
+        prisma.category.findMany({
+          orderBy: { name: "asc" },
+          select: { id: true, name: true, slug: true, icon: true },
+        }),
+        prisma.collectorSet.findMany({
+          orderBy: { name: "asc" },
+          select: { id: true, name: true, slug: true, image: true },
+        }),
+      ]);
 
-    return {
-      categories: categories.map((category) => ({
-        ...category,
-        slug: getCategoryNavigationSlug(category.name, category.slug),
-      })),
-      collectorSets: collectorSets.map((set) => ({
-        ...set,
-        slug: getCollectorNavigationSlug(set.name, set.slug),
-      })),
-    };
+      return {
+        categories: categories.map((category) => ({
+          ...category,
+          slug: getCategoryNavigationSlug(category.name, category.slug),
+        })),
+        collectorSets: collectorSets.map((set) => ({
+          ...set,
+          slug: getCollectorNavigationSlug(set.name, set.slug),
+        })),
+      };
+    } catch (error) {
+      console.error("[navigation] Failed to load navigation data", error);
+      return {
+        categories: [] satisfies NavigationCategory[],
+        collectorSets: [] satisfies NavigationCollectorSet[],
+      };
+    }
   },
   ["navbar-navigation"],
   { revalidate: 300, tags: ["navbar-navigation"] }
