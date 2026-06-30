@@ -19,16 +19,28 @@ export type BlindBoxPoolValidation = {
   errors: string[];
 };
 
+type BlindBoxPoolValidationOptions = {
+  expectedSlotCount?: number;
+  enforceLastSlotRarer?: boolean;
+};
+
 export function validateBlindBoxPool(
-  entries: BlindBoxPoolInput[]
+  entries: BlindBoxPoolInput[],
+  options: BlindBoxPoolValidationOptions = {}
 ): BlindBoxPoolValidation {
   const errors: string[] = [];
   const productIds = new Set<string>();
   const slots = new Set<number>();
   let totalWeight = 0;
+  const expectedSlotCount = options.expectedSlotCount ?? BLIND_BOX_SLOT_COUNT;
+  const enforceLastSlotRarer = options.enforceLastSlotRarer ?? true;
 
-  if (entries.length !== BLIND_BOX_SLOT_COUNT) {
-    errors.push(`Pool phải có đúng ${BLIND_BOX_SLOT_COUNT} mẫu.`);
+  if (!Number.isInteger(expectedSlotCount) || expectedSlotCount < 1) {
+    errors.push("Pool phải có ít nhất 1 mẫu.");
+  }
+
+  if (entries.length !== expectedSlotCount) {
+    errors.push(`Pool phải có đúng ${expectedSlotCount} mẫu.`);
   }
 
   for (const entry of entries) {
@@ -41,6 +53,10 @@ export function validateBlindBoxPool(
       errors.push(`Slot ${entry.slotNumber} bị trùng.`);
     }
     slots.add(entry.slotNumber);
+
+    if (entry.slotNumber < 1 || entry.slotNumber > expectedSlotCount) {
+      errors.push(`Slot ${entry.slotNumber} nằm ngoài phạm vi 1-${expectedSlotCount}.`);
+    }
 
     if (
       !Number.isInteger(entry.drawWeight) ||
@@ -55,7 +71,7 @@ export function validateBlindBoxPool(
     totalWeight += entry.drawWeight;
   }
 
-  for (let slot = 1; slot <= BLIND_BOX_SLOT_COUNT; slot += 1) {
+  for (let slot = 1; slot <= expectedSlotCount; slot += 1) {
     if (!slots.has(slot)) errors.push(`Thiếu slot ${slot}.`);
   }
 
@@ -64,8 +80,8 @@ export function validateBlindBoxPool(
   }
 
   const first = entries.find((entry) => entry.slotNumber === 1);
-  const last = entries.find((entry) => entry.slotNumber === BLIND_BOX_SLOT_COUNT);
-  if (first && last && last.drawWeight >= first.drawWeight) {
+  const last = entries.find((entry) => entry.slotNumber === expectedSlotCount);
+  if (enforceLastSlotRarer && first && last && last.drawWeight >= first.drawWeight) {
     errors.push("Vanie 10 phải hiếm hơn Vanie 1.");
   }
 
@@ -99,4 +115,3 @@ export function selectWeightedEntry<T extends { drawWeight: number }>(
 export function hashCheckoutPayload(payload: unknown) {
   return createHash("sha256").update(JSON.stringify(payload)).digest("hex");
 }
-

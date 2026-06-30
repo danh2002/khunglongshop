@@ -25,6 +25,25 @@ describe("blind-box pool", () => {
     expect(validateBlindBoxPool(invalid).valid).toBe(false);
   });
 
+  it("accepts smaller published pools when a collection has fewer active variants", () => {
+    const smallPool = entries.slice(0, 3).map((entry) => ({
+      ...entry,
+      drawWeight: 100,
+      rarityTier: "COMMON" as const,
+    }));
+
+    expect(
+      validateBlindBoxPool(smallPool, {
+        expectedSlotCount: 3,
+        enforceLastSlotRarer: false,
+      })
+    ).toEqual({
+      valid: true,
+      totalWeight: 300,
+      errors: [],
+    });
+  });
+
   it("rejects a pool whose total weight exceeds 10,000,000", () => {
     const invalid = entries.map((entry) => ({
       ...entry,

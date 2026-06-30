@@ -266,13 +266,18 @@ export async function POST(request: Request) {
           if (product.isBlindBox) {
             const versions = product.blindBoxSet?.poolVersions ?? [];
             if (versions.length !== 1) throw new Error("BLIND_BOX_POOL_UNAVAILABLE");
+            const entries = versions[0].entries;
             const validation = validateBlindBoxPool(
-              versions[0].entries.map((entry) => ({
+              entries.map((entry) => ({
                 productId: entry.productId,
                 slotNumber: entry.slotNumber,
                 drawWeight: entry.drawWeight,
                 rarityTier: entry.rarityTier,
-              }))
+              })),
+              {
+                expectedSlotCount: entries.length,
+                enforceLastSlotRarer: false,
+              }
             );
             if (!validation.valid) throw new Error("BLIND_BOX_POOL_UNAVAILABLE");
           }

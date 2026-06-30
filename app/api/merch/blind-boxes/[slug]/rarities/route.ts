@@ -58,7 +58,10 @@ export async function GET(
     return NextResponse.json({ error: "BLIND_BOX_NOT_FOUND" }, { status: 404 });
   }
 
-  const validation = validateBlindBoxPool(version.entries);
+  const validation = validateBlindBoxPool(version.entries, {
+    expectedSlotCount: version.entries.length,
+    enforceLastSlotRarer: false,
+  });
   const invalidRelations = version.entries.some(
     (entry) =>
       !entry.product.isCollector ||
