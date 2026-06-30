@@ -336,6 +336,7 @@ const CheckoutPage = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [cartValidated, setCartValidated] = useState(false);
   const [isValidatingCart, setIsValidatingCart] = useState(true);
+  const [cartHydrated, setCartHydrated] = useState(false);
   const { products, total, clearCart, updateCartPrice } = useProductStore();
   const router = useRouter();
   const idempotencyKeyRef = useRef("");
@@ -506,14 +507,30 @@ const CheckoutPage = () => {
   };
 
   useEffect(() => {
+    setCartHydrated(useProductStore.persist.hasHydrated());
+    const unsubscribe = useProductStore.persist.onFinishHydration(() => {
+      setCartHydrated(true);
+    });
+
+    return unsubscribe;
+  }, []);
+
+  useEffect(() => {
+    if (!cartHydrated) return;
+
     if (products.length === 0) {
       toast.error("Giỏ hàng của bạn đang trống");
       router.push("/cart");
     }
-  }, [products.length, router]);
+  }, [cartHydrated, products.length, router]);
 
   useEffect(() => {
-    if (products.length === 0) return;
+    if (!cartHydrated) return;
+    if (products.length === 0) {
+      setIsValidatingCart(false);
+      return;
+    }
+
     let cancelled = false;
     setIsValidatingCart(true);
     validateCartItems(products)
@@ -540,7 +557,7 @@ const CheckoutPage = () => {
     return () => {
       cancelled = true;
     };
-  }, [products, updateCartPrice]);
+  }, [cartHydrated, products, updateCartPrice]);
 
   return (
     <CheckoutTheme>
