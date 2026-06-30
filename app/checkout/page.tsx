@@ -87,6 +87,14 @@ const ContactGrid = styled(FieldGrid)`
   }
 `;
 
+const TwoColumnRow = styled(FieldGrid)`
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+
+  @media (max-width: 600px) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+`;
+
 const ThreeColumnRow = styled.div`
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -106,6 +114,38 @@ const FieldLabel = styled.label`
   margin-bottom: 6px;
   color: #aaaaaa;
   font-size: 12px;
+`;
+
+const InlineOptions = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 24px;
+  margin-bottom: 18px;
+`;
+
+const OptionLabel = styled.label`
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: rgba(255, 255, 255, 0.84);
+  font-size: 15px;
+  cursor: pointer;
+
+  input {
+    width: 15px;
+    height: 15px;
+    accent-color: #e85d00;
+  }
+`;
+
+const AddressPanel = styled.div`
+  display: grid;
+  gap: 16px;
+  margin-top: 14px;
+  padding: 18px;
+  border: 1px solid rgba(255, 106, 0, 0.14);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.055);
 `;
 
 const fieldStyles = `
@@ -136,6 +176,11 @@ const fieldStyles = `
 
 const TextInput = styled.input`
   ${fieldStyles}
+`;
+
+const SelectInput = styled.select`
+  ${fieldStyles}
+  appearance: auto;
 `;
 
 const TextArea = styled.textarea`
@@ -317,8 +362,25 @@ const TrustBadges = styled.div`
   }
 `;
 
+function splitCustomerName(fullName: string) {
+  const parts = fullName.trim().split(/\s+/).filter(Boolean);
+  if (parts.length <= 1) {
+    const fallback = parts[0] || "";
+    return { name: fallback, lastname: fallback };
+  }
+
+  const name = parts.slice(0, -1).join(" ");
+  const lastname = parts[parts.length - 1];
+
+  return {
+    name: name.length >= 2 ? name : fullName.trim(),
+    lastname: lastname.length >= 2 ? lastname : fullName.trim(),
+  };
+}
+
 const CheckoutPage = () => {
   const { data: session } = useSession();
+  const [customerTitle, setCustomerTitle] = useState<"Anh" | "Chị">("Anh");
   const [checkoutForm, setCheckoutForm] = useState({
     name: "",
     lastname: "",
@@ -344,59 +406,33 @@ const CheckoutPage = () => {
   // Add validation functions that match server requirements
   const validateForm = () => {
     const errors: string[] = [];
-    
-    // Name validation
-    if (!checkoutForm.name.trim() || checkoutForm.name.trim().length < 2) {
-      errors.push("Họ phải có ít nhất 2 ký tự");
+    const fullName = checkoutForm.name.trim();
+
+    if (!fullName || fullName.length < 2) {
+      errors.push("Vui lòng nhập họ tên người nhận");
     }
-    
-    // Lastname validation
-    if (!checkoutForm.lastname.trim() || checkoutForm.lastname.trim().length < 2) {
-      errors.push("Tên phải có ít nhất 2 ký tự");
+
+    const phoneDigitsValue = checkoutForm.phone.replace(/[^0-9]/g, "");
+    if (!checkoutForm.phone.trim() || phoneDigitsValue.length < 10) {
+      errors.push("Vui lòng nhập số điện thoại hợp lệ");
     }
-    
-    // Email validation
-    const emailRegex = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
-    if (!checkoutForm.email.trim() || !emailRegex.test(checkoutForm.email.trim())) {
-      errors.push("Vui lòng nhập địa chỉ email hợp lệ");
+
+    if (!checkoutForm.country.trim()) {
+      errors.push("Vui lòng chọn Tỉnh, Thành phố");
     }
-    
-    // Phone validation (must be at least 10 digits)
-    const phoneDigits = checkoutForm.phone.replace(/[^0-9]/g, '');
-    if (!checkoutForm.phone.trim() || phoneDigits.length < 10) {
-      errors.push("Số điện thoại phải có ít nhất 10 số");
+
+    if (!checkoutForm.city.trim()) {
+      errors.push("Vui lòng chọn Quận, Huyện");
     }
-    
-    // Company validation
-    if (!checkoutForm.company.trim() || checkoutForm.company.trim().length < 5) {
-      errors.push("Tên công ty phải có ít nhất 5 ký tự");
-    }
-    
-    // Address validation
-    if (!checkoutForm.adress.trim() || checkoutForm.adress.trim().length < 5) {
-      errors.push("Địa chỉ phải có ít nhất 5 ký tự");
-    }
-    
-    // Apartment validation (updated to 1 character minimum)
-    if (!checkoutForm.apartment.trim() || checkoutForm.apartment.trim().length < 1) {
-      errors.push("Vui lòng nhập số nhà hoặc tòa nhà");
-    }
-    
-    // City validation
-    if (!checkoutForm.city.trim() || checkoutForm.city.trim().length < 5) {
-      errors.push("Tên thành phố phải có ít nhất 5 ký tự");
-    }
-    
-    // Country validation
-    if (!checkoutForm.country.trim() || checkoutForm.country.trim().length < 5) {
-      errors.push("Tên quốc gia phải có ít nhất 5 ký tự");
-    }
-    
-    // Postal code validation
+
     if (!checkoutForm.postalCode.trim() || checkoutForm.postalCode.trim().length < 3) {
-      errors.push("Mã bưu điện phải có ít nhất 3 ký tự");
+      errors.push("Vui lòng chọn Phường, Xã");
     }
-    
+
+    if (!checkoutForm.adress.trim() || checkoutForm.adress.trim().length < 5) {
+      errors.push("Vui lòng nhập số nhà, tên đường");
+    }
+
     return errors;
   };
 
@@ -449,23 +485,35 @@ const CheckoutPage = () => {
         idempotencyKeyRef.current = crypto.randomUUID();
       }
 
+      const customerName = splitCustomerName(checkoutForm.name);
+      const fullAddress = [
+        checkoutForm.adress.trim(),
+        checkoutForm.postalCode.trim(),
+        checkoutForm.city.trim(),
+        checkoutForm.country.trim(),
+      ].filter(Boolean).join(", ");
+      const orderNotice = [
+        `Xưng hô: ${customerTitle}`,
+        checkoutForm.orderNotice.trim(),
+      ].filter(Boolean).join(" | ");
+
       const response = await fetch("/api/orders", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           idempotencyKey: idempotencyKeyRef.current,
           shipping: {
-            name: checkoutForm.name.trim(),
-            lastname: checkoutForm.lastname.trim(),
+            name: customerName.name,
+            lastname: customerName.lastname,
             phone: checkoutForm.phone.trim(),
             email: session.user.email.trim().toLowerCase(),
-            company: checkoutForm.company.trim(),
-            address: checkoutForm.adress.trim(),
-            apartment: checkoutForm.apartment.trim(),
+            company: "Khách lẻ",
+            address: fullAddress,
+            apartment: checkoutForm.adress.trim(),
             postalCode: checkoutForm.postalCode.trim(),
             city: checkoutForm.city.trim(),
             country: checkoutForm.country.trim(),
-            orderNotice: checkoutForm.orderNotice.trim(),
+            orderNotice,
           },
           items: products.map((product) => ({
             productId: product.id,
@@ -567,60 +615,58 @@ const CheckoutPage = () => {
         <h1 className="sr-only">Thông tin đơn hàng</h1>
 
         <CheckoutForm onSubmit={(event) => event.preventDefault()}>
-          <FormSection aria-labelledby="contact-info-heading">
-            <SectionHeading id="contact-info-heading">Thông tin liên hệ</SectionHeading>
+          <FormSection aria-labelledby="buyer-info-heading">
+            <SectionHeading id="buyer-info-heading">Thông tin khách mua hàng</SectionHeading>
+            <InlineOptions>
+              <OptionLabel>
+                <input
+                  type="radio"
+                  name="customer-title"
+                  value="Anh"
+                  checked={customerTitle === "Anh"}
+                  onChange={() => setCustomerTitle("Anh")}
+                  disabled={isSubmitting}
+                />
+                Anh
+              </OptionLabel>
+              <OptionLabel>
+                <input
+                  type="radio"
+                  name="customer-title"
+                  value="Chị"
+                  checked={customerTitle === "Chị"}
+                  onChange={() => setCustomerTitle("Chị")}
+                  disabled={isSubmitting}
+                />
+                Chị
+              </OptionLabel>
+            </InlineOptions>
             <ContactGrid>
               <Field>
-                <FieldLabel htmlFor="name-input">Họ * (tối thiểu 2 ký tự)</FieldLabel>
+                <FieldLabel htmlFor="full-name-input">Nhập họ tên</FieldLabel>
                 <TextInput
                   value={checkoutForm.name}
                   onChange={(event) => setCheckoutForm({ ...checkoutForm, name: event.target.value })}
                   type="text"
-                  id="name-input"
-                  name="name-input"
-                  autoComplete="given-name"
+                  id="full-name-input"
+                  name="full-name"
+                  autoComplete="name"
+                  placeholder="Nhập họ tên"
                   required
                   disabled={isSubmitting}
                 />
               </Field>
 
               <Field>
-                <FieldLabel htmlFor="lastname-input">Tên * (tối thiểu 2 ký tự)</FieldLabel>
-                <TextInput
-                  value={checkoutForm.lastname}
-                  onChange={(event) => setCheckoutForm({ ...checkoutForm, lastname: event.target.value })}
-                  type="text"
-                  id="lastname-input"
-                  name="lastname-input"
-                  autoComplete="family-name"
-                  required
-                  disabled={isSubmitting}
-                />
-              </Field>
-
-              <Field>
-                <FieldLabel htmlFor="phone-input">Số điện thoại * (tối thiểu 10 số)</FieldLabel>
+                <FieldLabel htmlFor="phone-input">Số điện thoại</FieldLabel>
                 <TextInput
                   value={checkoutForm.phone}
                   onChange={(event) => setCheckoutForm({ ...checkoutForm, phone: event.target.value })}
                   type="tel"
                   id="phone-input"
-                  name="phone-input"
+                  name="phone"
                   autoComplete="tel"
-                  required
-                  disabled={isSubmitting}
-                />
-              </Field>
-
-              <Field>
-                <FieldLabel htmlFor="email-address">Địa chỉ email *</FieldLabel>
-                <TextInput
-                  value={checkoutForm.email}
-                  onChange={(event) => setCheckoutForm({ ...checkoutForm, email: event.target.value })}
-                  type="email"
-                  id="email-address"
-                  name="email-address"
-                  autoComplete="email"
+                  placeholder="Nhập số điện thoại"
                   required
                   disabled={isSubmitting}
                 />
@@ -628,112 +674,93 @@ const CheckoutPage = () => {
             </ContactGrid>
           </FormSection>
 
-          <PaymentNotice>
-            <strong>Thông tin thanh toán</strong>
-            <p>
-              Thanh toán sẽ được xử lý sau khi đơn hàng được xác nhận. Chúng tôi sẽ liên hệ để cung cấp thông tin thanh toán.
-            </p>
-          </PaymentNotice>
-
-          <FormSection aria-labelledby="shipping-heading">
-            <SectionHeading id="shipping-heading">Địa chỉ giao hàng</SectionHeading>
-            <FieldGrid>
-              <Field>
-                <FieldLabel htmlFor="company">Công ty *</FieldLabel>
-                <TextInput
-                  type="text"
-                  id="company"
-                  name="company"
-                  required
-                  disabled={isSubmitting}
-                  value={checkoutForm.company}
-                  onChange={(event) => setCheckoutForm({ ...checkoutForm, company: event.target.value })}
-                />
-              </Field>
-
-              <Field>
-                <FieldLabel htmlFor="address">Địa chỉ *</FieldLabel>
-                <TextInput
-                  type="text"
-                  id="address"
-                  name="address"
-                  autoComplete="street-address"
-                  required
-                  disabled={isSubmitting}
-                  value={checkoutForm.adress}
-                  onChange={(event) => setCheckoutForm({ ...checkoutForm, adress: event.target.value })}
-                />
-              </Field>
-
-              <Field>
-                <FieldLabel htmlFor="apartment">Số nhà, tòa nhà, v.v. *</FieldLabel>
-                <TextInput
-                  type="text"
-                  id="apartment"
-                  name="apartment"
-                  required
-                  disabled={isSubmitting}
-                  value={checkoutForm.apartment}
-                  onChange={(event) => setCheckoutForm({ ...checkoutForm, apartment: event.target.value })}
-                />
-              </Field>
-
-              <ThreeColumnRow>
+          <FormSection aria-labelledby="delivery-method-heading">
+            <SectionHeading id="delivery-method-heading">Chọn cách nhận hàng</SectionHeading>
+            <InlineOptions>
+              <OptionLabel>
+                <input type="radio" name="delivery-method" checked readOnly />
+                Giao hàng tận nơi
+              </OptionLabel>
+            </InlineOptions>
+            <AddressPanel>
+              <TwoColumnRow>
                 <Field>
-                  <FieldLabel htmlFor="city">Thành phố *</FieldLabel>
-                  <TextInput
-                    type="text"
-                    id="city"
-                    name="city"
-                    autoComplete="address-level2"
-                    required
-                    disabled={isSubmitting}
-                    value={checkoutForm.city}
-                    onChange={(event) => setCheckoutForm({ ...checkoutForm, city: event.target.value })}
-                  />
-                </Field>
-
-                <Field>
-                  <FieldLabel htmlFor="region">Quốc gia *</FieldLabel>
-                  <TextInput
-                    type="text"
-                    id="region"
-                    name="region"
-                    autoComplete="country-name"
+                  <FieldLabel htmlFor="province-select">Tỉnh, Thành phố</FieldLabel>
+                  <SelectInput
+                    id="province-select"
+                    name="province"
                     required
                     disabled={isSubmitting}
                     value={checkoutForm.country}
                     onChange={(event) => setCheckoutForm({ ...checkoutForm, country: event.target.value })}
-                  />
+                  >
+                    <option value="">Chọn Tỉnh, Thành phố</option>
+                    <option value="TP. Hồ Chí Minh">TP. Hồ Chí Minh</option>
+                    <option value="Hà Nội">Hà Nội</option>
+                    <option value="Đà Nẵng">Đà Nẵng</option>
+                    <option value="Bình Dương">Bình Dương</option>
+                    <option value="Đồng Nai">Đồng Nai</option>
+                    <option value="Khác">Khác</option>
+                  </SelectInput>
                 </Field>
 
                 <Field>
-                  <FieldLabel htmlFor="postal-code">Mã bưu điện *</FieldLabel>
+                  <FieldLabel htmlFor="district-input">Quận, Huyện</FieldLabel>
                   <TextInput
-                    type="text"
-                    id="postal-code"
-                    name="postal-code"
-                    autoComplete="postal-code"
+                    id="district-input"
+                    name="district"
+                    required
+                    disabled={isSubmitting}
+                    value={checkoutForm.city}
+                    onChange={(event) => setCheckoutForm({ ...checkoutForm, city: event.target.value })}
+                    placeholder="Chọn Quận, Huyện"
+                  />
+                </Field>
+              </TwoColumnRow>
+
+              <TwoColumnRow>
+                <Field>
+                  <FieldLabel htmlFor="ward-input">Phường, Xã</FieldLabel>
+                  <TextInput
+                    id="ward-input"
+                    name="ward"
                     required
                     disabled={isSubmitting}
                     value={checkoutForm.postalCode}
                     onChange={(event) => setCheckoutForm({ ...checkoutForm, postalCode: event.target.value })}
+                    placeholder="Chọn Phường, Xã"
                   />
                 </Field>
-              </ThreeColumnRow>
 
-              <Field>
-                <FieldLabel htmlFor="order-notice">Ghi chú đơn hàng</FieldLabel>
-                <TextArea
-                  id="order-notice"
-                  name="order-notice"
-                  disabled={isSubmitting}
-                  value={checkoutForm.orderNotice}
-                  onChange={(event) => setCheckoutForm({ ...checkoutForm, orderNotice: event.target.value })}
-                />
-              </Field>
-            </FieldGrid>
+                <Field>
+                  <FieldLabel htmlFor="street-address-input">Số nhà, tên đường</FieldLabel>
+                  <TextInput
+                    id="street-address-input"
+                    name="street-address"
+                    autoComplete="street-address"
+                    required
+                    disabled={isSubmitting}
+                    value={checkoutForm.adress}
+                    onChange={(event) => setCheckoutForm({ ...checkoutForm, adress: event.target.value })}
+                    placeholder="Số nhà, tên đường"
+                  />
+                </Field>
+              </TwoColumnRow>
+            </AddressPanel>
+
+            <Field style={{ marginTop: 24 }}>
+              <FieldLabel htmlFor="order-notice">Lưu ý, yêu cầu khác</FieldLabel>
+              <TextInput
+                id="order-notice"
+                name="order-notice"
+                disabled={isSubmitting}
+                value={checkoutForm.orderNotice}
+                onChange={(event) => setCheckoutForm({ ...checkoutForm, orderNotice: event.target.value })}
+                placeholder="Lưu ý, yêu cầu khác (Không bắt buộc)"
+              />
+            </Field>
           </FormSection>
+
         </CheckoutForm>
 
         <SummaryColumn>
