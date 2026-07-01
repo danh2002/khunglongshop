@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import styled from "styled-components";
-import LanguageSwitcher from "./LanguageSwitcher";
 
 const FooterShell = styled.footer`
   border-top: 1px solid #1a1a1a;
@@ -166,7 +165,6 @@ export default function Footer() {
 
         <Bottom>
           <span>© {new Date().getFullYear()} Đảo Khủng Long · All rights reserved</span>
-          <LanguageSwitcher />
         </Bottom>
       </Inner>
     </FooterShell>
