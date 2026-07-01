@@ -53,6 +53,21 @@ describe("adminProductSchema image fields", () => {
     expect(result.success).toBe(false);
   });
 
+  it("accepts Vercel Blob image URLs from production uploads", () => {
+    const blobUrl = "https://khunglongshop.public.blob.vercel-storage.com/images/products/main.webp";
+    const result = adminProductSchema.safeParse({
+      ...validProduct,
+      mainImage: blobUrl,
+      images: [blobUrl],
+    });
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.mainImage).toBe(blobUrl);
+      expect(result.data.images).toEqual([blobUrl]);
+    }
+  });
+
   it("accepts and normalizes legacy product image paths", () => {
     const result = adminProductSchema.safeParse({
       ...validProduct,

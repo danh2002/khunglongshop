@@ -38,6 +38,19 @@ describe("adminHomepageSliderSchema", () => {
     expect(result.ctaUrl).toBeNull();
   });
 
+  it("accepts Vercel Blob image URLs from production uploads", () => {
+    const blobUrl = "https://khunglongshop.public.blob.vercel-storage.com/images/homepage-slider/hero.webp";
+    const result = adminHomepageSliderSchema.safeParse({
+      ...validSlideInput,
+      imageUrl: blobUrl,
+    });
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.imageUrl).toBe(blobUrl);
+    }
+  });
+
   it("rejects missing required slide fields", () => {
     expect(
       adminHomepageSliderSchema.safeParse({

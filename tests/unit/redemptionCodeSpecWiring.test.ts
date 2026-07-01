@@ -5,6 +5,31 @@ import { describe, expect, it } from "vitest";
 const source = (relativePath: string) =>
   readFileSync(path.join(process.cwd(), relativePath), "utf8");
 
+const mojibakePattern = /\u00c3|\u00c2|\u00c4|\u00e1\u00ba|\u00c6|\u00e2\u2020/;
+const mojibakeShopVisibilityLabel = String.fromCharCode(
+  0x48,
+  0x69,
+  0xe1,
+  0xbb,
+  0x192,
+  0x6e,
+  0x20,
+  0x74,
+  0x68,
+  0xe1,
+  0xbb,
+  0x2039,
+  0x20,
+  0xe1,
+  0xbb,
+  0x178,
+  0x20,
+  0x73,
+  0x68,
+  0x6f,
+  0x70,
+);
+
 describe("issue 5 redemption-code spec wiring", () => {
   it("creates admin redemption codes as single-product unowned atomic requests with audit logging", () => {
     const route = source("app/api/admin/redemption-codes/route.ts");
@@ -80,7 +105,7 @@ describe("issue 5 redemption-code spec wiring", () => {
     expect(registerPage).not.toContain("Mã xác thực");
     expect(registerRoute).not.toContain("challengeId");
     expect(registerRoute).not.toContain("consumeToken");
-    expect(registerPage).not.toMatch(/Ã|Â|Ä|áº|Æ|â†/);
+    expect(registerPage).not.toMatch(mojibakePattern);
   });
 
   it("exposes a manual-copy fallback for generated codes", () => {
@@ -96,7 +121,7 @@ describe("issue 5 redemption-code spec wiring", () => {
     const form = source("components/AdminProductForm.tsx");
 
     expect(form).toContain("Hiển thị ở shop");
-    expect(form).not.toContain("Hiá»ƒn thá»‹ á»Ÿ shop");
+    expect(form).not.toContain(mojibakeShopVisibilityLabel);
   });
 
   it("uses blind-box set data for the product detail collection copy", () => {

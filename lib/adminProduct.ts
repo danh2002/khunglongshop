@@ -3,6 +3,9 @@ import { z } from "zod";
 export const productSortFields = ["title", "price", "inStock"] as const;
 export const stockFilters = ["all", "in-stock", "out-of-stock"] as const;
 
+const LOCAL_IMAGE_PATH_PATTERN = /^\/images\/[A-Za-z0-9._/-]+$/;
+const VERCEL_BLOB_HOST_SUFFIX = ".public.blob.vercel-storage.com";
+
 export function normalizeSlug(value: string) {
   return value
     .trim()
@@ -11,18 +14,30 @@ export function normalizeSlug(value: string) {
     .replace(/^-+|-+$/g, "");
 }
 
-function normalizeLocalImagePath(value: string) {
+function normalizeAdminImagePath(value: string) {
   const path = value.trim();
+  if (/^https?:\/\//i.test(path)) return path;
   return path.startsWith("images/") ? `/${path}` : path;
 }
 
-const localImagePathSchema = z
+function isAllowedAdminImagePath(value: string) {
+  if (LOCAL_IMAGE_PATH_PATTERN.test(value)) return true;
+
+  try {
+    const url = new URL(value);
+    return url.protocol === "https:" && url.hostname.endsWith(VERCEL_BLOB_HOST_SUFFIX);
+  } catch {
+    return false;
+  }
+}
+
+const adminImagePathSchema = z
   .string()
-  .transform(normalizeLocalImagePath)
+  .transform(normalizeAdminImagePath)
   .pipe(
     z
       .string()
-      .regex(/^\/images\/[A-Za-z0-9._/-]+$/, "Ảnh phải là path trong /images")
+      .refine(isAllowedAdminImagePath, "Ảnh phải là path trong /images hoặc URL Vercel Blob")
   );
 
 const galleryImagesSchema = z.preprocess((value) => {
@@ -33,7 +48,7 @@ const galleryImagesSchema = z.preprocess((value) => {
   } catch {
     return value;
   }
-}, z.array(localImagePathSchema).max(8, "Tối đa 8 ảnh phụ"));
+}, z.array(adminImagePathSchema).max(8, "Tối đa 8 ảnh phụ"));
 
 const nullableSlotSchema = z.preprocess(
   (value) => (value === "" || value === "null" || value === undefined ? null : value),
@@ -44,7 +59,7 @@ export const adminProductSchema = z
   .object({
     title: z.string().trim().min(1, "Tên sản phẩm là bắt buộc").max(180),
     slug: z.string().trim().min(1, "Slug là bắt buộc").max(180).transform(normalizeSlug),
-    mainImage: localImagePathSchema,
+    mainImage: adminImagePathSchema,
     images: galleryImagesSchema.optional().default([]),
     price: z.coerce.number().int().min(0, "Giá phải là số VND không âm"),
     rating: z.coerce.number().int().min(0).max(5).optional().default(5),
@@ -124,6 +139,8 @@ export function parseProductImages(images: string | null | undefined): string[] 
 }
 
 export function normalizeImageForDisplay(path: string | null | undefined) {
-  if (!path) return "/product_placeholder.jpg";
-  return path.startsWith("/") ? path : `/${path}`;
+  const imagePath = path?.trim();
+  if (!imagePath) return "/product_placeholder.jpg";
+  if (/^https?:\/\//i.test(imagePath)) return imagePath;
+  return imagePath.startsWith("/") ? imagePath : `/${imagePath}`;
 }

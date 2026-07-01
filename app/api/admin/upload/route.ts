@@ -1,11 +1,13 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
+import { put } from "@vercel/blob";
 import { NextRequest, NextResponse } from "next/server";
 import { requireAdminApi } from "@/utils/adminAuth";
 
 export const runtime = "nodejs";
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024;
+const BLOB_CACHE_MAX_AGE = 60 * 60 * 24 * 30;
 const ALLOWED_IMAGE_TYPES = new Set([
   "image/jpeg",
   "image/png",
@@ -38,6 +40,10 @@ function sanitizeFilename(filename: string, mimeType: string) {
     .slice(0, 80);
 
   return `${basename || "product"}${extension}`;
+}
+
+function shouldUseBlobStorage() {
+  return Boolean(process.env.BLOB_READ_WRITE_TOKEN || process.env.VERCEL || process.env.VERCEL_OIDC_TOKEN);
 }
 
 export async function POST(request: NextRequest) {
@@ -73,13 +79,29 @@ export async function POST(request: NextRequest) {
 
   const uploadDirectory = path.join(process.cwd(), "public", "images", folder);
   const filename = `${Date.now()}-${crypto.randomUUID().slice(0, 8)}-${sanitizeFilename(file.name, file.type)}`;
+  const fileBuffer = Buffer.from(await file.arrayBuffer());
 
   try {
+    if (shouldUseBlobStorage()) {
+      const blob = await put(`images/${folder}/${filename}`, fileBuffer, {
+        access: "public",
+        contentType: file.type,
+        cacheControlMaxAge: BLOB_CACHE_MAX_AGE,
+      });
+
+      return NextResponse.json({ url: blob.url });
+    }
+
     await mkdir(uploadDirectory, { recursive: true });
-    await writeFile(path.join(uploadDirectory, filename), Buffer.from(await file.arrayBuffer()));
+    await writeFile(path.join(uploadDirectory, filename), fileBuffer);
   } catch {
     return NextResponse.json(
-      { error: { code: "UPLOAD_FAILED", message: "Không thể lưu ảnh" } },
+      {
+        error: {
+          code: "UPLOAD_FAILED",
+          message: "Không thể lưu ảnh. Nếu đang chạy trên Vercel, hãy kết nối Vercel Blob với project.",
+        },
+      },
       { status: 500 }
     );
   }

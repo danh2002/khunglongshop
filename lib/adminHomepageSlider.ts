@@ -42,18 +42,33 @@ export type HomepageSliderPrismaClient = {
   homepageSliderSlide: HomepageSliderModel;
 };
 
-function normalizeLocalImagePath(value: string) {
+const LOCAL_IMAGE_PATH_PATTERN = /^\/images\/[A-Za-z0-9._/-]+$/;
+const VERCEL_BLOB_HOST_SUFFIX = ".public.blob.vercel-storage.com";
+
+function normalizeSliderImagePath(value: string) {
   const path = value.trim();
+  if (/^https?:\/\//i.test(path)) return path;
   return path.startsWith("images/") ? `/${path}` : path;
 }
 
-const localImagePathSchema = z
+function isAllowedSliderImagePath(value: string) {
+  if (LOCAL_IMAGE_PATH_PATTERN.test(value)) return true;
+
+  try {
+    const url = new URL(value);
+    return url.protocol === "https:" && url.hostname.endsWith(VERCEL_BLOB_HOST_SUFFIX);
+  } catch {
+    return false;
+  }
+}
+
+const sliderImagePathSchema = z
   .string()
-  .transform(normalizeLocalImagePath)
+  .transform(normalizeSliderImagePath)
   .pipe(
     z
       .string()
-      .regex(/^\/images\/[A-Za-z0-9._/-]+$/, "Ảnh phải là path trong /images")
+      .refine(isAllowedSliderImagePath, "Ảnh phải là path trong /images hoặc URL Vercel Blob")
   );
 
 export const nullableTextSchema = z
@@ -77,7 +92,7 @@ export const ctaUrlSchema = nullableTextSchema.refine(
 
 export const adminHomepageSliderSchema = z
   .object({
-    imageUrl: localImagePathSchema,
+    imageUrl: sliderImagePathSchema,
     title: z.string().trim().min(1, "Tiêu đề là bắt buộc").max(180),
     subtitle: nullableTextSchema,
     eyebrow: nullableTextSchema,

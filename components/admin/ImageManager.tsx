@@ -212,8 +212,8 @@ export default function ImageManager({
     onUploadingChange?.(true);
     try {
       onMainImageChange(await uploadImage(file));
-    } catch {
-      toast.error("Tải ảnh thất bại, thử lại");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Tải ảnh thất bại, thử lại");
     } finally {
       setIsMainUploading(false);
       onUploadingChange?.(false);
@@ -240,8 +240,8 @@ export default function ImageManager({
     try {
       const uploadedUrls = await Promise.all(selectedFiles.slice(0, remainingSlots).map(uploadImage));
       onImagesChange([...images, ...uploadedUrls]);
-    } catch {
-      toast.error("Tải ảnh thất bại, thử lại");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Tải ảnh thất bại, thử lại");
     } finally {
       setIsGalleryUploading(false);
       onUploadingChange?.(false);
