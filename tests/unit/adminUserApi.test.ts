@@ -151,7 +151,7 @@ describe("admin user API", () => {
     expect(payload.error.code).toBe("EMAIL_ALREADY_EXISTS");
   });
 
-  it("forbids self-demotion inside a serializable transaction", async () => {
+  it("forbids self-demotion inside a TiDB-compatible repeatable-read transaction", async () => {
     mocks.userFindUnique.mockResolvedValue({
       id: "admin-1",
       email: "admin@example.com",
@@ -174,7 +174,7 @@ describe("admin user API", () => {
     expect(mocks.transaction).toHaveBeenCalledWith(
       expect.any(Function),
       expect.objectContaining({
-        isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
+        isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead,
       })
     );
     expect(mocks.userUpdate).not.toHaveBeenCalled();
@@ -198,7 +198,7 @@ describe("admin user API", () => {
       2,
       expect.any(Function),
       expect.objectContaining({
-        isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
+        isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead,
       })
     );
   });

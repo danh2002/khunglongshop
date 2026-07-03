@@ -1,7 +1,8 @@
 import { Prisma } from "@prisma/client";
 import prisma from "@/utils/db";
 
-const SERIALIZABLE_RETRY_LIMIT = 3;
+const USER_MUTATION_RETRY_LIMIT = 3;
+const USER_MUTATION_ISOLATION_LEVEL = Prisma.TransactionIsolationLevel.RepeatableRead;
 
 export class AdminUserMutationError extends Error {
   constructor(
@@ -29,20 +30,20 @@ function isRetryableTransactionError(error: unknown) {
 export async function runSerializableAdminUserMutation<T>(
   mutation: (transaction: Prisma.TransactionClient) => Promise<T>
 ) {
-  for (let attempt = 1; attempt <= SERIALIZABLE_RETRY_LIMIT; attempt += 1) {
+  for (let attempt = 1; attempt <= USER_MUTATION_RETRY_LIMIT; attempt += 1) {
     try {
       return await prisma.$transaction(mutation, {
-        isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
+        isolationLevel: USER_MUTATION_ISOLATION_LEVEL,
       });
     } catch (error) {
       if (
         !isRetryableTransactionError(error) ||
-        attempt === SERIALIZABLE_RETRY_LIMIT
+        attempt === USER_MUTATION_RETRY_LIMIT
       ) {
         throw error;
       }
     }
   }
 
-  throw new Error("Serializable transaction retry limit exhausted.");
+  throw new Error("Admin user mutation retry limit exhausted.");
 }
