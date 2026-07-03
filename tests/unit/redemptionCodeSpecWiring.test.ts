@@ -74,7 +74,7 @@ describe("issue 5 redemption-code spec wiring", () => {
     expect(page).toContain("normalizeCatalogImage(slot.product.image)");
   });
 
-  it("keeps public collection links on the public catalog and account links protected", () => {
+  it("routes collection CTAs to the account collection page", () => {
     const accountPage = source("app/account/page.tsx");
     const header = source("components/Header.tsx");
     const footer = source("components/Footer.tsx");
@@ -82,12 +82,10 @@ describe("issue 5 redemption-code spec wiring", () => {
     const collectorBanner = source("components/CollectorBanner.tsx");
 
     expect(accountPage).toContain('href="/account/collection" prefetch={false}');
-    expect(header).toContain('href="/bo-suu-tap"');
-    expect(header).not.toContain('href="/account/collection"');
-    expect(footer).toContain('href="/bo-suu-tap"');
-    expect(footer).not.toContain('href="/account/collection"');
-    expect(featuredSeries).toContain('href="/bo-suu-tap"');
-    expect(collectorBanner).toContain('href="/bo-suu-tap"');
+    expect(header).toContain('href="/account/collection" prefetch={false}');
+    expect(footer).toContain('href="/account/collection" prefetch={false}');
+    expect(featuredSeries).toContain('href="/account/collection" prefetch={false}');
+    expect(collectorBanner).toContain('href="/account/collection" prefetch={false}');
   });
 
   it("redirects unauthenticated wishlist visitors to login", () => {
