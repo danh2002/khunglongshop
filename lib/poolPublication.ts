@@ -95,6 +95,6 @@ export async function publishBlindBoxPoolVersion(
       });
       return published;
     },
-    { isolationLevel: Prisma.TransactionIsolationLevel.Serializable }
+    { isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead }
   );
 }

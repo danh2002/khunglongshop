@@ -110,7 +110,7 @@ export async function POST(
         });
         return created;
       },
-      { isolationLevel: Prisma.TransactionIsolationLevel.Serializable }
+      { isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead }
     );
 
     return NextResponse.json(draft, { status: 201 });
@@ -121,4 +121,3 @@ export async function POST(
     throw error;
   }
 }
-

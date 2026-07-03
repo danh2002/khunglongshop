@@ -85,7 +85,7 @@ export async function cancelOrder(input: {
 
       return cancelled;
     },
-    { isolationLevel: Prisma.TransactionIsolationLevel.Serializable }
+    { isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead }
   );
 }
 
