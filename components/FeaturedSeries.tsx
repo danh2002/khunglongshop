@@ -165,7 +165,7 @@ export default function FeaturedSeries({
           <CoverText>
             <Title>Vanie Series</Title>
             <Meta>10 nhân vật · 1 phiên bản hiếm</Meta>
-            <Explore href="/account/collection" prefetch={false}>Khám phá</Explore>
+            <Explore href="/bo-suu-tap">Khám phá</Explore>
           </CoverText>
         </Cover>
 

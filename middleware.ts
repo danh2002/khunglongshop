@@ -36,6 +36,10 @@ export default withAuth(
   async function middleware(req) {
     const pathname = req.nextUrl.pathname;
 
+    if (pathname.startsWith("/admin") && req.nextauth.token && req.nextauth.token.role !== "admin") {
+      return NextResponse.redirect(new URL("/", req.url));
+    }
+
     if (!isMaintenanceBypassPath(pathname) && (await isMaintenanceEnabled())) {
       if (pathname.startsWith("/api/")) {
         return NextResponse.json(

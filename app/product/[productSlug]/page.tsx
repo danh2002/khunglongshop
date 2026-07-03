@@ -67,6 +67,7 @@ export default async function SingleProductPage({
   const variants = product.blindBoxSet?.poolVersions[0]?.entries ?? [];
   const collectionName = product.blindBoxSet?.name ?? "Bộ sưu tập";
   const collectionTotalSlots = product.blindBoxSet?.totalSlots ?? variants.length;
+  const availableVariantCount = variants.length || collectionTotalSlots;
   const isCollectorProduct = Boolean(product.isCollector);
 
   return (
@@ -111,7 +112,7 @@ export default async function SingleProductPage({
             Bộ sưu tập {sanitize(collectionName)}
           </p>
           <h2 className="mt-2 text-3xl font-black uppercase italic">
-            {collectionTotalSlots} mẫu {sanitize(collectionName)} có thể nhận
+            {availableVariantCount} mẫu {sanitize(collectionName)} có thể nhận
           </h2>
           <p className="mt-3 max-w-2xl text-white/55">
             Mỗi túi chứa ngẫu nhiên một mẫu. Độ hiếm được công bố theo cấp,

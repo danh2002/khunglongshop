@@ -74,14 +74,27 @@ describe("issue 5 redemption-code spec wiring", () => {
     expect(page).toContain("normalizeCatalogImage(slot.product.image)");
   });
 
-  it("disables prefetch for protected account collection links", () => {
+  it("keeps public collection links on the public catalog and account links protected", () => {
     const accountPage = source("app/account/page.tsx");
     const header = source("components/Header.tsx");
     const footer = source("components/Footer.tsx");
+    const featuredSeries = source("components/FeaturedSeries.tsx");
+    const collectorBanner = source("components/CollectorBanner.tsx");
 
     expect(accountPage).toContain('href="/account/collection" prefetch={false}');
-    expect(header).toContain('href="/account/collection" prefetch={false}');
-    expect(footer).toContain('href="/account/collection" prefetch={false}');
+    expect(header).toContain('href="/bo-suu-tap"');
+    expect(header).not.toContain('href="/account/collection"');
+    expect(footer).toContain('href="/bo-suu-tap"');
+    expect(footer).not.toContain('href="/account/collection"');
+    expect(featuredSeries).toContain('href="/bo-suu-tap"');
+    expect(collectorBanner).toContain('href="/bo-suu-tap"');
+  });
+
+  it("redirects unauthenticated wishlist visitors to login", () => {
+    const page = source("app/wishlist/page.tsx");
+
+    expect(page).toContain("getServerSession(authOptions)");
+    expect(page).toContain('redirect("/login?callbackUrl=/wishlist")');
   });
 
   it("returns a clear OTP request error when Resend domain is not verified", () => {
@@ -129,8 +142,9 @@ describe("issue 5 redemption-code spec wiring", () => {
 
     expect(page).toContain("product.blindBoxSet?.name");
     expect(page).toContain("product.blindBoxSet?.totalSlots");
+    expect(page).toContain("availableVariantCount");
     expect(page).toContain("Bộ sưu tập {sanitize(collectionName)}");
-    expect(page).toContain("{collectionTotalSlots} mẫu {sanitize(collectionName)} có thể nhận");
+    expect(page).toContain("{availableVariantCount} mẫu {sanitize(collectionName)} có thể nhận");
     expect(page).not.toContain("Bộ sưu tập Vanie");
     expect(page).not.toContain("10 mẫu Vanie");
   });
@@ -141,6 +155,14 @@ describe("issue 5 redemption-code spec wiring", () => {
     expect(header).not.toContain("dynamicCategories.map");
     expect(header).toContain('href="/bo-suu-tap?category=hop-mu"');
     expect(header).toContain('href="/bo-suu-tap?nhanvat=all"');
+  });
+
+  it("redirects signed-in non-admin users before rendering admin pages", () => {
+    const middleware = source("middleware.ts");
+
+    expect(middleware).toContain('pathname.startsWith("/admin")');
+    expect(middleware).toContain('req.nextauth.token.role !== "admin"');
+    expect(middleware).toContain('NextResponse.redirect(new URL("/", req.url))');
   });
 
   it("keeps the root layout static while hydrating locale client-side", () => {
