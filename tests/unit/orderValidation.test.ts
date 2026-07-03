@@ -1,4 +1,6 @@
 import { describe, expect, it } from "vitest";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 
 const { validateOrderData } = require("../../server/utills/validation");
 
@@ -32,5 +34,14 @@ describe("order validation for VND totals", () => {
     expect(result.errors).toContainEqual(
       expect.objectContaining({ field: "total" })
     );
+  });
+});
+
+describe("checkout order transaction", () => {
+  it("uses a TiDB-compatible isolation level", () => {
+    const route = readFileSync(resolve(process.cwd(), "app/api/orders/route.ts"), "utf8");
+
+    expect(route).toContain("Prisma.TransactionIsolationLevel.RepeatableRead");
+    expect(route).not.toContain("Prisma.TransactionIsolationLevel.Serializable");
   });
 });

@@ -375,7 +375,7 @@ export async function POST(request: Request) {
         return loadOrderResponse(tx, order.id);
       },
       {
-        isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
+        isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead,
         maxWait: 5_000,
         timeout: 20_000,
       }
