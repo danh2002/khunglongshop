@@ -6,7 +6,7 @@ import { useState } from "react";
 import toast from "react-hot-toast";
 import { adminInputClass, adminSecondaryButtonClass } from "./AdminUi";
 
-const transitions: Record<OrderStatus, OrderStatus[]> = {
+const VALID_TRANSITIONS: Record<OrderStatus, OrderStatus[]> = {
   PENDING_PAYMENT: ["PROCESSING", "CANCELLED"],
   PROCESSING: ["COMPLETED", "CANCELLED"],
   COMPLETED: [],
@@ -20,6 +20,13 @@ const STATUS_LABEL: Record<OrderStatus, string> = {
   CANCELLED: "Đã huỷ",
 };
 
+const STATUS_OPTIONS: OrderStatus[] = [
+  "PENDING_PAYMENT",
+  "PROCESSING",
+  "COMPLETED",
+  "CANCELLED",
+];
+
 export default function OrderStatusForm({
   orderId,
   status,
@@ -28,15 +35,12 @@ export default function OrderStatusForm({
   status: OrderStatus;
 }) {
   const router = useRouter();
-  const options = transitions[status];
-  const [nextStatus, setNextStatus] = useState<OrderStatus | "">(options[0] ?? "");
+  const [nextStatus, setNextStatus] = useState<OrderStatus>(status);
   const [cancelReason, setCancelReason] = useState("");
   const [saving, setSaving] = useState(false);
 
-  if (!options.length) return <p className="text-sm text-white/45">Trạng thái đã kết thúc.</p>;
-
   async function submit() {
-    if (!nextStatus) return;
+    if (nextStatus === status) return;
     if (nextStatus === "CANCELLED" && cancelReason.trim().length < 10) {
       toast.error("Lý do hủy phải có ít nhất 10 ký tự.");
       return;
@@ -81,11 +85,21 @@ export default function OrderStatusForm({
           value={nextStatus}
           onChange={(event) => setNextStatus(event.target.value as OrderStatus)}
         >
-          {options.map((option) => (
-            <option key={option} value={option}>
-              {STATUS_LABEL[option]}
-            </option>
-          ))}
+          {STATUS_OPTIONS.map((option) => {
+            const isDisabled =
+              option !== status && !VALID_TRANSITIONS[status]?.includes(option);
+
+            return (
+              <option
+                key={option}
+                value={option}
+                disabled={isDisabled}
+                style={{ color: isDisabled ? "#555" : "inherit" }}
+              >
+                {STATUS_LABEL[option]}
+              </option>
+            );
+          })}
         </select>
         <button className={adminSecondaryButtonClass} disabled={saving} onClick={submit} type="button">
           {saving ? "Đang lưu" : "Cập nhật"}

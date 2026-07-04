@@ -724,13 +724,13 @@ export default function AccountCollectionPage() {
               );
               })}
 
-              {page < totalPages ? (
+              {page < totalPages && (
                 <LoadMoreWrap>
                   <LoadMoreButton type="button" onClick={loadMore} disabled={isLoadingMore}>
                     {isLoadingMore ? "Đang tải..." : "Tải thêm"}
                   </LoadMoreButton>
                 </LoadMoreWrap>
-              ) : null}
+              )}
             </>
           )}
         </Inner>
