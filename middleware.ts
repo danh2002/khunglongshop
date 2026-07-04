@@ -70,6 +70,9 @@ export default withAuth(
     }
   },
   {
+    pages: {
+      signIn: "/login",
+    },
     callbacks: {
       authorized: ({ token, req }) => {
         // The server layout revalidates current role and status from the database.
