@@ -25,3 +25,11 @@ For plan 005, manually apply/review commit `23ded13` from worktree `khunglongsho
 For plan 006, manually apply/review commit `b0d9f12` from worktree `khunglongshop-plan006-exec`, then run OTP tests with a real test MySQL `DATABASE_URL` and smoke `/register` with real `RESEND_API_KEY` / `RESEND_FROM_EMAIL`. Confirm the email arrives, the 6-digit OTP verifies, and registration redirects to `/login`.
 
 Plan 007 is deployed and verified on production. Future homepage performance work should target the deferred header boundary split and image recompression as separate plans.
+
+## New Admin Performance Plans
+
+| Plan | Status | Notes |
+|---|---|---|
+| [008 - Split admin from public root chrome](008-split-admin-from-public-chrome.md) | DONE IN WORKTREE | Executor completed in isolated worktree `khunglongshop-plan008-exec` on branch `codex-plan-008-exec-20260706141300`, commits `66b48f1 Split admin from public root chrome` and `7f0b8c3 Update route path tests for public group`. Reviewer verified scope, diff, `npm run type-check`, `npx vitest run --exclude "tests/otp/**"` with dummy `DATABASE_URL`, `git diff --check`, source search showing public chrome only in `app/(public)/layout.tsx`, and `npm run build` with real env loaded without printing secrets. Build shows `/admin` as Dynamic with First Load JS `106 kB`; production Speed Insights re-measure remains after applying/deploying the commits. |
+| [009 - Slim admin sidebar hydration and icon cost](009-slim-admin-sidebar-hydration.md) | READY | Execute after 008 or independently as a smaller admin-shell cleanup. Reduces sidebar client JS and `react-icons` cost. |
+| [010 - Lazy-load heavy admin route editors](010-lazy-load-heavy-admin-editors.md) | READY | Execute after `/admin` root metrics are improved. Targets admin child-route editor chunks, not dashboard root LCP. |
