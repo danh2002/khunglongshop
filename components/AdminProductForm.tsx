@@ -1,8 +1,13 @@
 "use client";
 
 import { normalizeSlug } from "@/lib/adminProduct";
-import ImageManager from "@/components/admin/ImageManager";
+import dynamic from "next/dynamic";
 import { FormEvent, useMemo, useState } from "react";
+
+const ImageManager = dynamic(() => import("@/components/admin/ImageManager"), {
+  ssr: false,
+  loading: () => <div className="min-h-[180px]" />,
+});
 
 export type ProductFormValues = {
   title: string;

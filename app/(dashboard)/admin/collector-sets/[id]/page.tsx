@@ -1,7 +1,7 @@
 import Image from "next/image";
 import { notFound } from "next/navigation";
+import BlindBoxPoolEditorClient from "./BlindBoxPoolEditorClient";
 import { AdminMetric, AdminPage, AdminPageHeader } from "@/components/admin/AdminUi";
-import BlindBoxPoolEditor from "@/components/admin/BlindBoxPoolEditor";
 import CollectorSetMetadataForm from "@/components/admin/CollectorSetMetadataForm";
 import prisma from "@/utils/db";
 
@@ -65,7 +65,7 @@ export default async function CollectorSetDetailPage({ params }: { params: Promi
           );
         })}
       </section>
-      <BlindBoxPoolEditor collectorSetId={set.id} />
+      <BlindBoxPoolEditorClient collectorSetId={set.id} />
     </AdminPage>
   );
 }

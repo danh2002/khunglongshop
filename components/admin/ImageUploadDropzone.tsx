@@ -1,9 +1,8 @@
 "use client";
 
 import Image from "next/image";
-import { type ChangeEvent, type DragEvent, useRef, useState } from "react";
+import { type ChangeEvent, type DragEvent, type SVGProps, useRef, useState } from "react";
 import toast from "react-hot-toast";
-import { FaUpload, FaXmark } from "react-icons/fa6";
 import { normalizeImageForDisplay } from "@/lib/adminProduct";
 
 const MAX_UPLOAD_BYTES = 5 * 1024 * 1024;
@@ -32,6 +31,25 @@ function validateImageFile(file: File) {
   }
 
   return null;
+}
+
+function UploadIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" {...props}>
+      <path d="M12 16V4" />
+      <path d="m7 9 5-5 5 5" />
+      <path d="M20 16v4H4v-4" />
+    </svg>
+  );
+}
+
+function XIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" {...props}>
+      <path d="M18 6 6 18" />
+      <path d="m6 6 12 12" />
+    </svg>
+  );
 }
 
 export default function ImageUploadDropzone({
@@ -125,7 +143,7 @@ export default function ImageUploadDropzone({
               />
             </span>
           ) : (
-            <FaUpload size={28} className="text-[#e85d00]" />
+            <UploadIcon className="h-7 w-7 text-[#e85d00]" />
           )}
           <strong className="text-white/80">
             {isUploading ? "Đang tải ảnh..." : "Kéo thả hoặc bấm để upload"}
@@ -149,7 +167,7 @@ export default function ImageUploadDropzone({
             onClick={() => onChange("")}
             className="inline-flex min-h-8 items-center gap-2 border border-white/15 bg-white/5 px-3 text-xs font-black uppercase text-white/70 transition hover:border-red-500 hover:text-red-300 disabled:cursor-not-allowed disabled:opacity-50"
           >
-            <FaXmark />
+            <XIcon className="h-3.5 w-3.5" />
             Xóa ảnh
           </button>
         ) : null}
