@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Be_Vietnam_Pro, Saira_Condensed } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 import "./globals.css";
 import SessionProvider from "@/utils/SessionProvider";
 import Header from "@/components/Header";
@@ -55,6 +56,7 @@ export default async function RootLayout({
           </SessionProvider>
         </StyledComponentsRegistry>
         <Analytics />
+        <SpeedInsights />
       </body>
     </html>
   );
