@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 
 describe("character collection hero wiring", () => {
   const pageSource = fs.readFileSync(
-    path.join(process.cwd(), "app", "bo-suu-tap", "page.tsx"),
+    path.join(process.cwd(), "app", "(public)", "bo-suu-tap", "page.tsx"),
     "utf8",
   );
   const resolverSource = fs.readFileSync(

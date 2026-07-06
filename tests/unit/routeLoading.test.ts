@@ -4,8 +4,8 @@ import { describe, expect, it } from "vitest";
 
 const loadingRoutes = [
   "app/loading.tsx",
-  "app/shop/loading.tsx",
-  "app/product/[productSlug]/loading.tsx",
+  "app/(public)/shop/loading.tsx",
+  "app/(public)/product/[productSlug]/loading.tsx",
 ];
 
 describe("route loading components", () => {

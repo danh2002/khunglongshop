@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 
 describe("Search page wiring", () => {
   const source = fs.readFileSync(
-    path.join(process.cwd(), "app", "search", "page.tsx"),
+    path.join(process.cwd(), "app", "(public)", "search", "page.tsx"),
     "utf8",
   );
 

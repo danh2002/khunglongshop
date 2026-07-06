@@ -66,7 +66,7 @@ describe("issue 5 redemption-code spec wiring", () => {
   });
 
   it("types and displays duplicate ownership counts in the collection UI", () => {
-    const page = source("app/account/collection/page.tsx");
+    const page = source("app/(public)/account/collection/page.tsx");
 
     expect(page).toContain("ownedCount: number");
     expect(page).toContain("OwnedCountBadge");
@@ -75,7 +75,7 @@ describe("issue 5 redemption-code spec wiring", () => {
   });
 
   it("routes collection CTAs to the account collection page", () => {
-    const accountPage = source("app/account/page.tsx");
+    const accountPage = source("app/(public)/account/page.tsx");
     const header = source("components/Header.tsx");
     const footer = source("components/Footer.tsx");
     const featuredSeries = source("components/FeaturedSeries.tsx");
@@ -89,7 +89,7 @@ describe("issue 5 redemption-code spec wiring", () => {
   });
 
   it("redirects unauthenticated wishlist visitors to login", () => {
-    const page = source("app/wishlist/page.tsx");
+    const page = source("app/(public)/wishlist/page.tsx");
 
     expect(page).toContain("getServerSession(authOptions)");
     expect(page).toContain('redirect("/login?callbackUrl=/wishlist")');
@@ -104,7 +104,7 @@ describe("issue 5 redemption-code spec wiring", () => {
   });
 
   it("keeps register page simple and without OTP fields", () => {
-    const registerPage = source("app/register/page.tsx");
+    const registerPage = source("app/(public)/register/page.tsx");
     const registerRoute = source("app/api/register/route.ts");
 
     expect(registerPage).toContain("Họ và tên");
@@ -136,7 +136,7 @@ describe("issue 5 redemption-code spec wiring", () => {
   });
 
   it("uses blind-box set data for the product detail collection copy", () => {
-    const page = source("app/product/[productSlug]/page.tsx");
+    const page = source("app/(public)/product/[productSlug]/page.tsx");
 
     expect(page).toContain("product.blindBoxSet?.name");
     expect(page).toContain("product.blindBoxSet?.totalSlots");
@@ -178,7 +178,7 @@ describe("issue 5 redemption-code spec wiring", () => {
   it("renders character collection cards as view-only", () => {
     const products = source("components/Products.tsx");
     const item = source("components/ProductItem.tsx");
-    const page = source("app/product/[productSlug]/page.tsx");
+    const page = source("app/(public)/product/[productSlug]/page.tsx");
 
     expect(products).toContain("buildCollectorGalleryWhere({ characterSlug })");
     expect(products).toContain("viewOnly={isCollectorGallery}");
@@ -198,8 +198,8 @@ describe("issue 5 redemption-code spec wiring", () => {
   });
 
   it("normalizes account order image paths before passing them to next/image", () => {
-    const ordersPage = source("app/account/orders/page.tsx");
-    const orderDetailPage = source("app/account/orders/[id]/page.tsx");
+    const ordersPage = source("app/(public)/account/orders/page.tsx");
+    const orderDetailPage = source("app/(public)/account/orders/[id]/page.tsx");
 
     expect(ordersPage).toContain('import { normalizeCatalogImage } from "@/lib/publicCatalog"');
     expect(ordersPage).toContain("src={normalizeCatalogImage(product.image)}");
