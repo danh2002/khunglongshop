@@ -4,13 +4,8 @@ import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import "./globals.css";
 import SessionProvider from "@/utils/SessionProvider";
-import Header from "@/components/Header";
-import Footer from "@/components/Footer";
 import Providers from "@/Providers";
-import SessionTimeoutWrapper from "@/components/SessionTimeoutWrapper";
-import { LanguageProvider } from "@/components/LanguageProvider";
 import StyledComponentsRegistry from "@/lib/registry";
-import { getNavigationData } from "@/lib/navigation";
 
 const bodyFont = Be_Vietnam_Pro({
   subsets: ["latin", "vietnamese"],
@@ -39,20 +34,12 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const navigation = await getNavigationData();
   return (
     <html lang="vi" data-theme="light">
       <body className={`${bodyFont.variable} ${displayFont.variable}`}>
         <StyledComponentsRegistry>
           <SessionProvider session={null}>
-            <LanguageProvider>
-              <SessionTimeoutWrapper />
-              <Header categories={navigation.categories} collectorSets={navigation.collectorSets} />
-              <Providers>
-                {children}
-              </Providers>
-              <Footer />
-            </LanguageProvider>
+            <Providers>{children}</Providers>
           </SessionProvider>
         </StyledComponentsRegistry>
         <Analytics />

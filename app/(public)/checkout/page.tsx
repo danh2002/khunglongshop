@@ -1,6 +1,6 @@
 "use client";
 import SectionTitle from "@/components/SectionTitle";
-import { useProductStore } from "../_zustand/store";
+import { useProductStore } from "@/app/_zustand/store";
 import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 import { useSession } from "next-auth/react";
