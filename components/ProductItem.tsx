@@ -1,14 +1,11 @@
-"use client";
-
 import Image from "next/image";
 import Link from "next/link";
-import toast from "react-hot-toast";
 import styled from "styled-components";
-import { useProductStore } from "@/app/_zustand/store";
 import { formatVnd } from "@/lib/currency";
 import type { HomepageProduct } from "@/lib/homepage-products";
 import { normalizeCatalogImage } from "@/lib/publicCatalog";
 import { sanitize } from "@/lib/sanitize";
+import ProductQuickAdd from "./ProductQuickAdd";
 
 const Card = styled.article<{ $compact: boolean; $disabled: boolean }>`
   width: 100%;
@@ -31,45 +28,47 @@ const Media = styled.div`
   ${Card}:hover & img {
     transform: scale(1.08);
   }
-`;
 
-const ImageLink = styled(Link)`
-  position: absolute;
-  inset: 0;
-`;
+  .product-quick-add {
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 2;
+    height: 44px;
+    border: 0;
+    background: rgba(232, 93, 0, 0.95);
+    color: #ffffff;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+    transform: translateY(100%);
+    transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  }
 
-const QuickAdd = styled.button`
-  position: absolute;
-  right: 0;
-  bottom: 0;
-  left: 0;
-  z-index: 2;
-  height: 44px;
-  border: 0;
-  background: rgba(232, 93, 0, 0.95);
-  color: #ffffff;
-  cursor: pointer;
-  font-size: 12px;
-  font-weight: 800;
-  letter-spacing: 0.8px;
-  text-transform: uppercase;
-  transform: translateY(100%);
-  transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-
-  ${Card}:hover &,
-  &:focus-visible {
+  ${Card}:hover & .product-quick-add,
+  .product-quick-add:focus-visible {
     transform: translateY(0);
   }
 
-  &:disabled {
+  .product-quick-add:disabled {
     cursor: not-allowed;
     background: #333333;
   }
 
   @media (hover: none) {
-    position: relative;
-    transform: none;
+    .product-quick-add {
+      position: relative;
+      transform: none;
+    }
   }
+`;
+
+const ImageLink = styled(Link)`
+  position: absolute;
+  inset: 0;
 `;
 
 const Name = styled(Link)`
@@ -118,28 +117,16 @@ export default function ProductItem({
   product,
   compact = false,
   viewOnly = false,
+  imagePriority = false,
 }: {
   product: HomepageProduct;
   compact?: boolean;
   color?: string;
   viewOnly?: boolean;
+  imagePriority?: boolean;
 }) {
-  const addToCart = useProductStore((state) => state.addToCart);
   const href = `/product/${product.slug}`;
   const available = viewOnly || product.inStock > 0;
-
-  const handleAdd = () => {
-    if (!available) return;
-    addToCart({
-      id: product.id,
-      title: product.title,
-      price: product.price,
-      image: product.mainImage,
-      amount: 1,
-      slug: product.slug,
-    });
-    toast.success("Đã thêm vào giỏ hàng");
-  };
 
   return (
     <Card $compact={compact} $disabled={!available}>
@@ -150,13 +137,23 @@ export default function ProductItem({
             alt={sanitize(product.title) || "Hình ảnh sản phẩm"}
             fill
             sizes={compact ? "220px" : "(max-width: 768px) 50vw, 25vw"}
+            priority={imagePriority}
+            loading={imagePriority ? "eager" : "lazy"}
+            fetchPriority={imagePriority ? "high" : "auto"}
             style={{ objectFit: "contain" }}
           />
         </ImageLink>
         {!viewOnly ? (
-          <QuickAdd type="button" onClick={handleAdd} disabled={!available}>
-            {available ? "Thêm vào giỏ" : "Hết hàng"}
-          </QuickAdd>
+          <ProductQuickAdd
+            available={available}
+            product={{
+              id: product.id,
+              title: product.title,
+              price: product.price,
+              image: product.mainImage,
+              slug: product.slug,
+            }}
+          />
         ) : null}
       </Media>
       <Name href={href}>{sanitize(product.title)}</Name>

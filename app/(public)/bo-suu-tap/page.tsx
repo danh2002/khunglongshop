@@ -1,7 +1,8 @@
 import Image from "next/image";
 import Link from "next/link";
-import { Breadcrumb, Products } from "@/components";
-import { SectionShell, Wrapper } from "@/components/design-system";
+import Breadcrumb from "@/components/Breadcrumb";
+import Products from "@/components/Products";
+import { SectionShell, Wrapper } from "@/components/public-shell";
 import { getCollectorSetHero } from "@/lib/collectorSetHero";
 
 export const revalidate = 60;

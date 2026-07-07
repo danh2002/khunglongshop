@@ -45,8 +45,14 @@ const Products = async ({ categorySlug, characterSlug }: ProductsProps = {}) => 
   return (
     <div className="grid grid-cols-3 justify-items-center gap-x-5 gap-y-8 max-[1300px]:grid-cols-3 max-lg:grid-cols-2 max-[500px]:grid-cols-1">
       {products.length > 0 ? (
-        products.map((product) => (
-          <ProductItem key={product.id} product={product} color="black" viewOnly={isCollectorGallery} />
+        products.map((product, index) => (
+          <ProductItem
+            key={product.id}
+            product={product}
+            color="black"
+            viewOnly={isCollectorGallery}
+            imagePriority={index < 3}
+          />
         ))
       ) : (
         <h3 className="text-3xl mt-5 text-center w-full col-span-full max-[1000px]:text-2xl max-[500px]:text-lg text-white">
