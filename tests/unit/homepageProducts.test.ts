@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   chooseHomepageProducts,
+  getRandomKeychainSlots,
   getHomepageVariantImages,
 } from "@/lib/homepage-products";
 
@@ -28,6 +29,23 @@ describe("homepage product selection", () => {
 
   it("does not inject legacy fallback products when the public SKU is missing", () => {
     expect(chooseHomepageProducts([])).toEqual([]);
+  });
+
+  it("creates ten random keychain slots and fills missing entries with null", () => {
+    const slots = getRandomKeychainSlots([databaseProduct], 10);
+
+    expect(slots).toHaveLength(10);
+    expect(slots[0]).toEqual(databaseProduct);
+    expect(slots.slice(1)).toEqual(Array.from({ length: 9 }, () => null));
+  });
+
+  it("preserves featured products in CMS order", () => {
+    const secondProduct = { ...databaseProduct, id: "second-product" };
+
+    expect(getRandomKeychainSlots([databaseProduct, secondProduct], 2)).toEqual([
+      databaseProduct,
+      secondProduct,
+    ]);
   });
 });
 

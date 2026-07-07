@@ -18,6 +18,7 @@ const navItems: Array<{ href: string; label: string; icon: IconName }> = [
   { href: "/admin/orders", label: "Đơn hàng", icon: "bag" },
   { href: "/admin/products", label: "Sản phẩm", icon: "table" },
   { href: "/admin/homepage-slider", label: "Slider trang chủ", icon: "image" },
+  { href: "/admin/featured-products", label: "Sản phẩm nổi bật", icon: "trophy" },
   { href: "/admin/categories", label: "Danh mục", icon: "category" },
   { href: "/admin/users", label: "Người dùng", icon: "user" },
   { href: "/admin/merchant", label: "Merchant", icon: "store" },

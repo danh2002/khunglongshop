@@ -71,17 +71,18 @@ const Row = styled.div`
 
 export default function NewArrivals({ products }: { products: HomepageProduct[] }) {
   if (products.length === 0) return null;
+  const featuredProducts = products.slice(0, 6);
 
   return (
     <Section>
       <Inner>
         <Header>
-          <Title>Mới & Hot</Title>
-          <ViewAll href="/shop">Xem tất cả</ViewAll>
+          <Title>Sản phẩm nổi bật</Title>
+          <ViewAll href="/account/collection">Xem tất cả</ViewAll>
         </Header>
         <Row>
-          {products.map((product) => (
-            <ProductItem key={product.id} product={product} compact />
+          {featuredProducts.map((product) => (
+            <ProductItem key={product.id} product={product} compact viewOnly />
           ))}
         </Row>
       </Inner>

@@ -20,7 +20,10 @@ async function getHomepageSlidesSafely() {
 }
 
 export default async function Home() {
-  const [{ products, variantImages, hasError }, cmsSlides] = await Promise.all([
+  const [
+    { featuredProducts, blindBoxProducts, randomKeychainSlots, hasError },
+    cmsSlides,
+  ] = await Promise.all([
     getHomepageProducts(),
     getHomepageSlidesSafely(),
   ]);
@@ -31,9 +34,9 @@ export default async function Home() {
         slides={cmsSlides}
       />
       <HomeMarquee />
-      <NewArrivals products={products} />
-      <FeaturedSeries product={products[0]} images={variantImages} />
-      <ProductsSection initialProducts={products} initialError={hasError} />
+      <NewArrivals products={featuredProducts} />
+      <FeaturedSeries slots={randomKeychainSlots} />
+      <ProductsSection initialProducts={blindBoxProducts} initialError={hasError} />
       <CollectorBanner />
     </>
   );

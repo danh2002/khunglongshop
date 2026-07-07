@@ -1,5 +1,8 @@
 import prisma from "@/utils/db";
-import { PUBLIC_STOREFRONT_PRODUCT_WHERE } from "@/lib/publicCatalog";
+import {
+  PUBLIC_COLLECTOR_PRODUCT_WHERE,
+  PUBLIC_STOREFRONT_PRODUCT_WHERE,
+} from "@/lib/publicCatalog";
 
 export type HomepageProduct = {
   id: string;
@@ -10,6 +13,8 @@ export type HomepageProduct = {
   images?: string | null;
   inStock: number;
   isCollector?: boolean;
+  setId?: string | null;
+  setSlotNumber?: number | null;
   blindBoxSet?: {
     poolVersions?: Array<{
       entries?: Array<{
@@ -36,6 +41,16 @@ type HomepageProductWithMedia = HomepageProduct & {
 
 export function chooseHomepageProducts(products: HomepageProduct[]) {
   return products;
+}
+
+export function getRandomKeychainSlots(
+  featuredProducts: HomepageProduct[],
+  slotCount = 10
+) {
+  return Array.from(
+    { length: slotCount },
+    (_, index): HomepageProduct | null => featuredProducts[index] ?? null
+  );
 }
 
 function parseHomepageGalleryImages(images: string | null | undefined) {
@@ -69,15 +84,44 @@ export function getHomepageVariantImages(product: HomepageProductWithMedia | nul
 }
 
 export async function getHomepageProducts(): Promise<{
-  products: HomepageProduct[];
-  variantImages: string[];
+  featuredProducts: HomepageProduct[];
+  blindBoxProducts: HomepageProduct[];
+  randomKeychainSlots: Array<HomepageProduct | null>;
   hasError: boolean;
 }> {
-  try {
-    const products = await prisma.product.findMany({
-      where: PUBLIC_STOREFRONT_PRODUCT_WHERE,
-      take: 8,
+  const featuredProductsPromise = prisma.featuredProduct
+    .findMany({
+      orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }, { id: "asc" }],
+      take: 10,
+      where: {
+        product: {
+          ...PUBLIC_COLLECTOR_PRODUCT_WHERE,
+          isBlindBox: false,
+        },
+      },
       select: {
+        product: {
+          select: {
+            id: true,
+            slug: true,
+            title: true,
+            price: true,
+            mainImage: true,
+            images: true,
+            inStock: true,
+            isCollector: true,
+            setId: true,
+            setSlotNumber: true,
+          },
+        },
+      },
+    })
+    .then((rows) => rows.map((row) => row.product));
+
+  const blindBoxProductsPromise = prisma.product.findMany({
+    where: PUBLIC_STOREFRONT_PRODUCT_WHERE,
+    take: 8,
+    select: {
         id: true,
         slug: true,
         title: true,
@@ -86,6 +130,8 @@ export async function getHomepageProducts(): Promise<{
         images: true,
         inStock: true,
         isCollector: true,
+        setId: true,
+        setSlotNumber: true,
         blindBoxSet: {
           select: {
             poolVersions: {
@@ -105,26 +151,45 @@ export async function getHomepageProducts(): Promise<{
             },
           },
         },
-      },
-    });
-    const variantImages = getHomepageVariantImages(products[0]);
+    },
+  });
 
-    if (process.env.NODE_ENV === "development") {
-      console.info(`[homepage] Loaded ${products.length} products from MySQL`);
-    }
+  const [featuredResult, blindBoxResult] = await Promise.allSettled([
+    featuredProductsPromise,
+    blindBoxProductsPromise,
+  ]);
 
-    return {
-      products,
-      variantImages,
-      hasError: false,
-    };
-  } catch (error) {
-    console.error("[homepage] Failed to load products from MySQL:", error);
+  const featuredProducts =
+    featuredResult.status === "fulfilled" ? featuredResult.value : [];
+  const blindBoxProducts =
+    blindBoxResult.status === "fulfilled" ? blindBoxResult.value : [];
+  const hasError =
+    featuredResult.status === "rejected" || blindBoxResult.status === "rejected";
 
-    return {
-      products: [],
-      variantImages: [],
-      hasError: true,
-    };
+  if (featuredResult.status === "rejected") {
+    console.error(
+      "[homepage] Failed to load featured collector products from MySQL:",
+      featuredResult.reason
+    );
   }
+
+  if (blindBoxResult.status === "rejected") {
+    console.error(
+      "[homepage] Failed to load blind-box products from MySQL:",
+      blindBoxResult.reason
+    );
+  }
+
+  if (process.env.NODE_ENV === "development") {
+    console.info(
+      `[homepage] Loaded ${featuredProducts.length} featured products and ${blindBoxProducts.length} blind boxes from MySQL`
+    );
+  }
+
+  return {
+    featuredProducts,
+    blindBoxProducts,
+    randomKeychainSlots: getRandomKeychainSlots(featuredProducts),
+    hasError,
+  };
 }

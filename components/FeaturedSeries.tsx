@@ -17,7 +17,7 @@ const Section = styled.section`
 
 const Series = styled.div`
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
   width: min(100%, 1440px);
   margin: 0 auto;
   overflow: hidden;
@@ -32,23 +32,30 @@ const Series = styled.div`
 const Cover = styled.div`
   position: relative;
   display: flex;
-  min-height: 560px;
+  min-height: 520px;
   flex-direction: column;
   justify-content: flex-end;
   overflow: hidden;
-  background: linear-gradient(135deg, #1a0800, #0f0f0f);
+  background:
+    radial-gradient(circle at 50% 24%, rgba(232, 93, 0, 0.32), transparent 34%),
+    linear-gradient(135deg, #1a0800, #0f0f0f);
   padding: 48px;
 
   @media (max-width: 768px) {
-    min-height: 480px;
+    min-height: 420px;
     padding: 32px 24px;
   }
 `;
 
-const CoverImage = styled.div`
+const QuestionMark = styled.div`
   position: absolute;
-  inset: 20px 20px 140px;
-  filter: drop-shadow(0 18px 36px rgba(0, 0, 0, 0.55));
+  inset: 34px 34px 142px;
+  display: grid;
+  place-items: center;
+  color: rgba(232, 93, 0, 0.2);
+  font-size: clamp(120px, 24vw, 260px);
+  font-weight: 900;
+  line-height: 1;
 `;
 
 const CoverText = styled.div`
@@ -103,6 +110,10 @@ const CharacterGrid = styled.div`
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 12px;
+
+  @media (max-width: 520px) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 `;
 
 const Slot = styled.div<{ $revealed: boolean }>`
@@ -111,9 +122,9 @@ const Slot = styled.div<{ $revealed: boolean }>`
   aspect-ratio: 1;
   place-items: center;
   overflow: hidden;
-  border: 1px solid #1e1e1e;
+  border: 1px solid ${({ $revealed }) => ($revealed ? "rgba(232, 93, 0, 0.5)" : "#1e1e1e")};
   border-radius: 12px;
-  background: #111111;
+  background: ${({ $revealed }) => ($revealed ? "#14100d" : "#111111")};
   color: #3a3a3a;
   font-size: 24px;
   font-weight: 700;
@@ -128,6 +139,12 @@ const Slot = styled.div<{ $revealed: boolean }>`
   }
 `;
 
+const LockedMark = styled.span`
+  color: rgba(255, 255, 255, 0.18);
+  font-size: clamp(28px, 5vw, 46px);
+  font-weight: 900;
+`;
+
 const SeriesNote = styled.div`
   margin-top: 20px;
   border: 1px solid #1e1e1e;
@@ -140,57 +157,47 @@ const SeriesNote = styled.div`
 `;
 
 export default function FeaturedSeries({
-  product,
-  images,
+  slots,
 }: {
-  product?: HomepageProduct;
-  images: string[];
+  slots: Array<HomepageProduct | null>;
 }) {
-  if (!product) return null;
-  const characterImages = images.slice(0, 3);
+  if (!slots.some(Boolean)) return null;
 
   return (
     <Section>
       <Series>
         <Cover>
-          <CoverImage>
-            <Image
-              src={normalizeCatalogImage(product.mainImage)}
-              alt={product.title}
-              fill
-              sizes="(max-width: 900px) 100vw, 50vw"
-              style={{ objectFit: "contain" }}
-            />
-          </CoverImage>
+          <QuestionMark aria-hidden>?</QuestionMark>
           <CoverText>
-            <Title>Vanie Series</Title>
-            <Meta>10 nhân vật · 1 phiên bản hiếm</Meta>
-            <Explore href="/account/collection" prefetch={false}>Khám phá</Explore>
+            <Title>Túi mù random</Title>
+            <Meta>Túi mù random các nhân vật collector nổi bật</Meta>
+            <Explore href="/account/collection" prefetch={false}>
+              Khám phá
+            </Explore>
           </CoverText>
         </Cover>
 
         <CharacterPanel>
           <CharacterGrid>
-            {Array.from({ length: 10 }, (_, index) => {
-              const image = characterImages[index];
-              return (
-                <Slot key={index} $revealed={Boolean(image)}>
-                  {image ? (
-                    <Image
-                      src={normalizeCatalogImage(image)}
-                      alt={`Nhân vật Vanie ${index + 1}`}
-                      fill
-                      sizes="120px"
-                      style={{ objectFit: "contain" }}
-                    />
-                  ) : (
-                    <span aria-label="Nhân vật chưa mở khóa">?</span>
-                  )}
-                </Slot>
-              );
-            })}
+            {slots.map((product, index) => (
+              <Slot key={product?.id ?? `locked-${index}`} $revealed={Boolean(product)}>
+                {product ? (
+                  <Image
+                    src={normalizeCatalogImage(product.mainImage)}
+                    alt={product.title}
+                    fill
+                    sizes="120px"
+                    style={{ objectFit: "contain" }}
+                  />
+                ) : (
+                  <LockedMark aria-label="Nhân vật bí mật">?</LockedMark>
+                )}
+              </Slot>
+            ))}
           </CharacterGrid>
-          <SeriesNote>Sưu tập đủ 10 nhân vật để mở phần thưởng trong game</SeriesNote>
+          <SeriesNote>
+            Mỗi túi mù là một cơ hội mở khóa nhân vật collector bất ngờ.
+          </SeriesNote>
         </CharacterPanel>
       </Series>
     </Section>

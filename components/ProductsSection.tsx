@@ -61,10 +61,7 @@ const State = styled.div`
   text-align: center;
 `;
 
-const sortFeatured = (products: HomepageProduct[]) =>
-  [...products]
-    .sort((a, b) => Number(Boolean(b.isCollector)) - Number(Boolean(a.isCollector)))
-    .slice(0, 12);
+const limitBlindBoxes = (products: HomepageProduct[]) => products.slice(0, 12);
 
 export const ProductsSectionSkeleton = () => null;
 
@@ -75,13 +72,13 @@ export default function ProductsSection({
   initialProducts: HomepageProduct[];
   initialError?: boolean;
 }) {
-  const products = sortFeatured(initialProducts);
+  const products = limitBlindBoxes(initialProducts);
 
   return (
     <Section>
       <Inner>
         <Header>
-          <Title>Sản phẩm nổi bật</Title>
+          <Title>Blind Box</Title>
           <ViewAll href="/shop">Xem tất cả</ViewAll>
         </Header>
         {products.length > 0 ? (
