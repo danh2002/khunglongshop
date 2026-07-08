@@ -11,6 +11,10 @@ describe("Header navigation", () => {
     path.join(process.cwd(), "app", "layout.tsx"),
     "utf8",
   );
+  const accountPageSource = fs.readFileSync(
+    path.join(process.cwd(), "app", "(public)", "account", "page.tsx"),
+    "utf8",
+  );
 
   it("does not pass Next Link through styled-components' as prop", () => {
     expect(source).not.toMatch(/as=\{[^}]*Link/);
@@ -32,5 +36,10 @@ describe("Header navigation", () => {
     expect(rootLayoutSource).not.toContain("session={null}");
     expect(source).toContain('status === "authenticated"');
     expect(source).toContain('status === "unauthenticated"');
+  });
+
+  it("keeps logout redirects on the current origin", () => {
+    expect(accountPageSource).toContain('signOut({ callbackUrl: "/", redirect: false })');
+    expect(accountPageSource).toContain('window.location.assign("/")');
   });
 });

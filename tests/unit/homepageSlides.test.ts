@@ -45,4 +45,21 @@ describe("getActiveCmsSlides", () => {
       },
     ]);
   });
+
+  it("falls back to no CMS slides when the database is unavailable", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const findMany = vi.fn().mockRejectedValue({ code: "P1001" });
+    const client = {
+      homepageSliderSlide: {
+        findMany,
+      },
+    };
+
+    await expect(getActiveCmsSlides(client)).resolves.toEqual([]);
+    expect(warn).toHaveBeenCalledWith(
+      "[homepage] CMS slider unavailable; rendering default hero. (P1001)"
+    );
+
+    warn.mockRestore();
+  });
 });

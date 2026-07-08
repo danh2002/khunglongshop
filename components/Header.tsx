@@ -12,7 +12,6 @@ import {
   FaHeart,
   FaMagnifyingGlass,
   FaRegUser,
-  FaRightToBracket,
   FaXmark,
 } from "react-icons/fa6";
 import styled from "styled-components";
@@ -94,7 +93,7 @@ const LogoImage = styled.span`
 const Links = styled.nav`
   display: flex;
   align-items: center;
-  gap: clamp(20px, 3vw, 40px);
+  gap: clamp(18px, 2.6vw, 36px);
   margin-left: auto;
 
   @media (max-width: 1020px) {
@@ -242,10 +241,10 @@ const Actions = styled.div`
   display: flex;
   flex: 0 0 auto;
   align-items: center;
-  gap: 20px;
+  gap: 16px;
 
   @media (max-width: 520px) {
-    gap: 13px;
+    gap: 10px;
     margin-left: auto;
   }
 `;
@@ -284,40 +283,102 @@ const ActionLink = styled(Link)`
 `;
 
 const LoginActionLink = styled(Link)`
+  position: relative;
+  isolation: isolate;
   display: inline-flex;
-  height: 38px;
+  min-width: 128px;
+  height: 40px;
   align-items: center;
-  gap: 8px;
-  border-radius: 999px;
-  background: #2563eb;
-  padding: 0 16px;
-  color: #ffffff;
-  font-size: 14px;
-  font-weight: 800;
+  justify-content: center;
+  gap: 10px;
+  overflow: hidden;
+  border: 1px solid rgba(242, 238, 231, 0.28);
+  border-radius: 14px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.105), rgba(255, 255, 255, 0.035)),
+    rgba(12, 12, 12, 0.78);
+  padding: 0 18px;
+  color: #f7f3ec;
+  font-family: var(--font-display), var(--font-body), sans-serif;
+  font-size: 15px;
+  font-weight: 900;
+  letter-spacing: 0.2px;
   text-decoration: none;
+  text-shadow: 0 1px 12px rgba(255, 255, 255, 0.18);
   white-space: nowrap;
-  box-shadow: 0 10px 24px rgba(37, 99, 235, 0.28);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.16),
+    0 14px 30px rgba(0, 0, 0, 0.32);
+  transition:
+    border-color 0.18s ease,
+    box-shadow 0.18s ease,
+    color 0.18s ease,
+    transform 0.18s ease,
+    background 0.18s ease;
+
+  &::before {
+    content: "";
+    position: absolute;
+    inset: 1px;
+    z-index: -1;
+    border-radius: 13px;
+    background: radial-gradient(circle at 50% 0%, rgba(255, 178, 63, 0.18), transparent 58%);
+    opacity: 0;
+    transition: opacity 0.18s ease;
+  }
 
   svg {
-    width: 14px;
-    height: 14px;
+    width: 18px;
+    height: 18px;
+    flex: 0 0 auto;
+    stroke-width: 1.8;
   }
 
   &:hover {
-    background: #1d4ed8;
+    border-color: rgba(255, 199, 111, 0.82);
+    background:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.14), rgba(255, 178, 63, 0.06)),
+      rgba(14, 13, 12, 0.86);
     color: #ffffff;
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.2),
+      0 0 0 1px rgba(255, 178, 63, 0.12),
+      0 16px 34px rgba(0, 0, 0, 0.36),
+      0 0 28px rgba(255, 178, 63, 0.16);
+    transform: translateY(-1px);
+  }
+
+  &:hover::before {
+    opacity: 1;
+  }
+
+  &:active {
+    border-color: rgba(232, 93, 0, 0.88);
+    transform: translateY(0);
+    box-shadow:
+      inset 0 0 20px rgba(232, 93, 0, 0.14),
+      0 8px 22px rgba(0, 0, 0, 0.34);
   }
 
   &:focus-visible {
-    outline: 2px solid #17d6c5;
-    outline-offset: 4px;
+    outline: 2px solid #2f8cff;
+    outline-offset: 3px;
+    border-color: rgba(47, 140, 255, 0.88);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.18),
+      0 0 0 4px rgba(47, 140, 255, 0.22),
+      0 14px 32px rgba(0, 0, 0, 0.34);
   }
 
   @media (max-width: 520px) {
-    height: 34px;
-    gap: 6px;
-    padding: 0 12px;
-    font-size: 12px;
+    min-width: 40px;
+    width: 40px;
+    padding: 0;
+    border-radius: 12px;
+
+    span {
+      display: none;
+    }
   }
 `;
 
@@ -733,7 +794,7 @@ export default function Header({
                 <ActionLink href="/account" aria-label="Tài khoản"><FaRegUser /></ActionLink>
               ) : status === "unauthenticated" ? (
                 <LoginActionLink href="/login" aria-label="Đăng nhập">
-                  <FaRightToBracket />
+                  <FaRegUser />
                   <span>Đăng nhập</span>
                 </LoginActionLink>
               ) : (

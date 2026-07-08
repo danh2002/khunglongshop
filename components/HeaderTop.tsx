@@ -110,9 +110,10 @@ const HeaderTop = () => {
   const { data: session } = useSession();
   const { t } = useI18n();
 
-  const handleLogout = () => {
-    setTimeout(() => signOut(), 1000);
+  const handleLogout = async () => {
+    await signOut({ callbackUrl: "/", redirect: false });
     toast.success("Logout successful!");
+    window.location.assign("/");
   };
 
   return (

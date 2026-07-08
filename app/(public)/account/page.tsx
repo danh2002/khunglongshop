@@ -176,6 +176,11 @@ export default function AccountPage() {
   const [profile, setProfile] = useState<ProfileResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
+  const handleLogout = async () => {
+    await signOut({ callbackUrl: "/", redirect: false });
+    window.location.assign("/");
+  };
+
   useEffect(() => {
     async function loadProfile() {
       try {
@@ -202,7 +207,7 @@ export default function AccountPage() {
               Tài khoản <span>của tôi</span>
             </Title>
           </div>
-          <LogoutButton type="button" onClick={() => signOut({ callbackUrl: "/" })}>
+          <LogoutButton type="button" onClick={handleLogout}>
             Đăng xuất
           </LogoutButton>
         </Header>

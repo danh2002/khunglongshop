@@ -1,6 +1,7 @@
 import { unstable_cache } from "next/cache";
 import prisma from "@/utils/db";
 import { toSlug } from "@/lib/slug";
+import { warnPublicDataFallback } from "@/lib/publicDataFallback";
 
 export type NavigationCategory = {
   id: string;
@@ -53,7 +54,7 @@ export const getNavigationData = unstable_cache(
         })),
       };
     } catch (error) {
-      console.error("[navigation] Failed to load navigation data", error);
+      warnPublicDataFallback("navigation", "Navigation data unavailable; rendering fallback links.", error);
       return {
         categories: [] satisfies NavigationCategory[],
         collectorSets: [] satisfies NavigationCollectorSet[],

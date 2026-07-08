@@ -3,6 +3,7 @@ import {
   PUBLIC_COLLECTOR_PRODUCT_WHERE,
   PUBLIC_STOREFRONT_PRODUCT_WHERE,
 } from "@/lib/publicCatalog";
+import { warnPublicDataFallback } from "@/lib/publicDataFallback";
 
 export type HomepageProduct = {
   id: string;
@@ -167,15 +168,17 @@ export async function getHomepageProducts(): Promise<{
     featuredResult.status === "rejected" || blindBoxResult.status === "rejected";
 
   if (featuredResult.status === "rejected") {
-    console.error(
-      "[homepage] Failed to load featured collector products from MySQL:",
+    warnPublicDataFallback(
+      "homepage",
+      "Featured collector products unavailable; rendering fallback section.",
       featuredResult.reason
     );
   }
 
   if (blindBoxResult.status === "rejected") {
-    console.error(
-      "[homepage] Failed to load blind-box products from MySQL:",
+    warnPublicDataFallback(
+      "homepage",
+      "Blind-box products unavailable; rendering fallback section.",
       blindBoxResult.reason
     );
   }

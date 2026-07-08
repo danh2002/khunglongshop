@@ -6,6 +6,7 @@ import HomeMarquee from "@/components/HomeMarquee";
 import NewArrivals from "@/components/NewArrivals";
 import { getHomepageProducts } from "@/lib/homepage-products";
 import { getActiveCmsSlides } from "@/lib/homepageSlides";
+import { warnPublicDataFallback } from "@/lib/publicDataFallback";
 
 export const revalidate = 60;
 
@@ -14,7 +15,7 @@ async function getHomepageSlidesSafely() {
     const slides = await getActiveCmsSlides();
     return slides.length > 0 ? slides : null;
   } catch (error) {
-    console.error("[homepage] Failed to load CMS slider slides:", error);
+    warnPublicDataFallback("homepage", "CMS slider unavailable; rendering default hero.", error);
     return null;
   }
 }
