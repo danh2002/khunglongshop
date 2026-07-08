@@ -156,8 +156,8 @@ const LoginPage = () => {
       toast.error("Email hoặc mật khẩu không đúng");
     } else {
       setError("");
-      router.replace(callbackUrl);
       toast.success("Đăng nhập thành công");
+      window.location.assign(callbackUrl);
     }
   };
 
