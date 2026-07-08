@@ -12,6 +12,7 @@ import {
   FaHeart,
   FaMagnifyingGlass,
   FaRegUser,
+  FaRightToBracket,
   FaXmark,
 } from "react-icons/fa6";
 import styled from "styled-components";
@@ -279,6 +280,44 @@ const ActionLink = styled(Link)`
       width: 18px;
       height: 18px;
     }
+  }
+`;
+
+const LoginActionLink = styled(Link)`
+  display: inline-flex;
+  height: 38px;
+  align-items: center;
+  gap: 8px;
+  border-radius: 999px;
+  background: #2563eb;
+  padding: 0 16px;
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 800;
+  text-decoration: none;
+  white-space: nowrap;
+  box-shadow: 0 10px 24px rgba(37, 99, 235, 0.28);
+
+  svg {
+    width: 14px;
+    height: 14px;
+  }
+
+  &:hover {
+    background: #1d4ed8;
+    color: #ffffff;
+  }
+
+  &:focus-visible {
+    outline: 2px solid #17d6c5;
+    outline-offset: 4px;
+  }
+
+  @media (max-width: 520px) {
+    height: 34px;
+    gap: 6px;
+    padding: 0 12px;
+    font-size: 12px;
   }
 `;
 
@@ -690,7 +729,14 @@ export default function Header({
                   </SearchSubmit>
                 </SearchForm>
               </SearchWrap>
-              <ActionLink href={status === "authenticated" ? "/account" : "/login"} aria-label="Tài khoản"><FaRegUser /></ActionLink>
+              {status === "authenticated" ? (
+                <ActionLink href="/account" aria-label="Tài khoản"><FaRegUser /></ActionLink>
+              ) : (
+                <LoginActionLink href="/login" aria-label="Đăng nhập">
+                  <FaRightToBracket />
+                  <span>Đăng nhập</span>
+                </LoginActionLink>
+              )}
               <ActionLink href="/wishlist" aria-label="Yêu thích">
                 <FaHeart />
                 {wishQuantity > 0 ? <Badge>{wishQuantity}</Badge> : null}
