@@ -112,8 +112,8 @@ const LoginPage = () => {
   const searchParams = useSearchParams();
   const [error, setError] = useState("");
   const { data: session, status: sessionStatus } = useSession();
-  const rawCallbackUrl = searchParams.get("redirect") || searchParams.get("callbackUrl") || "/account";
-  const callbackUrl = rawCallbackUrl.startsWith("/") && !rawCallbackUrl.startsWith("//") ? rawCallbackUrl : "/account";
+  const rawCallbackUrl = searchParams.get("redirect") || searchParams.get("callbackUrl") || "/";
+  const callbackUrl = rawCallbackUrl.startsWith("/") && !rawCallbackUrl.startsWith("//") ? rawCallbackUrl : "/";
 
   useEffect(() => {
     const expired = searchParams.get("expired");
@@ -156,8 +156,8 @@ const LoginPage = () => {
       toast.error("Email hoặc mật khẩu không đúng");
     } else {
       setError("");
-      toast.success("Đăng nhập thành công");
       router.replace(callbackUrl);
+      toast.success("Đăng nhập thành công");
     }
   };
 
