@@ -34,3 +34,9 @@ Plan 007 is deployed and verified on production. Future homepage performance wor
 | [009 - Slim admin sidebar hydration and icon cost](009-slim-admin-sidebar-hydration.md) | READY | Execute after 008 or independently as a smaller admin-shell cleanup. Reduces sidebar client JS and `react-icons` cost. |
 | [010 - Lazy-load heavy admin route editors](010-lazy-load-heavy-admin-editors.md) | READY | Execute after `/admin` root metrics are improved. Targets admin child-route editor chunks, not dashboard root LCP. |
 | [011 - Featured products homepage sections](011-featured-products-homepage-sections.md) | TODO | Implements GitHub issue #9: DB-backed CMS featured collector products, admin/public APIs, `/admin/featured-products`, and homepage section reorder/rename. This is independent of admin performance plans, but executors should start from a clean tree because it touches Prisma, homepage, API, admin UI, and tests. |
+
+## New Shop Performance Plan
+
+| Plan | Status | Notes |
+|---|---|---|
+| [012 - Reduce /shop client startup and LCP cost](012-shop-performance-client-boundary-lcp.md) | DONE IN WORKTREE | Executor completed in isolated worktree `khunglongshop-plan012-exec` on branch `advisor/012-shop-performance-client-boundary-lcp`, commit `5010f02 Reduce shop startup payload`. Reviewer verified scope, diff, `npm run db:generate`, `npm run type-check`, `npx vitest run --exclude "tests/otp/**"` with dummy `DATABASE_URL`, `git diff --check`, source scans, and `npm run build` with real env loaded without printing secrets. Build shows `/shop/[[...slug]]` as SSG with `/shop` revalidate `1m` and First Load JS `125 kB`. Production Speed Insights re-measure remains after applying/deploying the commit. |
