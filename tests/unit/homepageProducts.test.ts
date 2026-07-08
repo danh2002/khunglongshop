@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import path from "node:path";
 import { describe, expect, it } from "vitest";
 import {
   chooseHomepageProducts,
@@ -46,6 +48,21 @@ describe("homepage product selection", () => {
       databaseProduct,
       secondProduct,
     ]);
+  });
+
+  it("keeps the homepage blind-box query limited to card fields", () => {
+    const source = readFileSync(
+      path.join(process.cwd(), "lib", "homepage-products.ts"),
+      "utf8"
+    );
+    const blindBoxQuery = source.slice(
+      source.indexOf("const blindBoxProductsPromise"),
+      source.indexOf("const [featuredResult")
+    );
+
+    expect(blindBoxQuery).toContain("PUBLIC_STOREFRONT_PRODUCT_WHERE");
+    expect(blindBoxQuery).not.toContain("blindBoxSet:");
+    expect(blindBoxQuery).not.toContain("poolVersions:");
   });
 });
 

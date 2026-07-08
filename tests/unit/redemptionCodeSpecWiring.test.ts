@@ -159,7 +159,7 @@ describe("issue 5 redemption-code spec wiring", () => {
     const middleware = source("middleware.ts");
 
     expect(middleware).toContain('pathname.startsWith("/admin")');
-    expect(middleware).toContain('req.nextauth.token.role !== "admin"');
+    expect(middleware).toContain('req.nextauth.token?.role !== "admin"');
     expect(middleware).toContain('NextResponse.redirect(new URL("/", req.url))');
   });
 

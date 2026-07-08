@@ -121,37 +121,19 @@ export async function getHomepageProducts(): Promise<{
 
   const blindBoxProductsPromise = prisma.product.findMany({
     where: PUBLIC_STOREFRONT_PRODUCT_WHERE,
+    orderBy: [{ title: "asc" }, { id: "asc" }],
     take: 8,
     select: {
-        id: true,
-        slug: true,
-        title: true,
-        price: true,
-        mainImage: true,
-        images: true,
-        inStock: true,
-        isCollector: true,
-        setId: true,
-        setSlotNumber: true,
-        blindBoxSet: {
-          select: {
-            poolVersions: {
-              where: { status: "ACTIVE" },
-              take: 1,
-              select: {
-                entries: {
-                  orderBy: { slotNumber: "asc" },
-                  take: 4,
-                  select: {
-                    product: {
-                      select: { mainImage: true },
-                    },
-                  },
-                },
-              },
-            },
-          },
-        },
+      id: true,
+      slug: true,
+      title: true,
+      price: true,
+      mainImage: true,
+      images: true,
+      inStock: true,
+      isCollector: true,
+      setId: true,
+      setSlotNumber: true,
     },
   });
 
