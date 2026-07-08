@@ -731,11 +731,13 @@ export default function Header({
               </SearchWrap>
               {status === "authenticated" ? (
                 <ActionLink href="/account" aria-label="Tài khoản"><FaRegUser /></ActionLink>
-              ) : (
+              ) : status === "unauthenticated" ? (
                 <LoginActionLink href="/login" aria-label="Đăng nhập">
                   <FaRightToBracket />
                   <span>Đăng nhập</span>
                 </LoginActionLink>
+              ) : (
+                <span aria-hidden="true" />
               )}
               <ActionLink href="/wishlist" aria-label="Yêu thích">
                 <FaHeart />

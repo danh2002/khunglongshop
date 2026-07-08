@@ -7,6 +7,10 @@ describe("Header navigation", () => {
     path.join(process.cwd(), "components", "Header.tsx"),
     "utf8",
   );
+  const rootLayoutSource = fs.readFileSync(
+    path.join(process.cwd(), "app", "layout.tsx"),
+    "utf8",
+  );
 
   it("does not pass Next Link through styled-components' as prop", () => {
     expect(source).not.toMatch(/as=\{[^}]*Link/);
@@ -22,5 +26,11 @@ describe("Header navigation", () => {
     expect(source).toContain("router.push(`/search?${params.toString()}`)");
     expect(source).toContain('event.key !== "Escape"');
     expect(source).toContain("<MobileSearchForm");
+  });
+
+  it("does not force an unauthenticated session while the client session is loading", () => {
+    expect(rootLayoutSource).not.toContain("session={null}");
+    expect(source).toContain('status === "authenticated"');
+    expect(source).toContain('status === "unauthenticated"');
   });
 });

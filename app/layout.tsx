@@ -38,7 +38,7 @@ export default async function RootLayout({
     <html lang="vi" data-theme="light">
       <body className={`${bodyFont.variable} ${displayFont.variable}`}>
         <StyledComponentsRegistry>
-          <SessionProvider session={null}>
+          <SessionProvider>
             <Providers>{children}</Providers>
           </SessionProvider>
         </StyledComponentsRegistry>
