@@ -114,7 +114,7 @@ const Title = styled.h1`
   font-size: clamp(3.1rem, 8vw, 7.4rem);
   font-weight: 800;
   letter-spacing: 0;
-  line-height: 0.82;
+  line-height: 0.95;
   text-transform: uppercase;
 `;
 

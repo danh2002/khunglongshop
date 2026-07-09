@@ -156,8 +156,9 @@ export default function Footer() {
           <div>
             <Heading>Liên hệ</Heading>
             <List>
-              <li><a href="mailto:support@khunglongshop.vn">support@khunglongshop.vn</a></li>
-              <li><a href="tel:+84901234567">090 123 4567</a></li>
+              <li><a href="mailto:support@khunglongshop.vn">dinosaurisland008@gmail.com</a></li>
+              <li><a href="tel:+84901234567">094 270 1290</a></li>
+              <li><a href="tel:+84901234567">033 725 5945</a></li>
               <li><span>Việt Nam</span></li>
             </List>
           </div>

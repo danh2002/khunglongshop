@@ -158,7 +158,7 @@ const HeroTitle = styled.h1`
   font-size: clamp(44px, 5.8vw, 76px);
   font-weight: 950;
   letter-spacing: 0;
-  line-height: 0.94;
+  line-height: 1.05;
   text-transform: uppercase;
 
   span {

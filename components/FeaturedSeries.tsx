@@ -47,15 +47,13 @@ const Cover = styled.div`
   }
 `;
 
-const QuestionMark = styled.div`
+const BagImage = styled.div`
   position: absolute;
-  inset: 34px 34px 142px;
-  display: grid;
-  place-items: center;
-  color: rgba(232, 93, 0, 0.2);
-  font-size: clamp(120px, 24vw, 260px);
-  font-weight: 900;
-  line-height: 1;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
 `;
 
 const CoverText = styled.div`
@@ -167,7 +165,16 @@ export default function FeaturedSeries({
     <Section>
       <Series>
         <Cover>
-          <QuestionMark aria-hidden>?</QuestionMark>
+          <BagImage aria-hidden>
+            <Image
+              src="/tui-mu-random.png"
+              alt="Túi mù random"
+              width={280}
+              height={380}
+              style={{ objectFit: "contain", filter: "drop-shadow(0 12px 32px rgba(232,93,0,0.35))" }}
+              priority
+            />
+          </BagImage>
           <CoverText>
             <Title>Túi mù random</Title>
             <Meta>Túi mù random các nhân vật collector nổi bật</Meta>
