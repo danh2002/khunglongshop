@@ -1,5 +1,40 @@
 # Improve Plan Index
 
+## 2026-07-14 Full Audit Plans
+
+**Audit default**: no interactive selection was available, so this index adds the four highest-leverage findings that were not already covered by an existing plan. Existing plan 004 already documents the remaining unbounded ownership-history limitation in the paginated collection endpoint; it was not duplicated.
+
+| Priority | Plan | Status | Depends on |
+|---|---|---|---|
+| P1 | [013 - Retire credential-like docs and align operational documentation](013-retire-doc-secret-and-align-operational-docs.md) | READY | none |
+| P1 | [014 - Use durable rate limits for serverless routes](014-use-durable-rate-limits-for-serverless-routes.md) | READY | none |
+| P1 | [017 - Fix the false `/404` document prerender error](017-fix-html-import-outside-document.md) | DONE (`e3ac798`) | none |
+| P1 | [015 - Remediate reachable dependency advisories](015-remediate-reachable-dependency-advisories.md) | DONE (`775dd7e`) | 017 |
+| P1 | [016 - Enforce CI verification and migration boundaries](016-enforce-ci-verification-and-migration-boundaries.md) | READY | 015 |
+
+Plans 017 and 015 are DONE at `e3ac798` and `775dd7e`, respectively. Plan 016
+is now eligible to execute.
+
+Plan 015's final production audit reports 12 reviewed residual advisories
+(5 high, 7 moderate, 0 critical): Preact under the latest compatible NextAuth
+v4 line, Express routing under `express-rate-limit`, and Tailwind build-tooling
+paths through glob/minimatch/picomatch. DOMPurify and Prisma advisories were
+cleared. Resolving the accepted paths requires an upstream-compatible release
+or a separately planned major migration; no unsafe audit downgrade was used.
+
+```text
+013 (documentation and credential response)  ─┐
+014 (durable limiting)                        ├─ independent implementation tracks
+015 (dependency remediation) ────────────────► 016 (blocking CI gates)
+```
+
+### Considered and rejected in this audit
+
+- Local Vercel Blob image optimization timeout: excluded because it is a confirmed known issue with an already planned development-only configuration change.
+- TiDB P1001 connection drops: excluded because it is a confirmed known issue and public-homepage fallbacks already exist.
+- Collection/codes history over-fetch: not duplicated because [plan 004](004-paginate-collection-and-codes.md) explicitly records the remaining ownership-pagination limitation; reassess after its manual smoke verification.
+- Broad Next.js upgrade: not a standalone plan because audit remediation must be targeted and reviewed together with direct dependency advisories in plan 015.
+
 | Plan | Status | Notes |
 |---|---|---|
 | [001 - Remove root-layout force-dynamic](001-remove-root-force-dynamic.md) | PENDING MANUAL BUILD | Executor completed in isolated worktree `khunglongshop-plan001-exec` on branch `codex-plan-001-exec-20260622150114`, commit `b18e4aa Restore static root layout`. Reviewer verified scope, diff, `npm run type-check`, `npx vitest run --exclude "tests/otp/**"` with a shell-only dummy `DATABASE_URL`, and layout string checks. Manual `npm run build` with a real database remains before marking DONE. |

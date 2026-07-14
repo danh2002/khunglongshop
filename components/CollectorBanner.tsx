@@ -111,7 +111,7 @@ const Cta = styled(Link)`
 `;
 
 const steps = [
-  ["01", "Mua hàng", "Chọn sản phẩm Vanie chính hãng trên cửa hàng."],
+  ["01", "Mua hàng", "Chọn sản phẩm chính hãng trên cửa hàng."],
   ["02", "Nhận mã", "Mỗi đơn hợp lệ đi kèm một mã collector riêng."],
   ["03", "Mở thưởng game", "Hoàn thiện bộ sưu tập để nhận phần thưởng."],
 ];

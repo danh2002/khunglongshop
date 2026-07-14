@@ -170,6 +170,8 @@ const DropdownPanel = styled.div<{ $open: boolean }>`
   z-index: 200;
   min-width: 250px;
   padding: 10px;
+  max-height: 300px;
+  overflow-y: auto;
   border: 1px solid rgba(242, 238, 231, 0.14);
   border-radius: 0;
   background:
@@ -181,6 +183,19 @@ const DropdownPanel = styled.div<{ $open: boolean }>`
   visibility: ${({ $open }) => ($open ? "visible" : "hidden")};
   transform: translateY(${({ $open }) => ($open ? "0" : "-6px")});
   transition: 0.2s ease;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 178, 63, 0.4) transparent;
+
+  &::-webkit-scrollbar {
+    width: 4px;
+  }
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  &::-webkit-scrollbar-thumb {
+    background: rgba(255, 178, 63, 0.4);
+    border-radius: 2px;
+  }
 `;
 
 const DropdownLink = styled(Link)<{ $divider?: boolean }>`
