@@ -10,10 +10,16 @@
 | P1 | [014 - Use durable rate limits for serverless routes](014-use-durable-rate-limits-for-serverless-routes.md) | READY | none |
 | P1 | [017 - Fix the false `/404` document prerender error](017-fix-html-import-outside-document.md) | DONE (`e3ac798`) | none |
 | P1 | [015 - Remediate reachable dependency advisories](015-remediate-reachable-dependency-advisories.md) | DONE (`775dd7e`) | 017 |
-| P1 | [016 - Enforce CI verification and migration boundaries](016-enforce-ci-verification-and-migration-boundaries.md) | READY | 015 |
+| P1 | [016 - Enforce CI verification and migration boundaries](016-enforce-ci-verification-and-migration-boundaries.md) | PENDING GITHUB RUN (`0419c52`) | 015 |
 
 Plans 017 and 015 are DONE at `e3ac798` and `775dd7e`, respectively. Plan 016
-is now eligible to execute.
+is implemented at `0419c52` with local Node.js 24 parity verified; mark it DONE
+after the first real GitHub Actions run succeeds on a push or pull request.
+
+CI generates the Prisma client but never applies schema or data changes.
+Production migration SQL or the approved TiDB procedure remains a manual
+operation requiring review, a current backup, and a valid production
+`DATABASE_URL`; never expose that credential to the verification workflow.
 
 Plan 015's final production audit reports 12 reviewed residual advisories
 (5 high, 7 moderate, 0 critical): Preact under the latest compatible NextAuth
