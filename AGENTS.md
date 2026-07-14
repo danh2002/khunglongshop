@@ -1,197 +1,148 @@
-# Khủng Long Shop — Agent Memory File
+# Đảo Khủng Long Shop - Agent Guide
 
-> This file is automatically read by Codex and other AI coding agents at session start.
-> Do NOT delete. Update this file whenever major architectural decisions are made.
+> Codex and other coding agents read this file at session start. Keep it aligned with architectural, deployment, and domain decisions.
 
----
+## Project overview
 
-## Project Overview
+- **Name:** Đảo Khủng Long Shop (`khunglongshop`)
+- **Product:** Vietnamese collectible-toy e-commerce storefront and admin dashboard
+- **Theme:** Dinosaur island with a dark, game-adjacent visual identity
+- **Language:** Vietnamese user-facing text; English code and comments
 
-**Name:** Đảo Khủng Long Shop (`khunglongshop`)
-**Type:** Vietnamese collectible toy e-commerce website
-**Theme:** Dinosaur island / volcanic aesthetic — dark, game-adjacent storefront
-**Language:** Vietnamese UI strings throughout; code and comments in English
+## Technology
 
----
-
-## Tech Stack
-
-| Layer | Technology |
+| Layer | Current technology |
 |---|---|
-| Frontend | Next.js (App Router), TypeScript |
-| Styling | styled-components (SSR-safe registry setup) |
-| Icons | Tabler Icons |
-| Backend API | Express.js on **port 3001** |
+| Application | Next.js App Router, React, TypeScript |
+| API | Next.js App Router route handlers |
 | ORM | Prisma |
-| Database | MySQL |
-| Package Manager | npm |
-| Editor | VSCode on Windows (PowerShell) |
+| Production database | TiDB Cloud (MySQL-compatible) |
+| Authentication | NextAuth |
+| Production uploads | Vercel Blob |
+| Styling | styled-components and Tailwind CSS |
+| Deployment | Vercel |
+| Package manager | npm |
 
----
+Both styled-components and Tailwind dependencies are present. Match the surrounding module when changing UI; do not force either styling approach into code that uses the other.
 
-## Design Tokens
+## Project structure
 
-```
-Background:   #070707  (primary dark)
-Accent:       #e85d00  (orange)
-Text:         #ffffff / #cccccc
-```
-
-- Dark theme throughout — always check color contrast before adding new text colors
-- Chibi/kawaii dinosaur mascot ("Ricon") — black and gold branded aesthetic
-- No Tailwind — all styles via styled-components
-
----
-
-## Project Structure
-
-```
-khunglongshop/
-├── app/                    # Next.js App Router
-│   ├── (storefront)/       # Public-facing pages
-│   │   ├── page.tsx        # Homepage (slider + product sections)
-│   │   ├── shop/           # Product listing
-│   │   ├── about/          # About page
-│   │   └── cart/           # Cart page
-│   ├── admin/              # CMS / Admin dashboard
-│   │   ├── sliders/        # Slider management
-│   │   ├── products/       # Product management
-│   │   └── users/          # User management
-│   └── api/                # Next.js API routes (proxies to Express)
-├── components/             # Shared UI components (styled-components)
-├── prisma/
-│   ├── schema.prisma       # Database schema
-│   └── migrations/         # Prisma migration history
-├── server/                 # Express.js API (port 3001)
-│   ├── routes/             # API route handlers
-│   └── index.ts            # Express entry point
-├── public/                 # Static assets (images stored here)
-├── lib/                    # Shared utilities
-└── AGENTS.md               # ← This file
+```text
+app/
+  (public)/          Public storefront and account routes
+  (dashboard)/       Admin dashboard routes
+  api/               Active App Router API handlers
+components/          Shared UI and feature components
+lib/                 Shared application and domain utilities
+prisma/
+  schema.prisma      Prisma schema
+  migrations/        Reviewed migration history
+public/              Repository-owned static assets
+server/              Legacy development-only Express application
 ```
 
----
+Current handlers under `app/api/` access Prisma directly. The `server/` directory is legacy and is not part of the Vercel production architecture. Do not change or start it for Vercel production unless the team makes a separate migration or deployment-boundary decision. Its package script, `npm run dev:api`, is only for explicit legacy development work.
 
-## Data & Schema Rules
+The public route group is `app/(public)`, and the dashboard route group is `app/(dashboard)`.
+
+## Design guidance
+
+- Preserve the dark storefront theme and verify readable color contrast.
+- Keep the black-and-gold Ricon dinosaur branding consistent with nearby UI.
+- Reuse existing design tokens and component patterns before introducing new ones.
+- Keep all user-facing strings in Vietnamese.
+
+## Data and schema rules
 
 ### Prices
-- Stored as **integer (VND)** — no decimals, no foreign currency
-- Displayed with **"đ" suffix** — e.g. `150,000đ`
 
-### Product Images
-- Stored as **project-relative paths** — e.g. `/public/products/dino-01.jpg`
-- Never store absolute URLs or external CDN links unless explicitly decided
+- Store prices as integer VND values, never floats, decimal currency values, or strings.
+- Format displayed prices as Vietnamese đồng, for example `150.000đ`.
 
-### User Roles
-- Defined as a **non-null enum** in Prisma schema
-- Do not change to nullable or string without migration
+### Product images
 
-### Prisma Notes
-- Always run `npx prisma generate` after schema changes
-- Run `npx prisma migrate dev` for local migrations
-- Be careful with concurrent writes — use transactions where needed
-- Vietnamese strings in seed files: use Unicode escapes or UTF-8 BOM-safe approach
+- Image fields may contain repository-local public paths or Vercel Blob HTTPS URLs.
+- Pass catalog image values through `normalizeCatalogImage` where the surrounding flow does so.
+- Any remote image host must also be allowed by the Next.js image configuration before use with `next/image`.
+- Do not introduce arbitrary external image hosts.
 
----
+### User roles
 
-## API Architecture
+- The Prisma role field is a non-null enum.
+- Do not make it nullable or replace it with an unconstrained string without an approved migration.
 
+### Prisma and migrations
+
+- Run `npm run db:generate` after Prisma schema changes.
+- Develop and review migration SQL outside production before applying it.
+- Validate migrations for TiDB Cloud compatibility.
+- Apply reviewed migration SQL or the team's approved TiDB migration procedure in production.
+- Never run `npm run db:push` against production.
+- Use transactions where supported and appropriate for related writes.
+
+## API architecture
+
+```text
+Browser
+  -> Next.js App Router pages and route handlers
+  -> Prisma
+  -> TiDB Cloud
+
+Production uploads
+  -> App Router upload handler
+  -> Vercel Blob
 ```
-Browser → Next.js App Router (port 3000)
-              ↓
-         Next.js API Routes (/api/*)
-              ↓
-         Express.js API (http://localhost:3001)
-              ↓
-         Prisma → MySQL
-```
 
-- Next.js API routes are **thin proxies** to Express — business logic lives in Express
-- Always prefix Express routes consistently (e.g. `/api/products`, `/api/sliders`)
+- Keep business rules and authorization checks in the active App Router flow.
+- Return stable, typed response shapes and handle empty or null results explicitly.
+- Do not describe active App Router handlers as proxies to the legacy Express server.
 
----
-
-## Core Features
+## Domain behavior
 
 ### Storefront
-- **Homepage:** Hero slider (autoplay) + product sections by category
-- **Shop:** Product listing with filter/sort
-- **Product Detail:** Blind box reveal mechanic
-- **Cart & Wishlist:** Managed via API, not local state only
-- **About:** Brand story page
 
-### Blind Box System
-- Customer purchases a blind box product
-- On purchase confirmation → system generates a **redemption code**
-- Code can be entered to unlock in-game rewards
-- **Set completion bonus:** collecting all items in a set triggers extra reward
+- The homepage contains hero and merchandise sections.
+- Shop and product routes expose catalog browsing and product details.
+- Cart, wishlist, checkout, account, and order flows use application APIs and persisted data.
 
-### Admin CMS
-- **Slider Management:** CRUD for homepage slider images, order, visibility
-- **Product Management:** Create/edit products, upload images, set blind box config
-- **User Management:** Role-based access, non-null role enum
+### Blind-box system
 
----
+- A customer purchases a blind-box product.
+- Purchase confirmation generates or assigns a redemption code according to the existing flow.
+- The code unlocks an in-game reward.
+- Completing a configured set can trigger the existing set-completion bonus behavior.
 
-## Known Bugs — Already Fixed (Do NOT reintroduce)
+### Admin dashboard
 
-| Bug | Fix Applied |
-|---|---|
-| styled-components SSR hydration flash | Registry pattern in `app/layout.tsx` |
-| Homepage slider autoplay stopping | `setInterval` with proper cleanup in `useEffect` |
-| Empty product sections | Fixed Express → Next.js API response shape mismatch |
-| Invisible text (contrast) | Always use `#fff` or `#ccc` on dark backgrounds |
-| Cart/wishlist API errors | Normalized response handling in all fetch calls |
-| Vietnamese strings corrupted | Use Node.js scripts with Unicode escapes for seeds |
-| Mixed VI/EN UI strings | All user-facing strings must be Vietnamese |
+- Admin routes manage products, homepage content, orders, users, and collectible configuration.
+- Preserve role-based access checks and the non-null role enum.
 
----
+## Coding conventions
 
-## Coding Conventions
+- Keep TypeScript strict and avoid `any` unless an integration boundary makes it unavoidable.
+- Prefer `async`/`await` to promise chains.
+- Follow existing export and naming conventions in the surrounding directory.
+- Use PascalCase for React component files and camelCase for utility files.
+- Add loading, empty, and error states to data-fetching UI.
+- Never assume API data is present or correctly shaped without validation.
+- Preserve valid UTF-8 Vietnamese text when editing files.
 
-- **TypeScript strict mode** — no `any` unless absolutely necessary
-- **Async/await** over `.then()` chains
-- **Named exports** for components, default exports for pages
-- **Component files:** PascalCase (`ProductCard.tsx`)
-- **Utility files:** camelCase (`formatPrice.ts`)
-- Error boundaries and loading states required for all data-fetching components
-- Always handle empty/null API responses gracefully — never assume data exists
+## Local workflow
 
----
+- Primary web application: `npm run dev:web`
+- Legacy Express server, only when explicitly required: `npm run dev:api`
+- Prisma client generation: `npm run db:generate`
+- Type checking: `npm run type-check`
+- Non-database tests: `npx vitest run --exclude "tests/otp/**"`
 
-## Workflow
+Local credentials belong in an ignored private environment file based on `.env.example`. Never read, print, commit, or copy credentials into documentation or fixtures.
 
-This project uses an **AI-assisted spec-driven workflow**:
+## Do not
 
-1. `create-spec` — Write a spec file describing the feature
-2. `review-spec` — Validate and refine the spec
-3. `implement-spec` — Codex implements from the spec
-4. Report results back for diagnosis and iteration
-
-Spec files live in `.codex/specs/` (or equivalent configured path).
-
----
-
-## Environment
-
-- **OS:** Windows, PowerShell
-- **Node:** v20.x
-- **Dev ports:** Next.js `3000`, Express `3001`
-- **DB:** MySQL (local dev), configure via `DATABASE_URL` in `.env`
-
-```env
-DATABASE_URL="mysql://user:password@localhost:3306/khunglongshop"
-NEXT_PUBLIC_API_URL="http://localhost:3001"
-```
-
----
-
-## What NOT to Do
-
-- Do not install packages without checking compatibility with Node v20
-- Do not use `npm audit fix --force` — it may introduce breaking changes
-- Do not change Prisma role field to nullable
-- Do not store prices as floats or strings
-- Do not use Tailwind (not installed)
-- Do not hardcode port numbers — use env vars
-- Do not mix Vietnamese and English in user-facing UI strings
+- Do not use `npm audit fix --force` without a reviewed dependency-upgrade plan.
+- Do not make the Prisma role field nullable.
+- Do not store prices as floats or strings.
+- Do not mix Vietnamese and English in user-facing UI.
+- Do not hardcode credentials, deployment URLs, or private database connection values.
+- Do not use `db:push` against production.
+- Do not treat `server/` as part of the Vercel production runtime.
