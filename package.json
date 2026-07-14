@@ -2,6 +2,9 @@
   "name": "electronic-ecommerce-shop-with-dashboard",
   "version": "0.1.0",
   "private": true,
+  "engines": {
+    "node": "24.x"
+  },
   "scripts": {
     "dev": "concurrently --kill-others-on-fail --names web,api \"npm:dev:web\" \"npm:dev:api\"",
     "dev:web": "next dev",

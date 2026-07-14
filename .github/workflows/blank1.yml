@@ -1,36 +1,111 @@
-# This is a basic workflow to help you get started with Actions
-
 name: CI
 
-# Controls when the workflow will run
 on:
-  # Triggers the workflow on push or pull request events but only for the "main" branch
   push:
-    branches: [ "main" ]
+    branches: [main]
   pull_request:
-    branches: [ "main" ]
-
-  # Allows you to run this workflow manually from the Actions tab
+    branches: [main]
   workflow_dispatch:
 
-# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+permissions:
+  contents: read
+
 jobs:
-  # This workflow contains a single job called "build"
-  build:
-    # The type of runner that the job will run on
+  verify:
     runs-on: ubuntu-latest
-
-    # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
-      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-      # Runs a single command using the runners shell
-      - name: Run a one-line script
-        run: echo Hello, world!
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
 
-      # Runs a set of commands using the runners shell
-      - name: Run a multi-line script
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate Prisma client
+        run: npm run db:generate
+
+      - name: Typecheck
+        run: npm run type-check
+
+      - name: Run non-OTP tests
+        env:
+          DATABASE_URL: mysql://ci:ci@127.0.0.1:3306/ci
+        run: npx vitest run --exclude "tests/otp/**"
+
+      - name: Audit production dependencies
+        shell: bash
         run: |
-          echo Add other actions to build,
-          echo test, and deploy your project.
+          audit_file="$(mktemp)"
+          trap 'rm -f "$audit_file"' EXIT
+
+          set +e
+          npm audit --omit=dev --audit-level=high --json > "$audit_file"
+          audit_exit=$?
+          set -e
+
+          AUDIT_EXIT="$audit_exit" AUDIT_FILE="$audit_file" node <<'NODE'
+          const fs = require('node:fs');
+
+          const allowedHigh = new Set([
+            'glob',
+            'minimatch',
+            'path-to-regexp',
+            'picomatch',
+            'preact',
+          ]);
+          const auditExit = Number(process.env.AUDIT_EXIT);
+          const failures = [];
+          let report;
+
+          try {
+            report = JSON.parse(fs.readFileSync(process.env.AUDIT_FILE, 'utf8'));
+          } catch (error) {
+            console.error(`Unable to parse npm audit JSON: ${error.message}`);
+            process.exit(1);
+          }
+
+          const counts = report.metadata?.vulnerabilities;
+          const vulnerabilities = report.vulnerabilities;
+
+          if (!counts || !vulnerabilities || typeof vulnerabilities !== 'object') {
+            console.error('npm audit returned an incomplete report.');
+            process.exit(1);
+          }
+
+          const highPackages = Object.entries(vulnerabilities)
+            .filter(([, vulnerability]) => vulnerability.severity === 'high')
+            .map(([name]) => name)
+            .sort();
+          const unrecognizedHigh = highPackages.filter((name) => !allowedHigh.has(name));
+
+          if (![0, 1].includes(auditExit)) {
+            failures.push(`npm audit exited unexpectedly with code ${auditExit}`);
+          }
+          if (counts.critical > 0) {
+            failures.push(`critical vulnerability count is ${counts.critical}`);
+          }
+          if (counts.high > allowedHigh.size) {
+            failures.push(`high vulnerability count is ${counts.high}, above the accepted baseline of ${allowedHigh.size}`);
+          }
+          if (counts.high !== highPackages.length) {
+            failures.push(`high vulnerability metadata count ${counts.high} does not match package count ${highPackages.length}`);
+          }
+          if (unrecognizedHigh.length > 0) {
+            failures.push(`unrecognized high-severity packages: ${unrecognizedHigh.join(', ')}`);
+          }
+
+          if (failures.length > 0) {
+            console.error(`Dependency audit gate failed:\n- ${failures.join('\n- ')}`);
+            process.exit(1);
+          }
+
+          console.log(
+            `Dependency audit gate passed: ${counts.high} high, ${counts.moderate} moderate, ${counts.critical} critical.`,
+          );
+          console.log(`Accepted high-severity packages: ${highPackages.join(', ') || 'none'}.`);
+          NODE
