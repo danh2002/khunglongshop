@@ -6,7 +6,7 @@
 
 | Priority | Plan | Status | Depends on |
 |---|---|---|---|
-| P1 | [013 - Retire credential-like docs and align operational documentation](013-retire-doc-secret-and-align-operational-docs.md) | READY | none |
+| P1 | [013 - Retire credential-like docs and align operational documentation](013-retire-doc-secret-and-align-operational-docs.md) | DONE (`6641558`) | none |
 | P1 | [014 - Use durable rate limits for serverless routes](014-use-durable-rate-limits-for-serverless-routes.md) | READY | none |
 | P1 | [017 - Fix the false `/404` document prerender error](017-fix-html-import-outside-document.md) | DONE (`e3ac798`) | none |
 | P1 | [015 - Remediate reachable dependency advisories](015-remediate-reachable-dependency-advisories.md) | DONE (`775dd7e`) | 017 |
@@ -15,6 +15,10 @@
 Plans 017 and 015 are DONE at `e3ac798` and `775dd7e`, respectively. Plan 016
 is implemented at `0419c52` with local Node.js 24 parity verified; mark it DONE
 after the first real GitHub Actions run succeeds on a push or pull request.
+
+Plan 013 is DONE at `6641558`. The `NEXTAUTH_SECRET` credential type was rotated
+for Vercel Preview and Production before the documentation changes, and the
+fresh Production deployment completed successfully without recording its value.
 
 CI generates the Prisma client but never applies schema or data changes.
 Production migration SQL or the approved TiDB procedure remains a manual
