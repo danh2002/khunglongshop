@@ -56,7 +56,7 @@ export default async function CollectorSetDetailPage({ params }: { params: Promi
               {product ? (
                 <>
                   <div className="relative aspect-square overflow-hidden bg-black">
-                    <Image src={product.mainImage.startsWith("/") ? product.mainImage : `/${product.mainImage}`} alt={product.title} fill className="object-contain" sizes="200px" />
+                    <Image src={product.mainImage} alt={product.title} fill className="object-contain" sizes="200px" />
                   </div>
                   <p className="mt-3 text-sm font-bold">{product.title}</p>
                 </>
