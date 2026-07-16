@@ -138,22 +138,24 @@ export default function AdminProductForm({
           />
         </label>
 
-        <label className="grid gap-2 text-sm font-black uppercase text-white/70">
-          Danh mục
-          <select
-            required
-            value={value.categoryId}
-            onChange={(event) => onChange({ ...value, categoryId: event.target.value })}
-            className="min-h-12 border border-[#e85d00]/40 bg-[#111] px-4 text-white outline-none focus:border-[#e85d00]"
-          >
-            <option value="">Chọn danh mục</option>
-            {references.categories.map((category) => (
-              <option key={category.id} value={category.id}>
-                {category.name}
-              </option>
-            ))}
-          </select>
-        </label>
+        {!value.isBlindBox ? (
+          <label className="grid gap-2 text-sm font-black uppercase text-white/70">
+            Danh mục
+            <select
+              required
+              value={value.categoryId}
+              onChange={(event) => onChange({ ...value, categoryId: event.target.value })}
+              className="min-h-12 border border-[#e85d00]/40 bg-[#111] px-4 text-white outline-none focus:border-[#e85d00]"
+            >
+              <option value="">Chọn danh mục</option>
+              {references.categories.map((category) => (
+                <option key={category.id} value={category.id}>
+                  {category.name}
+                </option>
+              ))}
+            </select>
+          </label>
+        ) : null}
 
         <label className="grid gap-2 text-sm font-black uppercase text-white/70">
           Merchant
@@ -251,7 +253,7 @@ export default function AdminProductForm({
                 ...value,
                 isBlindBox: event.target.checked,
                 isVisible: event.target.checked ? true : value.isVisible,
-                blindBoxSetId: event.target.checked ? value.blindBoxSetId : null,
+                blindBoxSetId: null,
                 isCollector: event.target.checked ? false : value.isCollector,
                 setId: event.target.checked ? null : value.setId,
                 setSlotNumber: event.target.checked ? null : value.setSlotNumber,
@@ -260,29 +262,6 @@ export default function AdminProductForm({
           />
           Sản phẩm túi mù
         </label>
-
-        {value.isBlindBox ? (
-          <label className="grid gap-2 text-sm font-black uppercase text-white/70">
-            Bộ sưu tập của túi mù
-            <select
-              value={value.blindBoxSetId || ""}
-              onChange={(event) =>
-                onChange({
-                  ...value,
-                  blindBoxSetId: event.target.value || null,
-                })
-              }
-              className="min-h-12 border border-[#e85d00]/40 bg-[#111] px-4 text-white outline-none focus:border-[#e85d00]"
-            >
-              <option value="">Chọn bộ sưu tập</option>
-              {references.collectorSets.map((collectorSet) => (
-                <option key={collectorSet.id} value={collectorSet.id}>
-                  {collectorSet.name}
-                </option>
-              ))}
-            </select>
-          </label>
-        ) : null}
       </div>
 
       <label className="grid gap-2 text-sm font-black uppercase text-white/70">
