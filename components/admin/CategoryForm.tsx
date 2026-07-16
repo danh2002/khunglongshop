@@ -103,20 +103,20 @@ export default function CategoryForm({
         <button className={adminSecondaryButtonClass} disabled={saving} onClick={save} type="button">
           {saving ? "Đang lưu" : id ? "Lưu thay đổi" : "Tạo danh mục"}
         </button>
-        {id ? (
+        {id && productCount === 0 ? (
           <button
-            className="min-h-10 border border-red-500/40 px-4 text-sm font-bold uppercase text-red-300 disabled:cursor-not-allowed disabled:opacity-40"
-            disabled={productCount > 0}
-            onClick={remove}
             type="button"
+            onClick={remove}
+            disabled={saving}
+            className="min-h-10 border border-red-600 px-4 text-sm font-black uppercase text-red-500 hover:bg-red-600 hover:text-white disabled:opacity-50"
           >
-            Xóa
+            Xóa danh mục
           </button>
         ) : null}
       </div>
-      {productCount > 0 ? (
-        <p className="mt-3 text-sm text-amber-300">
-          Danh mục đang có {productCount} sản phẩm nên không thể xóa.
+      {id && productCount > 0 ? (
+        <p className="text-xs text-white/40">
+          Danh mục có {productCount} sản phẩm, không thể xóa.
         </p>
       ) : null}
     </div>

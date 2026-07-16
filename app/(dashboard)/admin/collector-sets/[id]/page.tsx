@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import BlindBoxPoolEditorClient from "./BlindBoxPoolEditorClient";
 import { AdminMetric, AdminPage, AdminPageHeader } from "@/components/admin/AdminUi";
 import CollectorSetMetadataForm from "@/components/admin/CollectorSetMetadataForm";
+import DeleteCollectorSetButton from "@/components/admin/DeleteCollectorSetButton";
 import prisma from "@/utils/db";
 
 export default async function CollectorSetDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -21,7 +22,16 @@ export default async function CollectorSetDetailPage({ params }: { params: Promi
   const productBySlot = new Map(set.products.map((product) => [product.setSlotNumber, product]));
   return (
     <AdminPage>
-      <AdminPageHeader title={set.name} description={set.description ?? "Bộ sưu tập 10 sản phẩm"} />
+      <AdminPageHeader
+        title={set.name}
+        description={set.description ?? "Bộ sưu tập 10 sản phẩm"}
+        action={
+          <DeleteCollectorSetButton
+            id={set.id}
+            disabled={set.products.length > 0 || set._count.setRewards > 0}
+          />
+        }
+      />
       <section className="grid grid-cols-2 gap-3 md:grid-cols-3">
         <AdminMetric label="Đã gán" value={`${set.products.length}/${set.totalSlots}`} />
         <AdminMetric label="Người hoàn thành" value={set._count.setRewards} />
