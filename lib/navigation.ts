@@ -38,6 +38,9 @@ export const getNavigationData = unstable_cache(
           select: { id: true, name: true, slug: true, icon: true },
         }),
         prisma.collectorSet.findMany({
+          where: {
+            poolVersions: { none: {} },
+          },
           orderBy: { name: "asc" },
           select: { id: true, name: true, slug: true, image: true },
         }),
