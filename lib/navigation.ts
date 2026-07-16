@@ -39,11 +39,7 @@ export const getNavigationData = unstable_cache(
         }),
         prisma.collectorSet.findMany({
           where: {
-            poolVersions: {
-              none: {
-                status: { in: ["ACTIVE", "DRAFT"] },
-              },
-            },
+            blindBoxProducts: { none: {} },
           },
           orderBy: { name: "asc" },
           select: { id: true, name: true, slug: true, image: true },
