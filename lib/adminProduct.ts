@@ -66,7 +66,7 @@ export const adminProductSchema = z
     description: z.string().trim().min(1, "Mô tả là bắt buộc").max(4000),
     manufacturer: z.string().trim().min(1, "Nhà sản xuất là bắt buộc").max(180),
     inStock: z.coerce.number().int().min(0, "Tồn kho không được âm"),
-    categoryId: z.string().trim().min(1, "Danh mục là bắt buộc"),
+    categoryId: z.string().trim(),
     merchantId: z.string().trim().min(1, "Merchant là bắt buộc"),
     isCollector: z.coerce.boolean().default(false),
     isVisible: z.boolean(),
@@ -84,6 +84,14 @@ export const adminProductSchema = z
     };
   })
   .superRefine((value, context) => {
+    if (!value.isBlindBox && (!value.categoryId || value.categoryId.trim() === "")) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Danh mục là bắt buộc",
+        path: ["categoryId"],
+      });
+    }
+
     if (value.isCollector && value.isBlindBox) {
       context.addIssue({
         code: z.ZodIssueCode.custom,
@@ -110,13 +118,6 @@ export const adminProductSchema = z
       }
     }
 
-    if (value.isBlindBox && !value.blindBoxSetId) {
-      context.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ["blindBoxSetId"],
-        message: "Sản phẩm túi mù cần bộ sưu tập",
-      });
-    }
   });
 
 export type AdminProductInput = z.infer<typeof adminProductSchema>;
