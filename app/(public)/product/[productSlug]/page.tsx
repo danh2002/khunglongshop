@@ -15,13 +15,6 @@ import prisma from "@/utils/db";
 
 export const revalidate = 60;
 
-const rarityLabels = {
-  COMMON: "Phổ biến",
-  RARE: "Hiếm",
-  EPIC: "Sử thi",
-  LEGENDARY: "Huyền thoại",
-} as const;
-
 export default async function SingleProductPage({
   params,
 }: {
@@ -34,40 +27,17 @@ export default async function SingleProductPage({
     include: {
       category: { select: { name: true } },
       set: { select: { id: true, name: true, totalSlots: true } },
-      blindBoxSet: {
-        select: {
-          name: true,
-          totalSlots: true,
-          poolVersions: {
-            where: { status: "ACTIVE" },
-            take: 1,
-            select: {
-              entries: {
-                orderBy: { slotNumber: "asc" },
-                select: {
-                  slotNumber: true,
-                  rarityTier: true,
-                  product: {
-                    select: {
-                      title: true,
-                      mainImage: true,
-                    },
-                  },
-                },
-              },
-            },
-          },
-        },
-      },
     },
   });
 
   if (!product) notFound();
 
-  const variants = product.blindBoxSet?.poolVersions[0]?.entries ?? [];
-  const collectionName = product.blindBoxSet?.name ?? "Bộ sưu tập";
-  const collectionTotalSlots = product.blindBoxSet?.totalSlots ?? variants.length;
-  const availableVariantCount = variants.length || collectionTotalSlots;
+  const rawImages: string[] = (() => {
+    try { return JSON.parse(product.images) as string[]; }
+    catch { return []; }
+  })();
+  const collectionName = product.set?.name ?? "Bộ sưu tập";
+  const availableVariantCount = rawImages.length;
   const isCollectorProduct = Boolean(product.isCollector);
 
   return (
@@ -105,7 +75,7 @@ export default async function SingleProductPage({
         </div>
       </section>
 
-      {!isCollectorProduct ? (
+      {rawImages.length > 0 ? (
         <section className="mx-auto max-w-screen-xl px-5 pb-16">
         <div className="border-t border-orange-600/25 pt-10">
           <p className="text-xs font-black uppercase tracking-[0.28em] text-[#e85d00]">
@@ -119,15 +89,15 @@ export default async function SingleProductPage({
             không hiển thị trọng số quay.
           </p>
           <div className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
-            {variants.map((entry) => (
+            {rawImages.map((url, index) => (
               <article
-                key={entry.slotNumber}
+                key={url}
                 className="overflow-hidden border border-white/10 bg-[#111]"
               >
                 <div className="relative aspect-square bg-white/5">
                   <Image
-                    src={normalizeCatalogImage(entry.product.mainImage)}
-                    alt={`${entry.product.title}, mẫu số ${entry.slotNumber}`}
+                    src={normalizeCatalogImage(url)}
+                    alt={`Mẫu số ${index + 1}`}
                     fill
                     sizes="(max-width: 640px) 50vw, 220px"
                     className="object-contain p-3"
@@ -135,14 +105,8 @@ export default async function SingleProductPage({
                 </div>
                 <div className="p-3">
                   <p className="text-xs font-bold text-white/45">
-                    Mẫu {entry.slotNumber}
+                    Mẫu {index + 1}
                   </p>
-                  <h3 className="truncate font-black text-white">
-                    {entry.product.title}
-                  </h3>
-                  <span className="mt-2 inline-flex border border-[#e85d00]/50 px-2 py-1 text-xs font-bold text-[#e85d00]">
-                    Độ hiếm: {rarityLabels[entry.rarityTier]}
-                  </span>
                 </div>
               </article>
             ))}
