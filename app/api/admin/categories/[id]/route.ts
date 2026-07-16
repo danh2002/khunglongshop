@@ -68,19 +68,20 @@ export async function PATCH(
 }
 
 export async function DELETE(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { response } = await requireAdminApi();
   if (response) return response;
   const { id } = await params;
+  const force = new URL(request.url).searchParams.get("force") === "true";
 
   const category = await prisma.category.findUnique({
     where: { id },
     include: { _count: { select: { products: true } } },
   });
   if (!category) return adminError(404, "CATEGORY_NOT_FOUND", "Không tìm thấy danh mục.");
-  if (category._count.products > 0) {
+  if (category._count.products > 0 && !force) {
     return adminError(
       409,
       "CATEGORY_HAS_PRODUCTS",
@@ -88,7 +89,39 @@ export async function DELETE(
     );
   }
 
-  await prisma.category.delete({ where: { id } });
+  await prisma.$transaction(async (tx) => {
+    if (force && category._count.products > 0) {
+      const fallbackCategory =
+        (await tx.category.findFirst({
+          where: {
+            id: { not: id },
+            OR: [{ slug: "chua-phan-loai" }, { name: "Chưa phân loại" }],
+          },
+          select: { id: true },
+        })) ??
+        (await tx.category.create({
+          data: {
+            name:
+              category.name === "Chưa phân loại"
+                ? `Chưa phân loại ${id.slice(0, 8)}`
+                : "Chưa phân loại",
+            slug:
+              category.slug === "chua-phan-loai"
+                ? `chua-phan-loai-${id.slice(0, 8)}`
+                : "chua-phan-loai",
+            description: "Danh mục mặc định cho sản phẩm chưa được phân loại.",
+          },
+          select: { id: true },
+        }));
+
+      await tx.product.updateMany({
+        where: { categoryId: id },
+        data: { categoryId: fallbackCategory.id },
+      });
+    }
+    await tx.category.delete({ where: { id } });
+  });
+
   revalidateTag("navbar-navigation");
   revalidatePath("/", "layout");
   return new NextResponse(null, { status: 204 });

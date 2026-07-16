@@ -113,6 +113,27 @@ export default function CategoryForm({
             Xóa danh mục
           </button>
         ) : null}
+        {id && productCount > 0 ? (
+          <button
+            type="button"
+            disabled={saving}
+            onClick={async () => {
+              if (!window.confirm(`XÓA CƯỠNG BỨC danh mục "${initialName}" và gỡ liên kết ${productCount} sản phẩm? Hành động này không thể hoàn tác.`)) return;
+              const response = await fetch(`/api/admin/categories/${id}?force=true`, { method: "DELETE" });
+              const body = await response.json().catch(() => null);
+              if (!response.ok) {
+                toast.error(body?.error?.message ?? "Không thể xóa cưỡng bức danh mục.");
+                return;
+              }
+              toast.success("Đã xóa cưỡng bức danh mục.");
+              router.push("/admin/categories");
+              router.refresh();
+            }}
+            className="min-h-10 border border-red-800 bg-red-950 px-4 text-sm font-black uppercase text-red-400 hover:bg-red-700 hover:text-white disabled:opacity-50"
+          >
+            Xóa cưỡng bức
+          </button>
+        ) : null}
       </div>
       {id && productCount > 0 ? (
         <p className="text-xs text-white/40">

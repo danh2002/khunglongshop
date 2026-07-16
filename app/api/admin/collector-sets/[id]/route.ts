@@ -161,26 +161,80 @@ export async function PATCH(
 }
 
 export async function DELETE(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { response } = await requireAdminApi();
   if (response) return response;
   const { id } = await params;
+  const force = new URL(request.url).searchParams.get("force") === "true";
   const set = await findSet(id);
   if (!set) return adminError(404, "COLLECTOR_SET_NOT_FOUND", "Không tìm thấy bộ sưu tập.");
   const codeCount = set.products.reduce(
     (sum, product) => sum + product._count.redemptionCodes,
     0
   );
-  if (set._count.products > 0 || set._count.setRewards > 0 || codeCount > 0) {
+  const hasHistory = set._count.products > 0 || set._count.setRewards > 0 || codeCount > 0;
+
+  if (hasHistory && !force) {
     return adminError(
       409,
       "COLLECTOR_SET_HAS_HISTORY",
       "Không thể xóa bộ sưu tập còn sản phẩm, code hoặc phần thưởng."
     );
   }
-  await prisma.collectorSet.delete({ where: { id } });
+
+  await prisma.$transaction(async (tx) => {
+    const productIds = set.products.map((product) => product.id);
+    const poolVersions = await tx.blindBoxPoolVersion.findMany({
+      where: { collectorSetId: id },
+      select: { id: true },
+    });
+    const poolVersionIds = poolVersions.map((version) => version.id);
+
+    if (force && poolVersionIds.length > 0) {
+      await tx.redemptionCode.deleteMany({
+        where: {
+          OR: [
+            { allocation: { poolVersionId: { in: poolVersionIds } } },
+            ...(productIds.length > 0 ? [{ productId: { in: productIds } }] : []),
+          ],
+        },
+      });
+      await tx.blindBoxAllocation.deleteMany({
+        where: { poolVersionId: { in: poolVersionIds } },
+      });
+      await tx.blindBoxPoolEntry.deleteMany({
+        where: { poolVersionId: { in: poolVersionIds } },
+      });
+      await tx.customer_order_product.updateMany({
+        where: { poolVersionId: { in: poolVersionIds } },
+        data: { poolVersionId: null },
+      });
+      await tx.blindBoxPoolVersion.deleteMany({
+        where: { collectorSetId: id },
+      });
+    } else if (force && productIds.length > 0) {
+      await tx.redemptionCode.deleteMany({
+        where: { productId: { in: productIds } },
+      });
+    }
+
+    if (force) {
+      await tx.setReward.deleteMany({ where: { setId: id } });
+      await tx.product.updateMany({
+        where: { setId: id },
+        data: { setId: null, setSlotNumber: null, isCollector: false },
+      });
+      await tx.product.updateMany({
+        where: { blindBoxSetId: id },
+        data: { blindBoxSetId: null },
+      });
+    }
+
+    await tx.collectorSet.delete({ where: { id } });
+  });
+
   revalidateTag("navbar-navigation");
   revalidatePath("/", "layout");
   revalidatePath("/bo-suu-tap");

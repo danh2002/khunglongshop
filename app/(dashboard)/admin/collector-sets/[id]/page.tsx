@@ -29,6 +29,7 @@ export default async function CollectorSetDetailPage({ params }: { params: Promi
           <DeleteCollectorSetButton
             id={set.id}
             disabled={set.products.length > 0 || set._count.setRewards > 0}
+            setName={set.name}
           />
         }
       />
