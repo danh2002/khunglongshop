@@ -129,9 +129,11 @@ export default function AdminFeaturedProductsPage() {
       if (!product.isVisible || !product.isCollector || product.isBlindBox) return false;
       if (!product.setId || !product.setSlotNumber) return false;
       if (!selectedSetId) return true;
-      return product.set?.id === selectedSetId;
+      const selectedSet = allSets.find((set) => set.id === selectedSetId);
+      if (!selectedSet) return false;
+      return product.set?.name === selectedSet.name;
     });
-  }, [candidates, featuredProductIds, selectedSetId]);
+  }, [allSets, candidates, featuredProductIds, selectedSetId]);
 
   async function addFeaturedProduct() {
     if (!selectedProductId) {
