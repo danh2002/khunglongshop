@@ -55,7 +55,7 @@ export default function AdminFeaturedProductsPage() {
   const [items, setItems] = useState<FeaturedProductItem[]>([]);
   const [candidates, setCandidates] = useState<CandidateProduct[]>([]);
   const [selectedProductId, setSelectedProductId] = useState("");
-  const [search, setSearch] = useState("");
+  const [selectedSetId, setSelectedSetId] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -100,24 +100,32 @@ export default function AdminFeaturedProductsPage() {
 
   useEffect(() => {
     setSelectedProductId("");
-  }, [search]);
+  }, [selectedSetId]);
 
   const featuredProductIds = useMemo(
     () => new Set(items.map((item) => item.productId)),
     [items]
   );
 
-  const availableCandidates = useMemo(() => {
-    const normalizedSearch = search.trim().toLowerCase();
+  const availableSets = useMemo(() => {
+    const seen = new Map<string, { id: string; name: string }>();
+    for (const product of candidates) {
+      if (product.set && !seen.has(product.set.id)) {
+        seen.set(product.set.id, product.set);
+      }
+    }
+    return Array.from(seen.values()).sort((a, b) => a.name.localeCompare(b.name));
+  }, [candidates]);
 
+  const availableCandidates = useMemo(() => {
     return candidates.filter((product) => {
       if (featuredProductIds.has(product.id)) return false;
       if (!product.isVisible || !product.isCollector || product.isBlindBox) return false;
       if (!product.setId || !product.setSlotNumber) return false;
-      if (!normalizedSearch) return true;
-      return product.title.toLowerCase().includes(normalizedSearch);
+      if (!selectedSetId) return true;
+      return product.set?.id === selectedSetId;
     });
-  }, [candidates, featuredProductIds, search]);
+  }, [candidates, featuredProductIds, selectedSetId]);
 
   async function addFeaturedProduct() {
     if (!selectedProductId) {
@@ -204,12 +212,18 @@ export default function AdminFeaturedProductsPage() {
           Chỉ sản phẩm collector đang hiển thị và có bộ/slot mới có thể đưa lên trang chủ.
         </p>
         <div className="mt-4 grid gap-3 lg:grid-cols-[minmax(180px,260px)_minmax(260px,1fr)_auto]">
-          <input
+          <select
             className={adminInputClass}
-            value={search}
-            onChange={(event) => setSearch(event.target.value)}
-            placeholder="Tìm sản phẩm collector"
-          />
+            value={selectedSetId}
+            onChange={(event) => setSelectedSetId(event.target.value)}
+          >
+            <option value="">Tất cả nhân vật</option>
+            {availableSets.map((set) => (
+              <option key={set.id} value={set.id}>
+                {set.name}
+              </option>
+            ))}
+          </select>
           <select
             className={adminInputClass}
             value={selectedProductId}
