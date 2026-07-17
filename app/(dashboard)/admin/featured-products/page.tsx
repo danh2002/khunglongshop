@@ -54,6 +54,7 @@ function formatSlot(product: FeaturedProductItem["product"] | CandidateProduct) 
 export default function AdminFeaturedProductsPage() {
   const [items, setItems] = useState<FeaturedProductItem[]>([]);
   const [candidates, setCandidates] = useState<CandidateProduct[]>([]);
+  const [allSets, setAllSets] = useState<Array<{ id: string; name: string }>>([]);
   const [selectedProductId, setSelectedProductId] = useState("");
   const [selectedSetId, setSelectedSetId] = useState("");
   const [isLoading, setIsLoading] = useState(true);
@@ -83,16 +84,31 @@ export default function AdminFeaturedProductsPage() {
     setCandidates(Array.isArray(payload?.items) ? payload.items : []);
   }, []);
 
+  const loadSets = useCallback(async () => {
+    const response = await fetch("/api/admin/collector-sets", { cache: "no-store" });
+    const payload = await response.json().catch(() => null);
+    if (!response.ok) return;
+    const items = Array.isArray(payload?.items) ? payload.items : (Array.isArray(payload) ? payload : []);
+    setAllSets(
+      items
+        .filter((set: { id: string; name: string; poolVersions?: unknown[] }) =>
+          !set.poolVersions || (set.poolVersions as unknown[]).length === 0
+        )
+        .map((set: { id: string; name: string }) => ({ id: set.id, name: set.name }))
+        .sort((a: { name: string }, b: { name: string }) => a.name.localeCompare(b.name))
+    );
+  }, []);
+
   const refreshData = useCallback(async () => {
     setIsLoading(true);
     try {
-      await Promise.all([loadFeaturedProducts(), loadCandidateProducts()]);
+      await Promise.all([loadFeaturedProducts(), loadCandidateProducts(), loadSets()]);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Không thể tải dữ liệu.");
     } finally {
       setIsLoading(false);
     }
-  }, [loadCandidateProducts, loadFeaturedProducts]);
+  }, [loadCandidateProducts, loadFeaturedProducts, loadSets]);
 
   useEffect(() => {
     void refreshData();
@@ -106,16 +122,6 @@ export default function AdminFeaturedProductsPage() {
     () => new Set(items.map((item) => item.productId)),
     [items]
   );
-
-  const availableSets = useMemo(() => {
-    const seen = new Map<string, { id: string; name: string }>();
-    for (const product of candidates) {
-      if (product.set && !seen.has(product.set.id)) {
-        seen.set(product.set.id, product.set);
-      }
-    }
-    return Array.from(seen.values()).sort((a, b) => a.name.localeCompare(b.name));
-  }, [candidates]);
 
   const availableCandidates = useMemo(() => {
     return candidates.filter((product) => {
@@ -218,7 +224,7 @@ export default function AdminFeaturedProductsPage() {
             onChange={(event) => setSelectedSetId(event.target.value)}
           >
             <option value="">Tất cả nhân vật</option>
-            {availableSets.map((set) => (
+            {allSets.map((set) => (
               <option key={set.id} value={set.id}>
                 {set.name}
               </option>
