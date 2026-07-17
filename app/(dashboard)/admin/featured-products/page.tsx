@@ -71,7 +71,7 @@ export default function AdminFeaturedProductsPage() {
   }, []);
 
   const loadCandidateProducts = useCallback(async () => {
-    const response = await fetch("/api/admin/products?collectorOnly=true&limit=100", {
+    const response = await fetch("/api/admin/products?collectorOnly=true&limit=500", {
       cache: "no-store",
     });
     const payload = await response.json().catch(() => null);
@@ -98,6 +98,10 @@ export default function AdminFeaturedProductsPage() {
     void refreshData();
   }, [refreshData]);
 
+  useEffect(() => {
+    setSelectedProductId("");
+  }, [search]);
+
   const featuredProductIds = useMemo(
     () => new Set(items.map((item) => item.productId)),
     [items]
@@ -106,15 +110,13 @@ export default function AdminFeaturedProductsPage() {
   const availableCandidates = useMemo(() => {
     const normalizedSearch = search.trim().toLowerCase();
 
-    return candidates
-      .filter((product) => {
-        if (featuredProductIds.has(product.id)) return false;
-        if (!product.isVisible || !product.isCollector || product.isBlindBox) return false;
-        if (!product.setId || !product.setSlotNumber) return false;
-        if (!normalizedSearch) return true;
-        return product.title.toLowerCase().includes(normalizedSearch);
-      })
-      .slice(0, 50);
+    return candidates.filter((product) => {
+      if (featuredProductIds.has(product.id)) return false;
+      if (!product.isVisible || !product.isCollector || product.isBlindBox) return false;
+      if (!product.setId || !product.setSlotNumber) return false;
+      if (!normalizedSearch) return true;
+      return product.title.toLowerCase().includes(normalizedSearch);
+    });
   }, [candidates, featuredProductIds, search]);
 
   async function addFeaturedProduct() {
