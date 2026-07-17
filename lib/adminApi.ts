@@ -37,7 +37,7 @@ export type PaginatedResponse<T> = {
 export function parseAdminPagination(searchParams: URLSearchParams) {
   const page = Math.max(Number(searchParams.get("page") || 1), 1);
   const rawLimit = Number(searchParams.get("limit") || 20);
-  const limit = Math.min(Math.max(Number.isFinite(rawLimit) ? rawLimit : 20, 1), 100);
+  const limit = Math.min(Math.max(Number.isFinite(rawLimit) ? rawLimit : 20, 1), 500);
   const skip = (page - 1) * limit;
 
   return { page, limit, skip };
