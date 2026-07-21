@@ -132,6 +132,10 @@ const sparkleFloat = keyframes`
   50% { opacity: 1; transform: scale(1) translateY(-6px); }
 `;
 
+const SlotWrapper = styled.div`
+  position: relative;
+`;
+
 const Slot = styled.div<{ $revealed: boolean }>`
   position: relative;
   display: grid;
@@ -194,25 +198,26 @@ const SlotBadge = styled.span<{ $type: "new" | "hot" }>`
 
 const Platform = styled.div`
   position: absolute;
-  bottom: 0px;
+  bottom: -6px;
   left: 50%;
   transform: translateX(-50%);
-  width: 65%;
-  height: 14px;
+  width: 80%;
+  height: 20px;
   border-radius: 50%;
   background: radial-gradient(
     ellipse at center,
-    rgba(232, 93, 0, 0.65) 0%,
+    rgba(232, 93, 0, 0.8) 0%,
     rgba(232, 93, 0, 0) 70%
   );
-  filter: blur(5px);
+  filter: blur(8px);
   pointer-events: none;
+  z-index: 0;
 `;
 
 const Sparkle = styled.span<{ $i: number }>`
   position: absolute;
-  width: 3px;
-  height: 3px;
+  width: 5px;
+  height: 5px;
   border-radius: 50%;
   background: #ffb23f;
   pointer-events: none;
@@ -267,28 +272,30 @@ export default function FeaturedSeries({
         <CharacterPanel>
           <CharacterGrid>
             {slots.map((product, index) => (
-              <Slot key={product?.id ?? `locked-${index}`} $revealed={Boolean(product)}>
-                {product ? (
-                  <>
-                    <SlotBadge $type={index % 2 === 0 ? "new" : "hot"}>
-                      {index % 2 === 0 ? "NEW" : "HOT"}
-                    </SlotBadge>
-                    {[0, 1, 2, 3].map((i) => (
-                      <Sparkle key={i} $i={i + index} />
-                    ))}
-                    <Image
-                      src={normalizeCatalogImage(product.mainImage)}
-                      alt={product.title}
-                      fill
-                      sizes="120px"
-                      style={{ objectFit: "contain" }}
-                    />
-                    <Platform />
-                  </>
-                ) : (
-                  <LockedMark aria-label="Nhân vật bí mật">?</LockedMark>
-                )}
-              </Slot>
+              <SlotWrapper key={product?.id ?? `locked-${index}`}>
+                <Slot $revealed={Boolean(product)}>
+                  {product ? (
+                    <>
+                      <SlotBadge $type={index % 2 === 0 ? "new" : "hot"}>
+                        {index % 2 === 0 ? "NEW" : "HOT"}
+                      </SlotBadge>
+                      {[0, 1, 2, 3].map((i) => (
+                        <Sparkle key={i} $i={i + index} />
+                      ))}
+                      <Image
+                        src={normalizeCatalogImage(product.mainImage)}
+                        alt={product.title}
+                        fill
+                        sizes="120px"
+                        style={{ objectFit: "contain" }}
+                      />
+                    </>
+                  ) : (
+                    <LockedMark aria-label="Nhân vật bí mật">?</LockedMark>
+                  )}
+                </Slot>
+                {product ? <Platform /> : null}
+              </SlotWrapper>
             ))}
           </CharacterGrid>
           <SeriesNote>

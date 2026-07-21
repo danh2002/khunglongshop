@@ -1,11 +1,29 @@
 import Image from "next/image";
 import Link from "next/link";
-import styled from "styled-components";
+import styled, { css, keyframes } from "styled-components";
 import { formatVnd } from "@/lib/currency";
 import type { HomepageProduct } from "@/lib/homepage-products";
 import { normalizeCatalogImage } from "@/lib/publicCatalog";
 import { sanitize } from "@/lib/sanitize";
 import ProductQuickAdd from "./ProductQuickAdd";
+
+const glowPulse = keyframes`
+  0%, 100% {
+    box-shadow:
+      0 0 0 1.5px rgba(232, 93, 0, 0.55),
+      0 0 18px rgba(232, 93, 0, 0.18);
+  }
+  50% {
+    box-shadow:
+      0 0 0 1.5px rgba(255, 140, 0, 0.85),
+      0 0 28px rgba(255, 140, 0, 0.3);
+  }
+`;
+
+const sparkleFloat = keyframes`
+  0%, 100% { opacity: 0; transform: scale(0) translateY(0); }
+  50% { opacity: 1; transform: scale(1) translateY(-7px); }
+`;
 
 const Card = styled.article<{ $compact: boolean; $disabled: boolean }>`
   width: 100%;
@@ -18,7 +36,9 @@ const Media = styled.div`
   aspect-ratio: 1;
   overflow: hidden;
   border-radius: 16px;
-  background: #111111;
+  animation: ${glowPulse} 2.8s ease-in-out infinite;
+  border: 1px solid transparent;
+  background: linear-gradient(145deg, #1a0e06, #0f0800);
 
   img {
     padding: 18px;
@@ -64,6 +84,55 @@ const Media = styled.div`
       transform: none;
     }
   }
+`;
+
+const CardBadge = styled.span<{ $type: "new" | "hot" }>`
+  position: absolute;
+  top: 9px;
+  left: 9px;
+  z-index: 10;
+  padding: 2px 7px;
+  border-radius: 4px;
+  background: ${({ $type }) => ($type === "hot" ? "#e85d00" : "#17d6c5")};
+  color: #ffffff;
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.45);
+`;
+
+const CardPlatform = styled.div`
+  position: absolute;
+  bottom: 4px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 60%;
+  height: 16px;
+  border-radius: 50%;
+  background: radial-gradient(
+    ellipse at center,
+    rgba(232, 93, 0, 0.7) 0%,
+    rgba(232, 93, 0, 0) 70%
+  );
+  filter: blur(6px);
+  pointer-events: none;
+  z-index: 1;
+`;
+
+const CardSparkle = styled.span<{ $i: number }>`
+  position: absolute;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: #ffb23f;
+  pointer-events: none;
+  z-index: 3;
+  top: ${({ $i }) => [10, 20, 65, 75, 6, 52][$i % 6]}%;
+  left: ${({ $i }) => [7, 76, 3, 81, 46, 86][$i % 6]}%;
+  opacity: 0;
+  animation: ${sparkleFloat} ${({ $i }) => 1.4 + ($i % 3) * 0.6}s ease-in-out infinite;
+  animation-delay: ${({ $i }) => $i * 0.28}s;
 `;
 
 const ImageLink = styled(Link)`
@@ -131,6 +200,12 @@ export default function ProductItem({
   return (
     <Card $compact={compact} $disabled={!available}>
       <Media>
+        <CardBadge $type={imagePriority ? "new" : "hot"}>
+          {imagePriority ? "NEW" : "HOT"}
+        </CardBadge>
+        {[0, 1, 2, 3].map((i) => (
+          <CardSparkle key={i} $i={i} />
+        ))}
         <ImageLink href={href} aria-label={sanitize(product.title)}>
           <Image
             src={normalizeCatalogImage(product.mainImage)}
@@ -155,6 +230,7 @@ export default function ProductItem({
             }}
           />
         ) : null}
+        <CardPlatform />
       </Media>
       <Name href={href}>{sanitize(product.title)}</Name>
       {!viewOnly ? (
