@@ -1,6 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
-import styled from "styled-components";
+import styled, { css, keyframes } from "styled-components";
 import type { HomepageProduct } from "@/lib/homepage-products";
 import { normalizeCatalogImage } from "@/lib/publicCatalog";
 import { revealSection } from "./homeStyles";
@@ -114,26 +114,59 @@ const CharacterGrid = styled.div`
   }
 `;
 
+const glowPulse = keyframes`
+  0%, 100% {
+    box-shadow:
+      0 0 0 1.5px rgba(232, 93, 0, 0.6),
+      0 0 20px rgba(232, 93, 0, 0.2);
+  }
+  50% {
+    box-shadow:
+      0 0 0 1.5px rgba(255, 140, 0, 0.9),
+      0 0 32px rgba(255, 140, 0, 0.35);
+  }
+`;
+
+const sparkleFloat = keyframes`
+  0%, 100% { opacity: 0; transform: scale(0) translateY(0); }
+  50% { opacity: 1; transform: scale(1) translateY(-6px); }
+`;
+
 const Slot = styled.div<{ $revealed: boolean }>`
   position: relative;
   display: grid;
   aspect-ratio: 1;
   place-items: center;
   overflow: hidden;
-  border: 1px solid ${({ $revealed }) => ($revealed ? "rgba(232, 93, 0, 0.5)" : "#1e1e1e")};
-  border-radius: 12px;
-  background: ${({ $revealed }) => ($revealed ? "#14100d" : "#111111")};
-  color: #3a3a3a;
-  font-size: 24px;
-  font-weight: 700;
-  transition: border-color 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  border-radius: 16px;
+  background: ${({ $revealed }) =>
+    $revealed
+      ? "linear-gradient(145deg, #1a0e06, #0f0800)"
+      : "#111111"};
+  border: 1px solid ${({ $revealed }) =>
+    $revealed ? "transparent" : "#1e1e1e"};
+  box-shadow: ${({ $revealed }) =>
+    $revealed
+      ? "0 0 0 1.5px rgba(232,93,0,0.6), 0 0 20px rgba(232,93,0,0.15)"
+      : "none"};
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  animation: ${({ $revealed }) =>
+    $revealed
+      ? css`${glowPulse} 2.5s ease-in-out infinite`
+      : "none"};
 
   &:hover {
-    border-color: #e85d00;
+    transform: ${({ $revealed }) => ($revealed ? "translateY(-4px) scale(1.03)" : "none")};
+    box-shadow: ${({ $revealed }) =>
+      $revealed
+        ? "0 0 0 1.5px rgba(232,93,0,0.9), 0 8px 32px rgba(232,93,0,0.4)"
+        : "none"};
   }
 
   img {
     padding: 8px;
+    filter: ${({ $revealed }) =>
+      $revealed ? "drop-shadow(0 4px 12px rgba(232,93,0,0.45))" : "none"};
   }
 `;
 
@@ -141,6 +174,53 @@ const LockedMark = styled.span`
   color: rgba(255, 255, 255, 0.18);
   font-size: clamp(28px, 5vw, 46px);
   font-weight: 900;
+`;
+
+const SlotBadge = styled.span<{ $type: "new" | "hot" }>`
+  position: absolute;
+  top: 7px;
+  left: 7px;
+  z-index: 10;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: ${({ $type }) => ($type === "hot" ? "#e85d00" : "#17d6c5")};
+  color: #ffffff;
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+`;
+
+const Platform = styled.div`
+  position: absolute;
+  bottom: 0px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 65%;
+  height: 14px;
+  border-radius: 50%;
+  background: radial-gradient(
+    ellipse at center,
+    rgba(232, 93, 0, 0.65) 0%,
+    rgba(232, 93, 0, 0) 70%
+  );
+  filter: blur(5px);
+  pointer-events: none;
+`;
+
+const Sparkle = styled.span<{ $i: number }>`
+  position: absolute;
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: #ffb23f;
+  pointer-events: none;
+  top: ${({ $i }) => [12, 22, 68, 78, 8, 55][$i % 6]}%;
+  left: ${({ $i }) => [8, 78, 4, 83, 48, 88][$i % 6]}%;
+  opacity: 0;
+  animation: ${sparkleFloat} ${({ $i }) => 1.4 + ($i % 3) * 0.6}s ease-in-out infinite;
+  animation-delay: ${({ $i }) => $i * 0.25}s;
 `;
 
 const SeriesNote = styled.div`
@@ -189,13 +269,22 @@ export default function FeaturedSeries({
             {slots.map((product, index) => (
               <Slot key={product?.id ?? `locked-${index}`} $revealed={Boolean(product)}>
                 {product ? (
-                  <Image
-                    src={normalizeCatalogImage(product.mainImage)}
-                    alt={product.title}
-                    fill
-                    sizes="120px"
-                    style={{ objectFit: "contain" }}
-                  />
+                  <>
+                    <SlotBadge $type={index % 2 === 0 ? "new" : "hot"}>
+                      {index % 2 === 0 ? "NEW" : "HOT"}
+                    </SlotBadge>
+                    {[0, 1, 2, 3].map((i) => (
+                      <Sparkle key={i} $i={i + index} />
+                    ))}
+                    <Image
+                      src={normalizeCatalogImage(product.mainImage)}
+                      alt={product.title}
+                      fill
+                      sizes="120px"
+                      style={{ objectFit: "contain" }}
+                    />
+                    <Platform />
+                  </>
                 ) : (
                   <LockedMark aria-label="Nhân vật bí mật">?</LockedMark>
                 )}
