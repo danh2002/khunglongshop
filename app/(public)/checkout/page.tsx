@@ -793,7 +793,7 @@ const CheckoutPage = () => {
               </TotalRow>
               <TotalRow>
                 <dt>Phí vận chuyển</dt>
-                <dd>Miễn phí</dd>
+                <dd>Phí theo đơn vị vận chuyển (Tùy theo khu vực)</dd>
               </TotalRow>
               <TotalRow>
                 <dt>Thuế</dt>

@@ -7,7 +7,7 @@
 | Priority | Plan | Status | Depends on |
 |---|---|---|---|
 | P1 | [013 - Retire credential-like docs and align operational documentation](013-retire-doc-secret-and-align-operational-docs.md) | DONE (`6641558`) | none |
-| P1 | [014 - Use durable rate limits for serverless routes](014-use-durable-rate-limits-for-serverless-routes.md) | READY | none |
+| P1 | [014 - Use durable rate limits for serverless routes](014-use-durable-rate-limits-for-serverless-routes.md) | DONE (`71bf10b`) | none |
 | P1 | [017 - Fix the false `/404` document prerender error](017-fix-html-import-outside-document.md) | DONE (`e3ac798`) | none |
 | P1 | [015 - Remediate reachable dependency advisories](015-remediate-reachable-dependency-advisories.md) | DONE (`775dd7e`) | 017 |
 | P1 | [016 - Enforce CI verification and migration boundaries](016-enforce-ci-verification-and-migration-boundaries.md) | PENDING GITHUB RUN (`0419c52`) | 015 |
@@ -19,6 +19,10 @@ after the first real GitHub Actions run succeeds on a push or pull request.
 Plan 013 is DONE at `6641558`. The `NEXTAUTH_SECRET` credential type was rotated
 for Vercel Preview and Production before the documentation changes, and the
 fresh Production deployment completed successfully without recording its value.
+
+Plan 014 is DONE at `71bf10b`. Upstash Redis is configured for Vercel Preview
+and Production, the Production redeploy is healthy, login request 11 and
+checkout request 6 returned 429, and Redis keys contained no raw identifiers.
 
 CI generates the Prisma client but never applies schema or data changes.
 Production migration SQL or the approved TiDB procedure remains a manual

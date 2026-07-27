@@ -315,11 +315,11 @@ export const CartModule = () => {
             <dt>
               Phí vận chuyển <FaCircleQuestion style={{ display: "inline", opacity: 0.55 }} />
             </dt>
-            <dd>Miễn phí</dd>
+            <dd>Dựa vào ĐVVC và khu vực</dd>
           </div>
           <div>
             <dt>Tổng tiền hàng</dt>
-            <dd>{formatVndTotal(total)}</dd>
+            <dd>{formatVndTotal(total)} (Chưa bao gồm phí vận chuyển)</dd>
           </div>
         </SummaryList>
         {products.length > 0 && (

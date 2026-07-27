@@ -21,7 +21,7 @@ const Series = styled.div`
   width: min(100%, 1440px);
   margin: 0 auto;
   overflow: hidden;
-  border: 1px solid #1e1e1e;
+  border: 1px solid #1e1e1e;1234
   border-radius: 24px;
 
   @media (max-width: 900px) {

@@ -2,7 +2,7 @@
 
 > **Executor instructions**: Implement only the CI and script changes in scope. This plan intentionally avoids connecting GitHub Actions to TiDB production. Use mocked/non-DB verification where the repository already supports it.
 >
-> **Drift check (run first)**: `git diff --stat 4370999..HEAD -- .github/workflows/blank1.yml package.json vitest.config.ts tests .env.example`
+> **Drift check (run first)**: `git diff --stat 2e3a7ac..HEAD -- .github/workflows/blank1.yml package.json vitest.config.ts tests .env.example`
 
 ## Status
 
@@ -11,7 +11,9 @@
 - **Risk**: LOW
 - **Depends on**: plans/015-remediate-reachable-dependency-advisories.md
 - **Category**: dx, tests, migrations
-- **Planned at**: commit `4370999`, 2026-07-14
+- **Planned at**: commit `2e3a7ac`, 2026-07-14
+- **Confirmed runtime**: Node.js `24.x`, from Vercel Project Settings ->
+  Build and Deployment -> Node.js Version
 
 ## Why this matters
 
@@ -24,6 +26,9 @@ The repository has a GitHub Actions workflow, but it only checks out source and 
 - `vitest.config.ts:1-14` configures Node tests; the repository convention is `npx vitest run --exclude "tests/otp/**"` when a live MySQL/TiDB database is unavailable.
 - `plans/README.md` records several plans whose executor verification uses `npm run db:generate`, `npm run type-check`, and the non-OTP suite.
 - Current production build can query Prisma during static generation, so do not make GitHub Actions run a real production build against TiDB without an isolated database strategy.
+- Vercel Project Settings confirms that production builds and Serverless
+  Functions use Node.js `24.x`. CI and `package.json#engines` must use that same
+  major rather than relying on a moving platform default.
 
 ## Commands you will need
 
@@ -35,13 +40,14 @@ The repository has a GitHub Actions workflow, but it only checks out source and 
 | Non-DB tests | `npx vitest run --exclude "tests/otp/**"` | All pass |
 | Dependency audit | `npm audit --omit=dev --audit-level=high` | Exit 0 after plan 015 or approved exception |
 | Workflow syntax | `npx actionlint .github/workflows/blank1.yml` | Exit 0 if actionlint is adopted |
+| Node engine | `node -p "require('./package.json').engines.node"` | Prints `24.x` |
 
 ## Scope
 
 **In scope**:
 
 - `.github/workflows/blank1.yml` (rename only if references are updated)
-- `package.json` for a non-DB verification script if needed
+- `package.json` for `engines.node: "24.x"` and a non-DB verification script if needed
 - `tests/` only if existing tests require a documented dummy environment variable
 - `.env.example` comments only if CI-specific non-secret variables must be explained
 - `plans/README.md`
@@ -57,13 +63,35 @@ The repository has a GitHub Actions workflow, but it only checks out source and 
 
 ### Step 1: Define the non-DB verification contract
 
+Add the following top-level runtime declaration to `package.json` so local
+tooling, GitHub Actions, and Vercel agree on the production major:
+
+```json
+"engines": {
+  "node": "24.x"
+}
+```
+
 Add a script such as `test:ci` only if it improves clarity. It must set no secret values and must run the same exclusions used by existing plans. If Prisma import requires `DATABASE_URL`, supply a shell-only dummy URL in CI, never commit it to an environment file.
 
-**Verify**: locally run the exact CI test command from a clean shell and confirm it exits 0 without accessing TiDB.
+**Verify**: `node -p "require('./package.json').engines.node"` prints `24.x`.
+Then locally run the exact CI test command from a clean shell and confirm it
+exits 0 without accessing TiDB.
 
 ### Step 2: Replace the placeholder workflow
 
-Use `actions/checkout@v4` and `actions/setup-node@v4` with the Node version declared by the repository's supported runtime. Enable npm cache keyed by `package-lock.json`. Run, in order:
+Use `actions/checkout@v4` and `actions/setup-node@v4` with this exact runtime
+configuration:
+
+```yaml
+- name: Set up Node.js
+  uses: actions/setup-node@v4
+  with:
+    node-version: '24'
+    cache: npm
+```
+
+The npm cache is keyed by `package-lock.json`. Run, in order:
 
 1. `npm ci`
 2. `npm run db:generate`
@@ -103,13 +131,18 @@ Publish Vitest coverage only if it is already configured to produce a stable rep
 - [ ] CI does not run `db:push`, seed, repair, backfill, or production migrations.
 - [ ] CI uses npm caching and least-privilege permissions.
 - [ ] Dependency audit gate is enabled after plan 015's baseline is accepted.
+- [ ] `package.json#engines.node` is exactly `24.x`.
+- [ ] `.github/workflows/blank1.yml` configures
+      `actions/setup-node@v4` with `node-version: '24'`.
 - [ ] A real GitHub Actions run is green.
 
 ## STOP conditions
 
 - Stop if the test suite needs real TiDB data to execute; do not point CI at production. Report the missing test seam.
 - Stop if a dependency audit still fails for accepted advisories; resolve or formally document exceptions before making it a blocking gate.
-- Stop if the repository's supported Node version cannot be confirmed from source/hosting configuration.
+- Stop if Vercel Project Settings is changed away from the confirmed Node.js
+  `24.x` major before this plan executes; reconcile the plan instead of letting
+  CI and production diverge.
 
 ## Maintenance notes
 
