@@ -622,7 +622,7 @@ export default function AccountCollectionPage() {
               <RedeemInput
                 value={redeemCode}
                 onChange={(event) => setRedeemCode(event.target.value)}
-                placeholder="DKL-XXXX-XXXX-XXXX"
+                placeholder="XXXXXXXX"
                 autoComplete="off"
                 maxLength={64}
               />
