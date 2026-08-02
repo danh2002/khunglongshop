@@ -402,6 +402,7 @@ const CheckoutPage = () => {
   const { products, total, clearCart, updateCartPrice } = useProductStore();
   const router = useRouter();
   const idempotencyKeyRef = useRef("");
+  const orderCompletedRef = useRef(false);
 
   // Add validation functions that match server requirements
   const validateForm = () => {
@@ -541,6 +542,7 @@ const CheckoutPage = () => {
       const orderId = data?.order?.id as string | undefined;
       if (!orderId) throw new Error("ORDER_ID_MISSING");
 
+      orderCompletedRef.current = true;
       clearCart();
       idempotencyKeyRef.current = "";
       window.dispatchEvent(new CustomEvent("orderCompleted"));
@@ -566,7 +568,7 @@ const CheckoutPage = () => {
   useEffect(() => {
     if (!cartHydrated) return;
 
-    if (products.length === 0) {
+    if (products.length === 0 && !orderCompletedRef.current) {
       toast.error("Giỏ hàng của bạn đang trống");
       router.push("/cart");
     }

@@ -44,4 +44,13 @@ describe("checkout order transaction", () => {
     expect(route).toContain("Prisma.TransactionIsolationLevel.RepeatableRead");
     expect(route).not.toContain("Prisma.TransactionIsolationLevel.Serializable");
   });
+
+  it("falls back to active character pools for a generic blind-box product", () => {
+    const route = readFileSync(resolve(process.cwd(), "app/api/orders/route.ts"), "utf8");
+
+    expect(route).toContain("product.isBlindBox && !product.blindBoxSetId");
+    expect(route).toContain('where: { status: "ACTIVE" }');
+    expect(route).toContain(": genericPoolVersions");
+    expect(route).toContain("poolVersions.map((candidate)");
+  });
 });

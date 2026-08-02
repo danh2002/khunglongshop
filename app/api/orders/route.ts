@@ -247,7 +247,25 @@ export async function POST(request: Request) {
           throw new Error("PRODUCT_NOT_FOUND");
         }
 
+        const genericPoolVersions = products.some(
+          (product) => product.isBlindBox && !product.blindBoxSetId
+        )
+          ? await tx.blindBoxPoolVersion.findMany({
+              where: { status: "ACTIVE" },
+              include: {
+                entries: {
+                  orderBy: { slotNumber: "asc" },
+                  include: { product: true },
+                },
+              },
+            })
+          : [];
+
         const productById = new Map(products.map((product) => [product.id, product]));
+        const poolVersionsByProductId = new Map<
+          string,
+          typeof genericPoolVersions
+        >();
         let total = 0;
         for (const item of items) {
           const product = productById.get(item.productId);
@@ -264,22 +282,33 @@ export async function POST(request: Request) {
           if (product.inStock < item.quantity) throw new Error("INSUFFICIENT_STOCK");
 
           if (product.isBlindBox) {
-            const versions = product.blindBoxSet?.poolVersions ?? [];
-            if (versions.length !== 1) throw new Error("BLIND_BOX_POOL_UNAVAILABLE");
-            const entries = versions[0].entries;
-            const validation = validateBlindBoxPool(
-              entries.map((entry) => ({
-                productId: entry.productId,
-                slotNumber: entry.slotNumber,
-                drawWeight: entry.drawWeight,
-                rarityTier: entry.rarityTier,
-              })),
-              {
-                expectedSlotCount: entries.length,
-                enforceLastSlotRarer: false,
-              }
-            );
-            if (!validation.valid) throw new Error("BLIND_BOX_POOL_UNAVAILABLE");
+            const versions = product.blindBoxSet
+              ? product.blindBoxSet.poolVersions
+              : genericPoolVersions;
+            if (
+              versions.length === 0 ||
+              (product.blindBoxSet && versions.length !== 1)
+            ) {
+              throw new Error("BLIND_BOX_POOL_UNAVAILABLE");
+            }
+
+            const hasInvalidPool = versions.some((version) => {
+              const validation = validateBlindBoxPool(
+                version.entries.map((entry) => ({
+                  productId: entry.productId,
+                  slotNumber: entry.slotNumber,
+                  drawWeight: entry.drawWeight,
+                  rarityTier: entry.rarityTier,
+                })),
+                {
+                  expectedSlotCount: version.entries.length,
+                  enforceLastSlotRarer: false,
+                }
+              );
+              return !validation.valid;
+            });
+            if (hasInvalidPool) throw new Error("BLIND_BOX_POOL_UNAVAILABLE");
+            poolVersionsByProductId.set(product.id, versions);
           }
 
           total += product.price * item.quantity;
@@ -309,9 +338,11 @@ export async function POST(request: Request) {
 
         for (const item of items) {
           const product = productById.get(item.productId)!;
-          const poolVersion = product.isBlindBox
-            ? product.blindBoxSet!.poolVersions[0]
-            : null;
+          const poolVersions = product.isBlindBox
+            ? poolVersionsByProductId.get(product.id) ?? []
+            : [];
+          const orderItemPoolVersion =
+            poolVersions.length === 1 ? poolVersions[0] : null;
 
           const stockUpdate = await tx.product.updateMany({
             where: {
@@ -331,13 +362,22 @@ export async function POST(request: Request) {
               productSlug: product.slug,
               unitPrice: product.price,
               snapshotSource: "CHECKOUT",
-              poolVersionId: poolVersion?.id ?? null,
+              poolVersionId: orderItemPoolVersion?.id ?? null,
             },
           });
 
-          if (!poolVersion) continue;
+          if (poolVersions.length === 0) continue;
 
           for (let unitIndex = 1; unitIndex <= item.quantity; unitIndex += 1) {
+            const poolVersion =
+              poolVersions.length === 1
+                ? poolVersions[0]
+                : selectWeightedEntry(
+                    poolVersions.map((candidate) => ({
+                      drawWeight: 1,
+                      poolVersion: candidate,
+                    }))
+                  ).poolVersion;
             const selected = selectWeightedEntry(poolVersion.entries);
             const allocation = await tx.blindBoxAllocation.create({
               data: {

@@ -10,4 +10,14 @@ describe("checkout cart hydration guard", () => {
     expect(source).toContain("if (!cartHydrated) return;");
     expect(source).toContain("[cartHydrated, products.length, router]");
   });
+
+  it("does not redirect to the cart after a completed order clears the store", () => {
+    const source = readFileSync(resolve(process.cwd(), "app/(public)/checkout/page.tsx"), "utf8");
+
+    expect(source).toContain("const orderCompletedRef = useRef(false);");
+    expect(source).toContain("orderCompletedRef.current = true;");
+    expect(source).toContain(
+      "products.length === 0 && !orderCompletedRef.current"
+    );
+  });
 });
