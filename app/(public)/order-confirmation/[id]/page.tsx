@@ -4,15 +4,9 @@ import { notFound, redirect } from "next/navigation";
 import SectionTitle from "@/components/SectionTitle";
 import { SectionShell, Wrapper } from "@/components/design-system";
 import { formatVndTotal } from "@/lib/currency";
+import { normalizeCatalogImage } from "@/lib/publicCatalog";
 import { authOptions } from "@/utils/authOptions";
 import prisma from "@/utils/db";
-
-const rarityLabel = {
-  COMMON: "Phổ biến",
-  RARE: "Hiếm",
-  EPIC: "Sử thi",
-  LEGENDARY: "Huyền thoại",
-} as const;
 
 export default async function OrderConfirmationPage({
   params,
@@ -31,14 +25,6 @@ export default async function OrderConfirmationPage({
       products: {
         orderBy: { id: "asc" },
         include: { product: true },
-      },
-      blindBoxAllocations: {
-        where: { status: "ACTIVE" },
-        orderBy: [{ orderItemId: "asc" }, { unitIndex: "asc" }],
-        include: {
-          product: true,
-          redemptionCode: { select: { code: true, status: true } },
-        },
       },
     },
   });
@@ -78,11 +64,7 @@ export default async function OrderConfirmationPage({
                   >
                     <div className="relative aspect-square bg-black">
                       <Image
-                        src={
-                          item.product.mainImage.startsWith("/")
-                            ? item.product.mainImage
-                            : `/${item.product.mainImage}`
-                        }
+                        src={normalizeCatalogImage(item.product.mainImage)}
                         alt={item.productTitle}
                         fill
                         className="object-contain"
@@ -103,47 +85,6 @@ export default async function OrderConfirmationPage({
               </div>
             </section>
 
-            {order.blindBoxAllocations.length > 0 ? (
-              <section>
-                <h2 className="text-2xl font-black uppercase italic">
-                  Kết quả túi mù
-                </h2>
-                <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                  {order.blindBoxAllocations.map((allocation) => (
-                    <article
-                      key={allocation.id}
-                      className="border border-[#e85d00]/30 bg-[#111] p-4"
-                    >
-                      <div className="relative aspect-square bg-black">
-                        <Image
-                          src={
-                            allocation.product.mainImage.startsWith("/")
-                              ? allocation.product.mainImage
-                              : `/${allocation.product.mainImage}`
-                          }
-                          alt={allocation.product.title}
-                          fill
-                          className="object-contain"
-                          sizes="(max-width: 768px) 100vw, 320px"
-                        />
-                      </div>
-                      <p className="mt-4 text-xs font-black uppercase text-[#e85d00]">
-                        {rarityLabel[allocation.rarityTier]}
-                      </p>
-                      <h3 className="text-xl font-black uppercase italic">
-                        {allocation.product.title}
-                      </h3>
-                      <p className="mt-1 text-white/55">
-                        Slot {allocation.product.setSlotNumber ?? "-"}
-                      </p>
-                      <p className="mt-3 break-all border border-white/10 bg-black p-3 font-mono text-sm text-white/80">
-                        {allocation.redemptionCode?.code}
-                      </p>
-                    </article>
-                  ))}
-                </div>
-              </section>
-            ) : null}
           </div>
         </Wrapper>
       </SectionShell>

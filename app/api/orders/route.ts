@@ -55,22 +55,6 @@ type OrderResponse = {
       lineTotal: number;
     }>;
   };
-  blindBoxResults: Array<{
-    allocationId: string;
-    orderItemId: string;
-    unitIndex: number;
-    poolVersionId: string;
-    setId: string;
-    product: {
-      id: string;
-      title: string;
-      slug: string;
-      image: string;
-      slotNumber: number;
-    };
-    rarityTier: "COMMON" | "RARE" | "EPIC" | "LEGENDARY";
-    redemptionCode: string;
-  }>;
 };
 
 function errorResponse(status: number, error: string) {
@@ -112,15 +96,6 @@ async function loadOrderResponse(
     where: { id: orderId },
     include: {
       products: { orderBy: { id: "asc" } },
-      blindBoxAllocations: {
-        where: { status: "ACTIVE" },
-        orderBy: [{ orderItemId: "asc" }, { unitIndex: "asc" }],
-        include: {
-          product: true,
-          poolVersion: { select: { collectorSetId: true } },
-          redemptionCode: { select: { code: true } },
-        },
-      },
     },
   });
 
@@ -141,22 +116,6 @@ async function loadOrderResponse(
         lineTotal: item.unitPrice * item.quantity,
       })),
     },
-    blindBoxResults: order.blindBoxAllocations.map((allocation) => ({
-      allocationId: allocation.id,
-      orderItemId: allocation.orderItemId,
-      unitIndex: allocation.unitIndex,
-      poolVersionId: allocation.poolVersionId,
-      setId: allocation.poolVersion.collectorSetId,
-      product: {
-        id: allocation.product.id,
-        title: allocation.product.title,
-        slug: allocation.product.slug,
-        image: allocation.product.mainImage,
-        slotNumber: allocation.product.setSlotNumber ?? 0,
-      },
-      rarityTier: allocation.rarityTier,
-      redemptionCode: allocation.redemptionCode?.code ?? "",
-    })),
   };
 }
 

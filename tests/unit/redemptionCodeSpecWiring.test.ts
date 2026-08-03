@@ -138,8 +138,8 @@ describe("issue 5 redemption-code spec wiring", () => {
   it("uses blind-box set data for the product detail collection copy", () => {
     const page = source("app/(public)/product/[productSlug]/page.tsx");
 
-    expect(page).toContain("product.blindBoxSet?.name");
-    expect(page).toContain("product.blindBoxSet?.totalSlots");
+    expect(page).toContain("product.set?.name");
+    expect(page).toContain("set: { select: { id: true, name: true, totalSlots: true } }");
     expect(page).toContain("availableVariantCount");
     expect(page).toContain("Bộ sưu tập {sanitize(collectionName)}");
     expect(page).toContain("{availableVariantCount} mẫu {sanitize(collectionName)} có thể nhận");
