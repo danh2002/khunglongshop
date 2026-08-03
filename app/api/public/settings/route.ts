@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import prisma from "@/utils/db";
 
+export const dynamic = "force-dynamic";
+
 export async function GET() {
   const settings = await prisma.siteSettings.upsert({
     where: { id: 1 },
@@ -13,5 +15,7 @@ export async function GET() {
       defaultLocale: true,
     },
   });
-  return NextResponse.json(settings);
+  return NextResponse.json(settings, {
+    headers: { "Cache-Control": "no-store, max-age=0" },
+  });
 }
