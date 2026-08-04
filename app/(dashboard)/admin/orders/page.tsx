@@ -11,6 +11,7 @@ import {
   adminInputClass,
   adminSecondaryButtonClass,
 } from "@/components/admin/AdminUi";
+import { buildAdminOrderSearchWhere } from "@/lib/adminOrderSearch";
 import prisma from "@/utils/db";
 
 const PAGE_SIZE = 20;
@@ -36,18 +37,7 @@ export default async function OrdersPage({
     : undefined;
   const where: Prisma.Customer_orderWhereInput = {
     ...(status ? { status } : {}),
-    ...(search
-      ? {
-          OR: [
-            { id: { contains: search } },
-            { orderNumber: Number.isFinite(Number(search)) ? Number(search) : undefined },
-            { email: { contains: search } },
-            { name: { contains: search } },
-            { lastname: { contains: search } },
-            { phone: { contains: search } },
-          ],
-        }
-      : {}),
+    ...buildAdminOrderSearchWhere(search),
   };
   const [orders, total] = await Promise.all([
     prisma.customer_order.findMany({

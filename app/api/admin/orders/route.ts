@@ -2,6 +2,7 @@ import { OrderStatus, Prisma } from "@prisma/client";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { createPagination, parseAdminPagination } from "@/lib/adminApi";
+import { buildAdminOrderSearchWhere } from "@/lib/adminOrderSearch";
 import { validationError } from "@/lib/adminResponses";
 import { requireAdminApi } from "@/utils/adminAuth";
 import prisma from "@/utils/db";
@@ -29,18 +30,7 @@ export async function GET(request: NextRequest) {
     ...(dateFrom || dateTo
       ? { dateTime: { ...(dateFrom ? { gte: dateFrom } : {}), ...(dateTo ? { lte: dateTo } : {}) } }
       : {}),
-    ...(search
-      ? {
-          OR: [
-            { id: { contains: search } },
-            { orderNumber: Number.isFinite(Number(search)) ? Number(search) : undefined },
-            { email: { contains: search } },
-            { name: { contains: search } },
-            { lastname: { contains: search } },
-            { phone: { contains: search } },
-          ],
-        }
-      : {}),
+    ...buildAdminOrderSearchWhere(search),
   };
 
   const [items, totalItems] = await Promise.all([
