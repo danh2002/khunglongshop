@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { canTransitionOrderStatus } from "@/lib/orderTransitions";
+import {
+  canRestoreCancelledOrder,
+  canTransitionOrderStatus,
+} from "@/lib/orderTransitions";
 
 describe("order status transitions", () => {
   it("allows the locked happy path", () => {
@@ -15,6 +18,15 @@ describe("order status transitions", () => {
 
   it("keeps completed and cancelled terminal", () => {
     expect(canTransitionOrderStatus("COMPLETED", "PENDING_PAYMENT")).toBe(false);
+    expect(canTransitionOrderStatus("CANCELLED", "PENDING_PAYMENT")).toBe(false);
     expect(canTransitionOrderStatus("CANCELLED", "PROCESSING")).toBe(false);
+    expect(canTransitionOrderStatus("CANCELLED", "COMPLETED")).toBe(false);
+  });
+
+  it("recognizes restoration separately from ordinary transitions", () => {
+    expect(canRestoreCancelledOrder("CANCELLED")).toBe(true);
+    expect(canRestoreCancelledOrder("PENDING_PAYMENT")).toBe(false);
+    expect(canRestoreCancelledOrder("PROCESSING")).toBe(false);
+    expect(canRestoreCancelledOrder("COMPLETED")).toBe(false);
   });
 });

@@ -89,3 +89,9 @@ Plan 007 is deployed and verified on production. Future homepage performance wor
 | Plan | Status | Notes |
 |---|---|---|
 | [012 - Reduce /shop client startup and LCP cost](012-shop-performance-client-boundary-lcp.md) | DONE IN WORKTREE | Executor completed in isolated worktree `khunglongshop-plan012-exec` on branch `advisor/012-shop-performance-client-boundary-lcp`, commit `5010f02 Reduce shop startup payload`. Reviewer verified scope, diff, `npm run db:generate`, `npm run type-check`, `npx vitest run --exclude "tests/otp/**"` with dummy `DATABASE_URL`, `git diff --check`, source scans, and `npm run build` with real env loaded without printing secrets. Build shows `/shop/[[...slug]]` as SSG with `/shop` revalidate `1m` and First Load JS `125 kB`. Production Speed Insights re-measure remains after applying/deploying the commit. |
+
+## New Order Recovery Plan
+
+| Plan | Status | Notes |
+|---|---|---|
+| [018 - Restore cancelled orders safely](018-restore-cancelled-orders-safely.md) | PENDING MANUAL BUILD/SMOKE | Implemented with focused tests, full non-OTP suite, TypeScript, and diff checks passing. `npm run build` compiled successfully but page-data collection requires an approved `DATABASE_URL`; authenticated disposable-order smoke testing also remains. |

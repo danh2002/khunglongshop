@@ -10,3 +10,7 @@ export const ORDER_STATUS_TRANSITIONS: Record<OrderStatus, OrderStatus[]> = {
 export function canTransitionOrderStatus(current: OrderStatus, next: OrderStatus) {
   return ORDER_STATUS_TRANSITIONS[current].includes(next);
 }
+
+export function canRestoreCancelledOrder(status: OrderStatus) {
+  return status === "CANCELLED";
+}

@@ -4,14 +4,11 @@ import type { OrderStatus } from "@prisma/client";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import toast from "react-hot-toast";
+import {
+  canRestoreCancelledOrder,
+  ORDER_STATUS_TRANSITIONS,
+} from "@/lib/orderTransitions";
 import { adminInputClass, adminSecondaryButtonClass } from "./AdminUi";
-
-const VALID_TRANSITIONS: Record<OrderStatus, OrderStatus[]> = {
-  PENDING_PAYMENT: ["PROCESSING", "CANCELLED"],
-  PROCESSING: ["COMPLETED", "CANCELLED"],
-  COMPLETED: [],
-  CANCELLED: [],
-};
 
 const STATUS_LABEL: Record<OrderStatus, string> = {
   PENDING_PAYMENT: "Chờ thanh toán",
@@ -41,29 +38,46 @@ export default function OrderStatusForm({
 
   async function submit() {
     if (nextStatus === status) return;
+    const isRestoration =
+      canRestoreCancelledOrder(status) && nextStatus === "PENDING_PAYMENT";
+
     if (nextStatus === "CANCELLED" && cancelReason.trim().length < 10) {
-      toast.error("Lý do hủy phải có ít nhất 10 ký tự.");
+      toast.error("Lý do huỷ phải có ít nhất 10 ký tự.");
       return;
     }
     if (
+      isRestoration &&
+      !window.confirm(
+        "Khôi phục đơn về Chờ thanh toán? Tồn kho và quyền lợi túi mù ban đầu sẽ được giữ lại cho đơn này."
+      )
+    ) {
+      return;
+    }
+    if (
+      !isRestoration &&
       (nextStatus === "CANCELLED" || nextStatus === "COMPLETED") &&
       !window.confirm(`Xác nhận chuyển đơn sang ${STATUS_LABEL[nextStatus]}?`)
     ) {
       return;
     }
+
     setSaving(true);
     const isCancellation = nextStatus === "CANCELLED";
     const response = await fetch(
       isCancellation
         ? `/api/admin/orders/${orderId}/cancel`
-        : `/api/admin/orders/${orderId}/status`,
+        : isRestoration
+          ? `/api/admin/orders/${orderId}/restore`
+          : `/api/admin/orders/${orderId}/status`,
       {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(
           isCancellation
             ? { reason: cancelReason.trim() }
-            : { status: nextStatus }
+            : isRestoration
+              ? {}
+              : { status: nextStatus }
         ),
       }
     );
@@ -73,7 +87,11 @@ export default function OrderStatusForm({
       toast.error(body?.error?.message ?? "Không thể cập nhật trạng thái.");
       return;
     }
-    toast.success("Đã cập nhật trạng thái đơn hàng.");
+    toast.success(
+      isRestoration
+        ? "Đã khôi phục đơn về Chờ thanh toán."
+        : "Đã cập nhật trạng thái đơn hàng."
+    );
     router.refresh();
   }
 
@@ -86,8 +104,12 @@ export default function OrderStatusForm({
           onChange={(event) => setNextStatus(event.target.value as OrderStatus)}
         >
           {STATUS_OPTIONS.map((option) => {
+            const isRestorationOption =
+              canRestoreCancelledOrder(status) && option === "PENDING_PAYMENT";
             const isDisabled =
-              option !== status && !VALID_TRANSITIONS[status]?.includes(option);
+              option !== status &&
+              !isRestorationOption &&
+              !ORDER_STATUS_TRANSITIONS[status].includes(option);
 
             return (
               <option
@@ -101,20 +123,25 @@ export default function OrderStatusForm({
             );
           })}
         </select>
-        <button className={adminSecondaryButtonClass} disabled={saving} onClick={submit} type="button">
+        <button
+          className={adminSecondaryButtonClass}
+          disabled={saving}
+          onClick={submit}
+          type="button"
+        >
           {saving ? "Đang lưu" : "Cập nhật"}
         </button>
       </div>
       {nextStatus === "CANCELLED" ? (
         <label className="grid gap-2 text-sm font-bold text-white">
-          Lý do hủy *
+          Lý do huỷ *
           <textarea
             className={`${adminInputClass} min-h-24 py-3`}
             minLength={10}
             required
             value={cancelReason}
             onChange={(event) => setCancelReason(event.target.value)}
-            placeholder="Nhập lý do hủy đơn hàng (ít nhất 10 ký tự)"
+            placeholder="Nhập lý do huỷ đơn hàng (ít nhất 10 ký tự)"
           />
         </label>
       ) : null}
