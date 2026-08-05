@@ -25,9 +25,17 @@ export default async function AdminDashboardPage() {
     recentOrders,
     recentRewards,
   ] = await Promise.all([
-    prisma.customer_order.count({ where: { dateTime: { gte: startOfMonth } } }),
+    prisma.customer_order.count({
+      where: {
+        dateTime: { gte: startOfMonth },
+        status: { notIn: ["CANCELLED"] },
+      },
+    }),
     prisma.customer_order.aggregate({
-      where: { dateTime: { gte: startOfMonth } },
+      where: {
+        dateTime: { gte: startOfMonth },
+        status: { notIn: ["CANCELLED"] },
+      },
       _sum: { total: true },
     }),
     prisma.user.count({ where: { role: "user", isActive: true } }),

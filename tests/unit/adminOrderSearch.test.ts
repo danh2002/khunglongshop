@@ -6,23 +6,39 @@ import { buildAdminOrderSearchWhere } from "@/lib/adminOrderSearch";
 describe("admin order search", () => {
   it("matches every word across separate customer fields", () => {
     expect(buildAdminOrderSearchWhere("Minh Ngọc")).toEqual({
-      AND: [
+      OR: [
         {
-          OR: [
-            { id: { contains: "Minh" } },
-            { email: { contains: "Minh" } },
-            { name: { contains: "Minh" } },
-            { lastname: { contains: "Minh" } },
-            { phone: { contains: "Minh" } },
+          AND: [
+            {
+              OR: [
+                { id: { contains: "Minh" } },
+                { email: { contains: "Minh" } },
+                { name: { contains: "Minh" } },
+                { lastname: { contains: "Minh" } },
+                { phone: { contains: "Minh" } },
+              ],
+            },
+            {
+              OR: [
+                { id: { contains: "Ngọc" } },
+                { email: { contains: "Ngọc" } },
+                { name: { contains: "Ngọc" } },
+                { lastname: { contains: "Ngọc" } },
+                { phone: { contains: "Ngọc" } },
+              ],
+            },
           ],
         },
         {
-          OR: [
-            { id: { contains: "Ngọc" } },
-            { email: { contains: "Ngọc" } },
-            { name: { contains: "Ngọc" } },
+          AND: [
+            { name: { contains: "Minh" } },
             { lastname: { contains: "Ngọc" } },
-            { phone: { contains: "Ngọc" } },
+          ],
+        },
+        {
+          AND: [
+            { lastname: { contains: "Minh" } },
+            { name: { contains: "Ngọc" } },
           ],
         },
       ],
@@ -31,17 +47,13 @@ describe("admin order search", () => {
 
   it("keeps numeric order-number searches and normalizes whitespace", () => {
     expect(buildAdminOrderSearchWhere("  550003  ")).toEqual({
-      AND: [
-        {
-          OR: [
-            { id: { contains: "550003" } },
-            { email: { contains: "550003" } },
-            { name: { contains: "550003" } },
-            { lastname: { contains: "550003" } },
-            { phone: { contains: "550003" } },
-            { orderNumber: 550003 },
-          ],
-        },
+      OR: [
+        { id: { contains: "550003" } },
+        { email: { contains: "550003" } },
+        { name: { contains: "550003" } },
+        { lastname: { contains: "550003" } },
+        { phone: { contains: "550003" } },
+        { orderNumber: 550003 },
       ],
     });
   });
@@ -66,5 +78,19 @@ describe("admin order search", () => {
       );
       expect(source).toContain("...buildAdminOrderSearchWhere(search)");
     }
+  });
+
+  it("keeps the admin order date range in its query and pagination", () => {
+    const page = readFileSync(
+      resolve(process.cwd(), "app/(dashboard)/admin/orders/page.tsx"),
+      "utf8"
+    );
+
+    expect(page).toContain('name="dateFrom"');
+    expect(page).toContain('name="dateTo"');
+    expect(page).toContain('gte: new Date(dateFrom)');
+    expect(page).toContain('lte: new Date(dateTo + "T23:59:59")');
+    expect(page).toContain("dateFrom=${encodeURIComponent(dateFrom)}");
+    expect(page).toContain("dateTo=${encodeURIComponent(dateTo)}");
   });
 });

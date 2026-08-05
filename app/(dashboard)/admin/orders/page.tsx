@@ -31,12 +31,22 @@ export default async function OrdersPage({
   const params = await searchParams;
   const page = Math.max(Number(params.page ?? 1), 1);
   const search = typeof params.search === "string" ? params.search.trim() : "";
+  const dateFrom = typeof params.dateFrom === "string" ? params.dateFrom : "";
+  const dateTo = typeof params.dateTo === "string" ? params.dateTo : "";
   const rawStatus = typeof params.status === "string" ? params.status : "";
   const status = Object.values(OrderStatus).includes(rawStatus as OrderStatus)
     ? (rawStatus as OrderStatus)
     : undefined;
   const where: Prisma.Customer_orderWhereInput = {
     ...(status ? { status } : {}),
+    ...(dateFrom || dateTo
+      ? {
+          dateTime: {
+            ...(dateFrom ? { gte: new Date(dateFrom) } : {}),
+            ...(dateTo ? { lte: new Date(dateTo + "T23:59:59") } : {}),
+          },
+        }
+      : {}),
     ...buildAdminOrderSearchWhere(search),
   };
   const [orders, total] = await Promise.all([
@@ -68,6 +78,20 @@ export default async function OrdersPage({
             </option>
           ))}
         </select>
+        <input
+          aria-label="Từ ngày"
+          className={adminInputClass}
+          type="date"
+          name="dateFrom"
+          defaultValue={dateFrom}
+        />
+        <input
+          aria-label="Đến ngày"
+          className={adminInputClass}
+          type="date"
+          name="dateTo"
+          defaultValue={dateTo}
+        />
         <button className={adminSecondaryButtonClass} type="submit">
           Lọc
         </button>
@@ -125,7 +149,7 @@ export default async function OrdersPage({
 
       <nav className="mt-5 flex items-center gap-4 text-sm">
         {page > 1 ? (
-          <Link className="font-bold text-[#e85d00]" href={`?page=${page - 1}&search=${encodeURIComponent(search)}&status=${status ?? ""}`}>
+          <Link className="font-bold text-[#e85d00]" href={`?page=${page - 1}&search=${encodeURIComponent(search)}&status=${status ?? ""}&dateFrom=${encodeURIComponent(dateFrom)}&dateTo=${encodeURIComponent(dateTo)}`}>
             Trang trước
           </Link>
         ) : null}
@@ -133,7 +157,7 @@ export default async function OrdersPage({
           Trang {page}/{totalPages}
         </span>
         {page < totalPages ? (
-          <Link className="font-bold text-[#e85d00]" href={`?page=${page + 1}&search=${encodeURIComponent(search)}&status=${status ?? ""}`}>
+          <Link className="font-bold text-[#e85d00]" href={`?page=${page + 1}&search=${encodeURIComponent(search)}&status=${status ?? ""}&dateFrom=${encodeURIComponent(dateFrom)}&dateTo=${encodeURIComponent(dateTo)}`}>
             Trang sau
           </Link>
         ) : null}

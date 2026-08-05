@@ -1,4 +1,4 @@
-import { Prisma } from "@prisma/client";
+import { OrderStatus, Prisma } from "@prisma/client";
 import { getServerSession } from "next-auth/next";
 import { NextResponse } from "next/server";
 import { z } from "zod";
@@ -42,7 +42,7 @@ type OrderResponse = {
   order: {
     id: string;
     orderNumber: number;
-    status: "PROCESSING";
+    status: OrderStatus;
     total: number;
     createdAt: string;
     items: Array<{
@@ -103,7 +103,7 @@ async function loadOrderResponse(
     order: {
       id: order.id,
       orderNumber: order.orderNumber,
-      status: "PROCESSING",
+      status: order.status,
       total: order.total,
       createdAt: (order.dateTime ?? new Date()).toISOString(),
       items: order.products.map((item) => ({
@@ -365,11 +365,6 @@ export async function POST(request: Request) {
             });
           }
         }
-
-        await tx.customer_order.update({
-          where: { id: order.id },
-          data: { status: "PROCESSING" },
-        });
 
         return loadOrderResponse(tx, order.id);
       },

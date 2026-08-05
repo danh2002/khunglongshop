@@ -53,4 +53,13 @@ describe("checkout order transaction", () => {
     expect(route).toContain(": genericPoolVersions");
     expect(route).toContain("poolVersions.map((candidate)");
   });
+
+  it("keeps new orders pending until an admin confirms payment", () => {
+    const route = readFileSync(resolve(process.cwd(), "app/api/orders/route.ts"), "utf8");
+
+    expect(route).toContain('status: "PENDING_PAYMENT"');
+    expect(route).toContain("status: order.status");
+    expect(route).not.toContain("tx.customer_order.update");
+    expect(route).not.toContain('data: { status: "PROCESSING" }');
+  });
 });
