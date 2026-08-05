@@ -7,7 +7,6 @@ import {
   selectWeightedEntry,
   validateBlindBoxPool,
 } from "@/lib/blindBox";
-import { generateRedemptionCode } from "@/lib/codes";
 import { isRateLimited } from "@/lib/rateLimit";
 import { authOptions } from "@/utils/authOptions";
 import prisma from "@/utils/db";
@@ -59,19 +58,6 @@ type OrderResponse = {
 
 function errorResponse(status: number, error: string) {
   return NextResponse.json({ error }, { status });
-}
-
-async function createUniqueCode(tx: Prisma.TransactionClient) {
-  for (let attempt = 0; attempt < 8; attempt += 1) {
-    const code = generateRedemptionCode();
-    const existing = await tx.redemptionCode.findUnique({
-      where: { code },
-      select: { id: true },
-    });
-    if (!existing) return code;
-  }
-
-  throw new Error("REDEMPTION_CODE_GENERATION_FAILED");
 }
 
 function mergeItems(items: z.infer<typeof itemSchema>[]) {
@@ -338,7 +324,7 @@ export async function POST(request: Request) {
                     }))
                   ).poolVersion;
             const selected = selectWeightedEntry(poolVersion.entries);
-            const allocation = await tx.blindBoxAllocation.create({
+            await tx.blindBoxAllocation.create({
               data: {
                 allocationKey: `${orderItem.id}:${unitIndex}`,
                 orderId: order.id,
@@ -349,18 +335,6 @@ export async function POST(request: Request) {
                 poolVersionId: poolVersion.id,
                 rarityTier: selected.rarityTier,
                 revealed: true,
-              },
-            });
-
-            await tx.redemptionCode.create({
-              data: {
-                code: await createUniqueCode(tx),
-                productId: selected.productId,
-                allocationId: allocation.id,
-                orderId: order.id,
-                userId,
-                status: "ACTIVE",
-                isUsed: false,
               },
             });
           }

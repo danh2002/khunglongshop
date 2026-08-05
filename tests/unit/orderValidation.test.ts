@@ -62,4 +62,12 @@ describe("checkout order transaction", () => {
     expect(route).not.toContain("tx.customer_order.update");
     expect(route).not.toContain('data: { status: "PROCESSING" }');
   });
+
+  it("does not create or assign redemption codes during checkout", () => {
+    const route = readFileSync(resolve(process.cwd(), "app/api/orders/route.ts"), "utf8");
+
+    expect(route).not.toContain("redemptionCode.create");
+    expect(route).not.toContain("createUniqueCode");
+    expect(route).not.toContain("generateRedemptionCode");
+  });
 });

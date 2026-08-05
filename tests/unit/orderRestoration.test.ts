@@ -160,6 +160,28 @@ describe("restoreCancelledOrder", () => {
     });
   });
 
+  it("restores a checkout allocation that never had a redemption code", async () => {
+    const order = blindBoxOrder();
+    order.products[0]!.blindBoxAllocations[0]!.redemptionCode = null as never;
+    order.redemptionCodes = [];
+    mocks.orderFindUnique.mockReset();
+    mocks.orderFindUnique
+      .mockResolvedValueOnce(order)
+      .mockResolvedValueOnce(restoredOrder);
+
+    await restoreCancelledOrder({
+      orderId: "order-1",
+      adminActorId: "admin-1",
+    });
+
+    expect(mocks.allocationUpdateMany).toHaveBeenCalledTimes(1);
+    expect(mocks.codeUpdateMany).not.toHaveBeenCalled();
+    expect(mocks.orderUpdateMany).toHaveBeenCalledWith({
+      where: { id: "order-1", status: "CANCELLED" },
+      data: { status: "PENDING_PAYMENT" },
+    });
+  });
+
   it("rejects insufficient stock before changing status or writing an audit", async () => {
     mocks.productUpdateMany.mockResolvedValue({ count: 0 });
 
@@ -185,7 +207,6 @@ describe("restoreCancelledOrder", () => {
 
   it.each([
     "missing allocation",
-    "missing code",
     "wrong code status",
     "wrong order link",
     "extra order-level code",
@@ -194,8 +215,6 @@ describe("restoreCancelledOrder", () => {
     const order = blindBoxOrder();
     if (variant === "missing allocation") {
       order.products[0]!.blindBoxAllocations = [];
-    } else if (variant === "missing code") {
-      order.products[0]!.blindBoxAllocations[0]!.redemptionCode = null as never;
     } else if (variant === "wrong code status") {
       order.products[0]!.blindBoxAllocations[0]!.redemptionCode.status = "ACTIVE";
     } else if (variant === "wrong order link") {

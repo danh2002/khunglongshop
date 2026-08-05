@@ -95,18 +95,25 @@ export async function restoreCancelledOrder(input: {
             const code = allocation.redemptionCode;
             if (
               allocation.status !== "VOIDED" ||
-              allocation.voidedAt === null ||
-              !code ||
-              code.allocationId !== allocation.id ||
-              code.orderId !== order.id ||
-              code.status !== "CANCELLED"
+              allocation.voidedAt === null
             ) {
               throw new OrderRestorationError(
                 "ORDER_RESTORATION_DATA_INVALID"
               );
             }
             allocationIds.push(allocation.id);
-            redemptionCodeIds.push(code.id);
+            if (code) {
+              if (
+                code.allocationId !== allocation.id ||
+                code.orderId !== order.id ||
+                code.status !== "CANCELLED"
+              ) {
+                throw new OrderRestorationError(
+                  "ORDER_RESTORATION_DATA_INVALID"
+                );
+              }
+              redemptionCodeIds.push(code.id);
+            }
           }
         }
 
@@ -147,14 +154,16 @@ export async function restoreCancelledOrder(input: {
             );
           }
 
-          const restoredCodes = await tx.redemptionCode.updateMany({
-            where: { id: { in: redemptionCodeIds }, status: "CANCELLED" },
-            data: { status: "ACTIVE", isUsed: false, usedAt: null },
-          });
-          if (restoredCodes.count !== redemptionCodeIds.length) {
-            throw new OrderRestorationError(
-              "ORDER_RESTORATION_DATA_INVALID"
-            );
+          if (redemptionCodeIds.length > 0) {
+            const restoredCodes = await tx.redemptionCode.updateMany({
+              where: { id: { in: redemptionCodeIds }, status: "CANCELLED" },
+              data: { status: "ACTIVE", isUsed: false, usedAt: null },
+            });
+            if (restoredCodes.count !== redemptionCodeIds.length) {
+              throw new OrderRestorationError(
+                "ORDER_RESTORATION_DATA_INVALID"
+              );
+            }
           }
         }
 
