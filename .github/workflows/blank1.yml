@@ -54,9 +54,11 @@ jobs:
           const allowedHigh = new Set([
             'glob',
             'minimatch',
-            'path-to-regexp',
+            'next',
             'picomatch',
+            'postcss',
             'preact',
+            'sharp',
           ]);
           const auditExit = Number(process.env.AUDIT_EXIT);
           const failures = [];

@@ -46,6 +46,18 @@ describe("payment helpers", () => {
     expect(url.searchParams.get("accountName")).toBe("DAO KHUNG LONG");
   });
 
+  it("preserves UTF-8 Vietnamese account names in the QR config", () => {
+    const unicodeConfig = getPaymentConfig({
+      VIETQR_BANK_ID: "970415",
+      VIETQR_ACCOUNT_NO: "123456789",
+      VIETQR_ACCOUNT_NAME: "NGUYỄN TRÍ THANH",
+    });
+
+    expect(unicodeConfig.accountName).toBe("NGUYỄN TRÍ THANH");
+    const url = new URL(buildVietQrUrl(unicodeConfig, 600_000, "KLS-ORDER 1"));
+    expect(url.searchParams.get("accountName")).toBe("NGUYỄN TRÍ THANH");
+  });
+
   it("returns QR data only for a pending payment session", () => {
     const now = new Date("2026-08-06T12:00:00.000Z");
     const dto = toPaymentDto(

@@ -61,9 +61,9 @@ export function getPaymentConfig(
   env: Record<string, string | undefined> = process.env
 ): PaymentConfig {
   const bankId = requiredEnv(env.VIETQR_BANK_ID);
-  const bankName = env.VIETQR_BANK_NAME?.trim() || bankId;
+  const bankName = (env.VIETQR_BANK_NAME?.trim() || bankId).normalize("NFC");
   const accountNo = requiredEnv(env.VIETQR_ACCOUNT_NO);
-  const accountName = requiredEnv(env.VIETQR_ACCOUNT_NAME);
+  const accountName = requiredEnv(env.VIETQR_ACCOUNT_NAME).normalize("NFC");
   const template = env.VIETQR_TEMPLATE?.trim() || "compact2";
 
   if (!/^[A-Za-z0-9]+$/.test(bankId) || !/^\d{6,19}$/.test(accountNo)) {
