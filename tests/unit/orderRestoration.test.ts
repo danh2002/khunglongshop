@@ -9,6 +9,7 @@ const mocks = vi.hoisted(() => ({
   allocationUpdateMany: vi.fn(),
   codeUpdateMany: vi.fn(),
   auditCreate: vi.fn(),
+  syncUpsert: vi.fn(),
 }));
 
 vi.mock("@/utils/db", () => ({
@@ -87,6 +88,7 @@ const transactionClient = {
   blindBoxAllocation: { updateMany: mocks.allocationUpdateMany },
   redemptionCode: { updateMany: mocks.codeUpdateMany },
   adminAuditLog: { create: mocks.auditCreate },
+  orderSheetSyncState: { upsert: mocks.syncUpsert },
 };
 
 async function expectRestorationError(code: string) {
@@ -110,6 +112,7 @@ describe("restoreCancelledOrder", () => {
     mocks.codeUpdateMany.mockResolvedValue({ count: 1 });
     mocks.orderUpdateMany.mockResolvedValue({ count: 1 });
     mocks.auditCreate.mockResolvedValue({ id: "audit-1" });
+    mocks.syncUpsert.mockResolvedValue({ orderId: "order-1" });
   });
 
   it("reserves stock and restores a normal order to pending payment", async () => {

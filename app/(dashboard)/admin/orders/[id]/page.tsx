@@ -9,6 +9,7 @@ import {
   AdminTh,
 } from "@/components/admin/AdminUi";
 import OrderStatusForm from "@/components/admin/OrderStatusForm";
+import PaymentConfirmationButton from "@/components/admin/PaymentConfirmationButton";
 import prisma from "@/utils/db";
 import type { OrderStatus } from "@prisma/client";
 
@@ -74,6 +75,21 @@ export default async function OrderDetailPage({
           <h2 className="mb-4 font-black uppercase">Chuyển trạng thái</h2>
           <OrderStatusForm orderId={order.id} status={order.status} />
         </div>
+      </section>
+
+      <section className="mt-8 border border-[#e85d00]/30 bg-[#0f0f0f] p-5">
+        <h2 className="font-black uppercase">Thanh toán ngân hàng</h2>
+        <dl className="mt-4 grid gap-3 text-sm md:grid-cols-2">
+          <div><dt className="text-white/50">Mã chuyển khoản</dt><dd className="font-mono font-black">{order.paymentRef ?? "Chưa có"}</dd></div>
+          <div><dt className="text-white/50">Hạn thanh toán</dt><dd>{order.paymentExpiresAt?.toLocaleString("vi-VN") ?? "Chưa có"}</dd></div>
+          <div><dt className="text-white/50">Đã xác nhận lúc</dt><dd>{order.paidAt?.toLocaleString("vi-VN") ?? "Chưa xác nhận"}</dd></div>
+          <div><dt className="text-white/50">Tổng cần nhận</dt><dd className="font-black text-[#e85d00]">{order.total.toLocaleString("vi-VN")}đ</dd></div>
+        </dl>
+        {order.status === "PENDING_PAYMENT" && !order.paidAt ? (
+          <div className="mt-5">
+            <PaymentConfirmationButton orderId={order.id} />
+          </div>
+        ) : null}
       </section>
 
       <section className="mt-8">

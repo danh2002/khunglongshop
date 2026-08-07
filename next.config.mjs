@@ -1,4 +1,8 @@
 /** @type {import('next').NextConfig} */
+for (const key of ["NEXTAUTH_URL", "NEXTAUTH_URL_INTERNAL"]) {
+  if (process.env[key]?.trim() === "") delete process.env[key];
+}
+
 const nextConfig = {
     compiler: {
       styledComponents: true,

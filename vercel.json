@@ -1,0 +1,12 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron/payment-expiry",
+      "schedule": "0 0 * * *"
+    },
+    {
+      "path": "/api/cron/order-sheet-sync",
+      "schedule": "15 0 * * *"
+    }
+  ]
+}

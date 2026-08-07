@@ -5,6 +5,10 @@ import { adminError, validationError } from "@/lib/adminResponses";
 import { canTransitionOrderStatus } from "@/lib/orderTransitions";
 import { requireAdminApi } from "@/utils/adminAuth";
 import prisma from "@/utils/db";
+import {
+  bestEffortFlushOrderSheetSync,
+  enqueueOrderSheetSync,
+} from "@/lib/orderSheetSync";
 
 const bodySchema = z.object({ status: z.nativeEnum(OrderStatus) });
 export async function PATCH(
@@ -41,6 +45,17 @@ export async function PATCH(
     );
   }
 
+  if (
+    order.status === "PENDING_PAYMENT" &&
+    parsed.data.status === "PROCESSING"
+  ) {
+    return adminError(
+      409,
+      "PAYMENT_CONFIRMATION_REQUIRED",
+      "Vui lòng dùng thao tác xác nhận đã nhận tiền."
+    );
+  }
+
   if (parsed.data.status === "CANCELLED") {
     return adminError(
       400,
@@ -60,9 +75,14 @@ export async function PATCH(
     );
   }
 
-  const updated = await prisma.customer_order.update({
-    where: { id },
-    data: { status: parsed.data.status },
+  const updated = await prisma.$transaction(async (tx) => {
+    const changed = await tx.customer_order.update({
+      where: { id },
+      data: { status: parsed.data.status },
+    });
+    await enqueueOrderSheetSync(tx, id);
+    return changed;
   });
+  await bestEffortFlushOrderSheetSync(id);
   return NextResponse.json(updated);
 }

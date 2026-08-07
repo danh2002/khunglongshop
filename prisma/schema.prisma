@@ -297,19 +297,57 @@ model Customer_order {
   country                String
   orderNotice            String?
   total                  Int
+  paymentRef             String?                  @unique @db.VarChar(25)
+  paymentExpiresAt       DateTime?
+  paidAt                 DateTime?
+  paymentExpiredAt       DateTime?
   checkoutIdempotencyKey String?
   checkoutRequestHash    String?
   products               customer_order_product[]
   redemptionCodes        RedemptionCode[]
   blindBoxAllocations    BlindBoxAllocation[]
+  sheetSyncState         OrderSheetSyncState?
+  sheetSyncEvents        OrderSheetSyncEvent[]
 
   @@unique([userId, checkoutIdempotencyKey])
   @@index([userId])
   @@index([email])
   @@index([userId, dateTime])
   @@index([status])
+  @@index([status, paymentExpiresAt])
+  @@index([status, paymentExpiredAt])
   @@index([orderNumber])
   @@index([dateTime])
+}
+
+model OrderSheetSyncState {
+  orderId        String         @id
+  order          Customer_order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  revision       Int            @default(1)
+  syncedRevision Int            @default(0)
+  sheetRevision  Int            @default(0)
+  attempts       Int            @default(0)
+  nextAttemptAt  DateTime       @default(now())
+  lastSyncedAt   DateTime?
+  lastErrorCode  String?        @db.VarChar(80)
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  @@index([syncedRevision, nextAttemptAt])
+  @@index([nextAttemptAt])
+}
+
+model OrderSheetSyncEvent {
+  eventId       String         @id @db.VarChar(80)
+  orderId       String
+  order         Customer_order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  sheetRevision Int
+  outcome       String         @db.VarChar(40)
+  errorCode     String?        @db.VarChar(80)
+  createdAt     DateTime       @default(now())
+
+  @@index([orderId, sheetRevision])
+  @@index([createdAt])
 }
 
 model customer_order_product {

@@ -95,3 +95,15 @@ Plan 007 is deployed and verified on production. Future homepage performance wor
 | Plan | Status | Notes |
 |---|---|---|
 | [018 - Restore cancelled orders safely](018-restore-cancelled-orders-safely.md) | PENDING MANUAL BUILD/SMOKE | Implemented with focused tests, full non-OTP suite, TypeScript, and diff checks passing. `npm run build` compiled successfully but page-data collection requires an approved `DATABASE_URL`; authenticated disposable-order smoke testing also remains. |
+
+## Bank QR Payment Plan
+
+| Plan | Status | Notes |
+|---|---|---|
+| [019 - Expiring VietQR payment flow](019-bank-qr-payment-countdown.md) | IMPLEMENTED — PENDING DB/BUILD/SMOKE | Schema, migration SQL, payment helpers, checkout issuance, atomic confirmation/expiry, polling, renewal, cron fallback, customer/admin UI, and tests are implemented. `npm run type-check`, 266 non-OTP tests, and `git diff --check` pass. Production compilation succeeds; page-data collection still requires an approved `DATABASE_URL`. Apply the reviewed migration only after confirming the Plan 005 database baseline, then run authenticated payment/expiry/renewal smoke tests. |
+
+## Google Sheets Order Sync Plan
+
+| Plan | Status | Notes |
+|---|---|---|
+| [020 - Two-way Google Sheets order sync](020-two-way-google-sheets-order-sync.md) | DONE | Adds a managed one-row-per-order tab in the existing workbook, transactional/coalescing DB outbox state, signed Apps Script realtime status updates, cron retry/reconciliation, stable UUID identity, and PII-safe operations. DB remains authoritative for all fields except validated status edits from Sheet. Depends on Plan 019's payment/order mutation paths being operational. |

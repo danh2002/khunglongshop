@@ -98,6 +98,18 @@ Configure production and preview environment variables in Vercel. Keep all value
 - `CRON_SECRET`: bearer credential used to authorize scheduled maintenance routes.
 - SMS provider variables, when OTP delivery is enabled: provider URL, API credential, sender number, and timeout.
 - `MAINTENANCE_MODE`, when required: optional operational feature flag.
+- `VIETQR_BANK_ID`, `VIETQR_BANK_NAME`, `VIETQR_ACCOUNT_NO`, and
+  `VIETQR_ACCOUNT_NAME`: receiving account metadata used to build authenticated
+  order-payment QR links and display the customer-facing bank details.
+- `VIETQR_TEMPLATE`: optional VietQR Quick Link template; defaults to `compact2`.
+- `GOOGLE_SHEETS_SPREADSHEET_ID`, `GOOGLE_SHEETS_TAB_NAME`, and
+  `GOOGLE_SHEETS_WEB_APP_URL`: managed order-sync workbook, tab, and Apps
+  Script deployment URL.
+- `GOOGLE_SHEETS_SYNC_SECRET`: high-entropy shared HMAC secret configured in
+  both Vercel and Apps Script Properties.
+- `GOOGLE_SHEETS_SYNC_ACTOR_ID`: active admin user used for inbound status
+  transitions and audit records.
+- `ORDER_SHEET_SYNC_TIMEOUT_MS`: optional Apps Script timeout, default 3000 ms.
 
 After changing authentication credentials, redeploy the affected Vercel environments. Rotating `NEXTAUTH_SECRET` invalidates existing sessions.
 
@@ -111,3 +123,40 @@ Treat Prisma schema changes and migration SQL as production changes:
 4. Run `npm run db:generate` after schema changes.
 
 Do not run `npm run db:push` against production. It bypasses the reviewed migration history and is not the production migration procedure.
+
+## Payment expiry scheduling
+
+The bank-payment status endpoint performs authoritative lazy expiry whenever the
+customer polls it. A Vercel Cron also sweeps abandoned orders. The checked-in
+schedule is once daily so it remains compatible with the Vercel Hobby plan;
+sub-minute scheduled cleanup requires Vercel Pro or another approved scheduler.
+
+## Google Sheets order synchronization
+
+The application synchronizes database orders to the managed
+`Đơn hàng đồng bộ` tab through the Apps Script gateway in
+`integrations/google-apps-script/`. The historical `Tháng 8/2026` tab is never
+modified. One managed row maps to one order UUID. Customer/order fields are
+database-authoritative; only the validated status dropdown is writable back to
+the database.
+
+Checkout and admin mutations enqueue sync in the same database transaction,
+then attempt a best-effort post-commit flush. Sheet outages never roll back a
+successful order. The authenticated `/api/cron/order-sheet-sync` route retries
+pending exports and reconciles inbound status revisions in bounded batches.
+
+- Vercel Hobby daily cron: flush failures may take up to 24 hours to recover.
+- Vercel Pro with a reviewed five-minute schedule: recovery takes up to five
+  minutes.
+- Apps Script `onEdit`: realtime inbound status delivery, independent of the
+  Vercel cron tier.
+
+If sub-hour outbound recovery is required, use Vercel Pro or an approved
+external scheduler. Monitor pending count, oldest pending age,
+`SYNC_ACTOR_INVALID`, conflict rate, and retry rate without PII labels. Rotate
+the integration actor alongside HMAC secret rotation. Disable the Apps Script
+trigger and order-sync cron for rollback; retain pending state for later retry.
+
+Apply the reviewed order-sync migration before enabling the trigger or cron.
+Use the cron route's authenticated `POST` in dry-run mode for bounded initial
+reconciliation; send `confirm: "ENQUEUE"` only after reviewing each page.

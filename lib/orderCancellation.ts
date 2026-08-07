@@ -1,5 +1,9 @@
 import { Prisma } from "@prisma/client";
 import prisma from "@/utils/db";
+import {
+  bestEffortFlushOrderSheetSync,
+  enqueueOrderSheetSync,
+} from "@/lib/orderSheetSync";
 
 export class OrderCancellationError extends Error {
   constructor(
@@ -7,6 +11,7 @@ export class OrderCancellationError extends Error {
       | "ORDER_NOT_FOUND"
       | "ORDER_NOT_CANCELLABLE"
       | "ORDER_REQUIRES_ADMIN_CANCELLATION"
+      | "ORDER_CANCELLATION_CONFLICT"
   ) {
     super(code);
     this.name = "OrderCancellationError";
@@ -18,8 +23,13 @@ export async function cancelOrder(input: {
   ownerId?: string;
   adminActorId?: string;
   reason?: string;
+  paymentExpiryAt?: Date;
+  afterStatusChange?: (
+    tx: Prisma.TransactionClient,
+    order: { id: string; status: "CANCELLED" }
+  ) => Promise<void>;
 }) {
-  return prisma.$transaction(
+  const cancelled = await prisma.$transaction(
     async (tx) => {
       const order = await tx.customer_order.findFirst({
         where: {
@@ -37,6 +47,15 @@ export async function cancelOrder(input: {
       if (order.status === "COMPLETED") {
         throw new OrderCancellationError("ORDER_NOT_CANCELLABLE");
       }
+      if (
+        input.paymentExpiryAt &&
+        (order.status !== "PENDING_PAYMENT" ||
+          order.paidAt !== null ||
+          order.paymentExpiresAt === null ||
+          order.paymentExpiresAt > input.paymentExpiryAt)
+      ) {
+        throw new OrderCancellationError("ORDER_NOT_CANCELLABLE");
+      }
 
       const hasRedeemedCode = order.redemptionCodes.some(
         (code) => code.status === "REDEEMED"
@@ -45,6 +64,29 @@ export async function cancelOrder(input: {
         throw new OrderCancellationError(
           "ORDER_REQUIRES_ADMIN_CANCELLATION"
         );
+      }
+
+      const statusUpdate = await tx.customer_order.updateMany({
+        where: {
+          id: order.id,
+          status: order.status,
+          ...(input.paymentExpiryAt
+            ? {
+                paidAt: null,
+                paymentExpiredAt: null,
+                paymentExpiresAt: { lte: input.paymentExpiryAt },
+              }
+            : {}),
+        },
+        data: {
+          status: "CANCELLED",
+          ...(input.paymentExpiryAt
+            ? { paymentExpiredAt: input.paymentExpiryAt }
+            : {}),
+        },
+      });
+      if (statusUpdate.count !== 1) {
+        throw new OrderCancellationError("ORDER_CANCELLATION_CONFLICT");
       }
 
       await tx.blindBoxAllocation.updateMany({
@@ -63,10 +105,10 @@ export async function cancelOrder(input: {
         });
       }
 
-      const cancelled = await tx.customer_order.update({
+      const cancelled = await tx.customer_order.findUnique({
         where: { id: order.id },
-        data: { status: "CANCELLED" },
       });
+      if (!cancelled) throw new OrderCancellationError("ORDER_NOT_FOUND");
 
       if (input.adminActorId) {
         await tx.adminAuditLog.create({
@@ -83,9 +125,19 @@ export async function cancelOrder(input: {
         });
       }
 
+      await enqueueOrderSheetSync(tx, order.id);
+      if (input.afterStatusChange) {
+        await input.afterStatusChange(tx, {
+          id: cancelled.id,
+          status: "CANCELLED",
+        });
+      }
+
       return cancelled;
     },
     { isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead }
   );
+  await bestEffortFlushOrderSheetSync(input.orderId);
+  return cancelled;
 }
 

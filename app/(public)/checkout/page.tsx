@@ -11,6 +11,7 @@ import { sectionPattern } from "@/components/design-system";
 import { formatVnd, formatVndTotal } from "@/lib/currency";
 import { validateCartItems } from "@/lib/cartValidation";
 import { normalizeCatalogImage } from "@/lib/publicCatalog";
+import { VIETNAM_PROVINCES } from "@/lib/vietnam-provinces";
 
 const checkoutFieldErrors: Record<string, string> = {
   name: "Họ không hợp lệ",
@@ -697,12 +698,11 @@ const CheckoutPage = () => {
                     onChange={(event) => setCheckoutForm({ ...checkoutForm, country: event.target.value })}
                   >
                     <option value="">Chọn Tỉnh, Thành phố</option>
-                    <option value="TP. Hồ Chí Minh">TP. Hồ Chí Minh</option>
-                    <option value="Hà Nội">Hà Nội</option>
-                    <option value="Đà Nẵng">Đà Nẵng</option>
-                    <option value="Bình Dương">Bình Dương</option>
-                    <option value="Đồng Nai">Đồng Nai</option>
-                    <option value="Khác">Khác</option>
+                    {VIETNAM_PROVINCES.map((province) => (
+                      <option key={province} value={province}>
+                        {province}
+                      </option>
+                    ))}
                   </SelectInput>
                 </Field>
 

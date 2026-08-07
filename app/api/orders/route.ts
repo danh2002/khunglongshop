@@ -11,6 +11,20 @@ import { isRateLimited } from "@/lib/rateLimit";
 import { authOptions } from "@/utils/authOptions";
 import prisma from "@/utils/db";
 import { isPubliclySellableProduct } from "@/lib/publicCatalog";
+import {
+  bestEffortFlushOrderSheetSync,
+  enqueueOrderSheetSync,
+  ensureOrderSheetSync,
+} from "@/lib/orderSheetSync";
+import {
+  PAYMENT_WINDOW_MS,
+  getPaymentConfig,
+  isPrismaPaymentRefConflict,
+  type PaymentConfig,
+  PaymentError,
+  toPaymentDto,
+  withPaymentRefRetry,
+} from "@/lib/payment";
 
 const itemSchema = z.object({
   productId: z.string().trim().min(1),
@@ -54,6 +68,7 @@ type OrderResponse = {
       lineTotal: number;
     }>;
   };
+  payment: ReturnType<typeof toPaymentDto>;
 };
 
 function errorResponse(status: number, error: string) {
@@ -76,7 +91,8 @@ function mergeItems(items: z.infer<typeof itemSchema>[]) {
 
 async function loadOrderResponse(
   tx: Prisma.TransactionClient | typeof prisma,
-  orderId: string
+  orderId: string,
+  paymentConfig: PaymentConfig
 ): Promise<OrderResponse> {
   const order = await tx.customer_order.findUniqueOrThrow({
     where: { id: orderId },
@@ -84,6 +100,13 @@ async function loadOrderResponse(
       products: { orderBy: { id: "asc" } },
     },
   });
+
+  if (
+    order.status === "PENDING_PAYMENT" &&
+    (!order.paymentRef || !order.paymentExpiresAt)
+  ) {
+    throw new PaymentError("PAYMENT_SESSION_UNAVAILABLE");
+  }
 
   return {
     order: {
@@ -102,10 +125,12 @@ async function loadOrderResponse(
         lineTotal: item.unitPrice * item.quantity,
       })),
     },
+    payment: toPaymentDto(order, new Date(), paymentConfig),
   };
 }
 
 export async function POST(request: Request) {
+  try {
   const session = await getServerSession(authOptions);
   const userId = session?.user?.id;
   const sessionEmail = session?.user?.email?.trim().toLowerCase();
@@ -150,9 +175,23 @@ export async function POST(request: Request) {
   };
   const requestHash = hashCheckoutPayload(canonicalPayload);
 
+  let paymentConfig: PaymentConfig;
   try {
-    const result = await prisma.$transaction(
-      async (tx) => {
+    paymentConfig = getPaymentConfig();
+  } catch (error) {
+    if (
+      error instanceof PaymentError &&
+      error.code === "PAYMENT_CONFIG_INVALID"
+    ) {
+      return errorResponse(503, error.code);
+    }
+    throw error;
+  }
+
+  try {
+    const result = await withPaymentRefRetry(
+      (paymentRef) => prisma.$transaction(
+        async (tx) => {
         const existing = await tx.customer_order.findFirst({
           where: {
             userId,
@@ -165,7 +204,8 @@ export async function POST(request: Request) {
           if (existing.checkoutRequestHash !== requestHash) {
             throw new Error("IDEMPOTENCY_KEY_REUSED");
           }
-          return loadOrderResponse(tx, existing.id);
+          await ensureOrderSheetSync(tx, existing.id);
+          return loadOrderResponse(tx, existing.id, paymentConfig);
         }
 
         const products = await tx.product.findMany({
@@ -278,6 +318,8 @@ export async function POST(request: Request) {
             orderNotice: shipping.orderNotice,
             total,
             status: "PENDING_PAYMENT",
+            paymentRef,
+            paymentExpiresAt: new Date(Date.now() + PAYMENT_WINDOW_MS),
           },
         });
 
@@ -340,15 +382,20 @@ export async function POST(request: Request) {
           }
         }
 
-        return loadOrderResponse(tx, order.id);
-      },
-      {
-        isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead,
-        maxWait: 5_000,
-        timeout: 20_000,
-      }
+        await enqueueOrderSheetSync(tx, order.id);
+
+        return loadOrderResponse(tx, order.id, paymentConfig);
+        },
+        {
+          isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead,
+          maxWait: 5_000,
+          timeout: 20_000,
+        }
+      ),
+      isPrismaPaymentRefConflict
     );
 
+    await bestEffortFlushOrderSheetSync(result.order.id);
     return NextResponse.json(result, { status: 201 });
   } catch (error) {
     if (
@@ -367,12 +414,21 @@ export async function POST(request: Request) {
         if (existing.checkoutRequestHash !== requestHash) {
           return errorResponse(409, "IDEMPOTENCY_KEY_REUSED");
         }
-        const response = await loadOrderResponse(prisma, existing.id);
+        const response = await loadOrderResponse(
+          prisma,
+          existing.id,
+          paymentConfig
+        );
         return NextResponse.json(response, { status: 200 });
       }
     }
 
-    const code = error instanceof Error ? error.message : "ORDER_CREATION_FAILED";
+    const code =
+      error instanceof PaymentError
+        ? error.code
+        : error instanceof Error
+          ? error.message
+          : "ORDER_CREATION_FAILED";
     const status =
       code === "PRODUCT_NOT_FOUND"
         ? 404
@@ -388,5 +444,12 @@ export async function POST(request: Request) {
 
     if (status === 500) console.error("Atomic checkout failed:", error);
     return errorResponse(status, code);
+  }
+  } catch (err) {
+    console.error("[api/orders] unhandled error:", err);
+    return NextResponse.json(
+      { error: "ORDER_CREATION_FAILED" },
+      { status: 500 }
+    );
   }
 }

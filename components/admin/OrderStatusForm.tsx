@@ -108,8 +108,9 @@ export default function OrderStatusForm({
               canRestoreCancelledOrder(status) && option === "PENDING_PAYMENT";
             const isDisabled =
               option !== status &&
-              !isRestorationOption &&
-              !ORDER_STATUS_TRANSITIONS[status].includes(option);
+              ((!isRestorationOption &&
+                !ORDER_STATUS_TRANSITIONS[status].includes(option)) ||
+                (status === "PENDING_PAYMENT" && option === "PROCESSING"));
 
             return (
               <option

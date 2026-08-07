@@ -7,6 +7,8 @@ import { formatVndTotal } from "@/lib/currency";
 import { normalizeCatalogImage } from "@/lib/publicCatalog";
 import { authOptions } from "@/utils/authOptions";
 import prisma from "@/utils/db";
+import PaymentQrPanel from "@/components/PaymentQrPanel";
+import { getPaymentConfig, toPaymentDto } from "@/lib/payment";
 
 export default async function OrderConfirmationPage({
   params,
@@ -31,26 +33,21 @@ export default async function OrderConfirmationPage({
 
   if (!order) notFound();
 
+  const paymentConfig = getPaymentConfig();
+  const payment = toPaymentDto(order, new Date(), paymentConfig);
+
   return (
     <>
       <SectionTitle title="Đặt Hàng Thành Công" path="TRANG CHỦ | ĐƠN HÀNG" />
       <SectionShell>
         <Wrapper>
           <div className="grid gap-8 py-10 text-white">
-            <section className="border border-[#e85d00]/30 bg-[#111] p-6">
-              <p className="text-sm font-black uppercase text-[#e85d00]">
-                Mã đơn: {order.id}
-              </p>
-              <h1 className="mt-2 text-3xl font-black uppercase italic">
-                Đơn hàng đang được chuẩn bị
-              </h1>
-              <p className="mt-3 text-white/60">
-                Đơn hàng sẽ được đóng gói trong vòng 2 ngày làm việc.
-              </p>
-              <p className="mt-4 text-xl font-black text-[#e85d00]">
-                Tổng tiền: {formatVndTotal(order.total)}
-              </p>
-            </section>
+            <PaymentQrPanel
+              accountName={paymentConfig.accountName}
+              accountNo={paymentConfig.accountNo}
+              bankName={paymentConfig.bankName}
+              initialPayment={payment}
+            />
 
             <section>
               <h2 className="text-2xl font-black uppercase italic">
