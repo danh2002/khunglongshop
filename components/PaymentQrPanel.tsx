@@ -38,6 +38,8 @@ export default function PaymentQrPanel({
     )
   );
   const [qrFailed, setQrFailed] = useState(false);
+  const [claiming, setClaiming] = useState(false);
+  const [claimed, setClaimed] = useState(false);
   const [renewing, setRenewing] = useState(false);
   const inFlightRef = useRef(false);
   const requestRef = useRef<AbortController | null>(null);
@@ -213,6 +215,44 @@ export default function PaymentQrPanel({
           ⚠️ Hãy sao chép nội dung chuyển khoản và dán vào trước khi chuyển khoản
           để bên Đảo Khủng Long có thể kiểm tra và xác nhận đơn nhanh nhất cho bạn!
         </div>
+        {/* Customer-confirm button: shown only when awaiting payment, not expired, and not already claimed */}
+        {payment.status === "PENDING_PAYMENT" && !payment.paidAt && remainingMs > 0 && !claimed && (
+          <div className="mt-4">
+            <button
+              className="w-full bg-emerald-600 hover:bg-emerald-500 px-5 py-3 font-black uppercase text-white disabled:opacity-50"
+              disabled={claiming}
+              onClick={async () => {
+                const ok = window.confirm(
+                  "Bạn xác nhận đã chuyển khoản thành công?\nĐơn hàng sẽ được chuyển sang trạng thái CHỜ XÁC NHẬN.\nChúng tôi sẽ kiểm tra và xác nhận trong thời gian sớm nhất."
+                );
+                if (!ok) return;
+                try {
+                  setClaiming(true);
+                  const resp = await fetch(`/api/payment/customer-confirm`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ orderId: payment.orderId }),
+                  });
+                  const body = await resp.json().catch(() => null);
+                  if (!resp.ok) {
+                    toast.error(body?.error || "Không thể gửi yêu cầu xác nhận.");
+                    setClaiming(false);
+                    return;
+                  }
+                  toast.success("✅ Cảm ơn bạn! Chúng tôi đã nhận được thông báo và sẽ xác nhận đơn hàng của bạn sớm nhất có thể.");
+                  setClaimed(true);
+                } catch (err) {
+                  toast.error("Có lỗi xảy ra. Vui lòng thử lại.");
+                } finally {
+                  setClaiming(false);
+                }
+              }}
+              type="button"
+            >
+              {claiming ? "Đang gửi..." : "✅ Tôi đã chuyển khoản xong"}
+            </button>
+          </div>
+        )}
         <p className="mt-6 text-white/60">Mã hết hạn sau</p>
         <p className="font-mono text-4xl font-black text-[#e85d00]" aria-live="polite">
           {formatCountdown(remainingMs)}
