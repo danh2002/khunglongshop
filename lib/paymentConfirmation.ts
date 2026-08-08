@@ -33,26 +33,28 @@ export async function confirmOrderPayment(input: {
       const order = await tx.customer_order.findUnique({
         where: { id: input.orderId },
       });
-      if (!order) throw new PaymentConfirmationError("ORDER_NOT_FOUND");
-      if (order.status === "PROCESSING" && order.paidAt) return order;
-      if (
-        order.status !== "PENDING_PAYMENT" ||
-        order.paidAt !== null ||
-        order.paymentExpiredAt !== null ||
-        order.paymentExpiresAt === null ||
-        order.paymentExpiresAt < now
-      ) {
+      if (!order) {
+        throw new PaymentConfirmationError("ORDER_NOT_FOUND");
+      }
+
+      if (order.status !== "PENDING_PAYMENT" && order.status !== "PROCESSING") {
         throw new PaymentConfirmationError("PAYMENT_NOT_CONFIRMABLE");
       }
 
+      // If already has a paid timestamp, treat as already confirmed and return.
+      if (order.paidAt) {
+        return order;
+      }
+
       const updated = await tx.customer_order.updateMany({
-        where: {
-          id: order.id,
-          status: "PENDING_PAYMENT",
-          paidAt: null,
-          paymentExpiredAt: null,
-          paymentExpiresAt: { gte: now },
-        },
+        where:
+          order.status === "PENDING_PAYMENT"
+            ? {
+                id: order.id,
+                status: "PENDING_PAYMENT",
+                paidAt: null,
+              }
+            : { id: order.id, status: "PROCESSING", paidAt: null },
         data: { status: "PROCESSING", paidAt: now },
       });
       if (updated.count !== 1) {
@@ -74,8 +76,6 @@ export async function confirmOrderPayment(input: {
         },
       });
 
-      await enqueueOrderSheetSync(tx, order.id);
-
       const confirmed = await tx.customer_order.findUnique({
         where: { id: order.id },
       });
@@ -88,8 +88,13 @@ export async function confirmOrderPayment(input: {
       }
       return confirmed;
     },
-    { isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead }
+    { isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead, timeout: 15000 }
   );
+  try {
+    await enqueueOrderSheetSync(prisma, input.orderId);
+  } catch (e) {
+    console.warn("[order-sheet-sync] enqueue failed after payment confirmation:", e);
+  }
   await bestEffortFlushOrderSheetSync(input.orderId);
   return confirmed;
 }

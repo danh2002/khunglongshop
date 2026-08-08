@@ -71,18 +71,21 @@ export async function renewOrderPayment(input: {
                 },
               },
             });
-            await enqueueOrderSheetSync(tx, order.id);
-
             const renewed = await tx.customer_order.findUnique({
               where: { id: order.id },
             });
             if (!renewed) throw new OrderRestorationError("ORDER_NOT_FOUND");
             return renewed;
           },
-          { isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead }
+          { isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead, timeout: 15000 }
         ),
       isPrismaPaymentRefConflict
     );
+    try {
+      await enqueueOrderSheetSync(prisma, renewed.id);
+    } catch (e) {
+      console.warn("[order-sheet-sync] enqueue failed after renewal:", e);
+    }
     await bestEffortFlushOrderSheetSync(input.orderId);
     return renewed;
   } catch (error) {

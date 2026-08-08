@@ -59,7 +59,58 @@ describe("payment confirmation concurrency", () => {
         where: expect.objectContaining({
           status: "PENDING_PAYMENT",
           paidAt: null,
-          paymentExpiredAt: null,
+        }),
+        data: { status: "PROCESSING", paidAt: now },
+      })
+    );
+    expect(mocks.auditCreate).toHaveBeenCalledTimes(1);
+  });
+
+  it("confirms an expired pending payment order by ignoring expiry and setting paidAt", async () => {
+    const expiredOrder = {
+      ...pendingOrder,
+      paymentExpiresAt: new Date("2026-08-06T12:00:00.000Z"),
+      paymentExpiredAt: null,
+    };
+    const confirmed = { ...expiredOrder, status: "PROCESSING", paidAt: now };
+    mocks.findUnique
+      .mockResolvedValueOnce(expiredOrder)
+      .mockResolvedValueOnce(confirmed);
+    mocks.updateMany.mockResolvedValue({ count: 1 });
+    mocks.auditCreate.mockResolvedValue({ id: "audit-expired" });
+
+    await expect(
+      confirmOrderPayment({ orderId: "order-1", adminActorId: "admin-1", now })
+    ).resolves.toEqual(confirmed);
+    expect(mocks.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          status: "PENDING_PAYMENT",
+          paidAt: null,
+        }),
+        data: { status: "PROCESSING", paidAt: now },
+      })
+    );
+    expect(mocks.auditCreate).toHaveBeenCalledTimes(1);
+  });
+
+  it("confirms a processing order with missing paidAt by setting paidAt", async () => {
+    const processingOrder = { ...pendingOrder, status: "PROCESSING", paidAt: null };
+    const confirmed = { ...processingOrder, paidAt: now };
+    mocks.findUnique
+      .mockResolvedValueOnce(processingOrder)
+      .mockResolvedValueOnce(confirmed);
+    mocks.updateMany.mockResolvedValue({ count: 1 });
+    mocks.auditCreate.mockResolvedValue({ id: "audit-2" });
+
+    await expect(
+      confirmOrderPayment({ orderId: "order-1", adminActorId: "admin-1", now })
+    ).resolves.toEqual(confirmed);
+    expect(mocks.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          status: "PROCESSING",
+          paidAt: null,
         }),
         data: { status: "PROCESSING", paidAt: now },
       })

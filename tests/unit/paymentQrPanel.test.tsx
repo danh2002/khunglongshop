@@ -10,17 +10,17 @@ const source = readFileSync(
 
 describe("PaymentQrPanel", () => {
   it("shows a prominent transfer-reference warning before the countdown", () => {
-    const notice =
-      "⚠️ Hãy sao chép nội dung chuyển khoản và dán vào trước khi chuyển khoản";
-    const noticeIndex = source.indexOf(notice);
     const countdownIndex = source.lastIndexOf('aria-live="polite"');
-
+    const noticeIndex = source.indexOf('role="note"');
     expect(noticeIndex).toBeGreaterThan(-1);
     expect(noticeIndex).toBeLessThan(countdownIndex);
-    expect(source).toContain("để bên Đảo Khủng Long có thể kiểm tra và xác nhận đơn nhanh nhất cho bạn!");
+    expect(source).toContain(
+      "Vui lòng sao chép và sử dụng chính xác nội dung chuyển khoản"
+    );
     expect(source).toContain('role="note"');
-    expect(source).toContain("text-base font-semibold");
+    expect(source).toContain("text-base");
     expect(source).toContain("text-[#fbbf24]");
+    expect(source).toContain("font-semibold");
   });
 
   it("copies the customer name, formatted total, and display order number", () => {

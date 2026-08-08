@@ -382,8 +382,6 @@ export async function POST(request: Request) {
           }
         }
 
-        await enqueueOrderSheetSync(tx, order.id);
-
         return loadOrderResponse(tx, order.id, paymentConfig);
         },
         {
@@ -394,7 +392,11 @@ export async function POST(request: Request) {
       ),
       isPrismaPaymentRefConflict
     );
-
+    try {
+      await enqueueOrderSheetSync(prisma, result.order.id);
+    } catch (e) {
+      console.warn("[order-sheet-sync] enqueue failed after checkout:", e);
+    }
     await bestEffortFlushOrderSheetSync(result.order.id);
     return NextResponse.json(result, { status: 201 });
   } catch (error) {

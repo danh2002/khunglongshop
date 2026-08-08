@@ -139,6 +139,7 @@ describe("restoreCancelledOrder", () => {
     });
     expect(mocks.transaction).toHaveBeenCalledWith(expect.any(Function), {
       isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead,
+      timeout: 15000,
     });
   });
 

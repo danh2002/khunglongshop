@@ -458,17 +458,25 @@ export async function applyInboundOrderSheetStatus(
   }
 
   if (order.status === "PROCESSING" && targetStatus === "COMPLETED") {
-    await prisma.$transaction(async (tx) => {
-      const changed = await tx.customer_order.updateMany({
-        where: { id: order.id, status: "PROCESSING" },
-        data: { status: "COMPLETED" },
-      });
-      if (changed.count !== 1) {
-        throw new InboundOrderSheetError("SHEET_STATUS_APPLY_FAILED");
-      }
-      await enqueueOrderSheetSync(tx, order.id);
-      await afterStatusChange(tx);
-    });
+    const updated = await prisma.$transaction(
+      async (tx) => {
+        const changed = await tx.customer_order.updateMany({
+          where: { id: order.id, status: "PROCESSING" },
+          data: { status: "COMPLETED" },
+        });
+        if (changed.count !== 1) {
+          throw new InboundOrderSheetError("SHEET_STATUS_APPLY_FAILED");
+        }
+        await afterStatusChange(tx);
+        return changed;
+      },
+      { timeout: 15000, isolationLevel: undefined }
+    );
+    try {
+      await enqueueOrderSheetSync(prisma, order.id);
+    } catch (e) {
+      console.warn("[order-sheet-sync] enqueue failed after sheet status apply:", e);
+    }
     await bestEffortFlushOrderSheetSync(order.id);
     return "APPLIED";
   }

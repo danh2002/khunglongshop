@@ -209,17 +209,28 @@ export default function PaymentQrPanel({
           </div>
         </dl>
         <div
-          className="mt-5 border border-[#f59e0b]/50 bg-[#f59e0b]/10 p-4 text-base font-semibold leading-relaxed text-[#fbbf24]"
+          className="mt-5 border border-[#f59e0b]/50 bg-[#f59e0b]/10 p-4 text-base leading-relaxed text-[#fbbf24]"
           role="note"
         >
-          ⚠️ Hãy sao chép nội dung chuyển khoản và dán vào trước khi chuyển khoản
-          để bên Đảo Khủng Long có thể kiểm tra và xác nhận đơn nhanh nhất cho bạn!
+          <p className="flex items-start gap-2">
+            <span className="text-xl">📋</span>
+            <span className="font-bold text-lg">Lưu ý:</span>
+          </p>
+          <p className="mt-2 font-semibold">
+            Vui lòng sao chép và sử dụng chính xác nội dung chuyển khoản
+            khi thanh toán để Đảo Khủng Long có thể kiểm tra và xác nhận đơn hàng
+            nhanh chóng.
+          </p>
+          <p className="mt-2 font-semibold">
+            Sau khi chuyển khoản thành công, vui lòng chụp lại màn hình giao dịch
+            để thuận tiện cho việc xác nhận và đối chiếu khi cần.
+          </p>
         </div>
         {/* Customer-confirm button: shown only when awaiting payment, not expired, and not already claimed */}
         {payment.status === "PENDING_PAYMENT" && !payment.paidAt && remainingMs > 0 && !claimed && (
           <div className="mt-4">
             <button
-              className="w-full bg-emerald-600 hover:bg-emerald-500 px-5 py-3 font-black uppercase text-white disabled:opacity-50"
+              className="w-full border border-orange-500 text-orange-400 hover:bg-orange-500/10 px-5 py-3 font-black uppercase bg-transparent disabled:opacity-50 transition-colors"
               disabled={claiming}
               onClick={async () => {
                 const ok = window.confirm(
@@ -249,7 +260,7 @@ export default function PaymentQrPanel({
               }}
               type="button"
             >
-              {claiming ? "Đang gửi..." : "✅ Tôi đã chuyển khoản xong"}
+              {claiming ? "Đang gửi..." : "TÔI ĐÃ CHUYỂN KHOẢN XONG"}
             </button>
           </div>
         )}

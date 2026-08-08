@@ -75,14 +75,21 @@ export async function PATCH(
     );
   }
 
-  const updated = await prisma.$transaction(async (tx) => {
-    const changed = await tx.customer_order.update({
-      where: { id },
-      data: { status: parsed.data.status },
-    });
-    await enqueueOrderSheetSync(tx, id);
-    return changed;
-  });
+  const updated = await prisma.$transaction(
+    async (tx) => {
+      const changed = await tx.customer_order.update({
+        where: { id },
+        data: { status: parsed.data.status },
+      });
+      return changed;
+    },
+    { timeout: 15000, isolationLevel: undefined }
+  );
+  try {
+    await enqueueOrderSheetSync(prisma, id);
+  } catch (e) {
+    console.warn("[order-sheet-sync] enqueue failed after admin status change:", e);
+  }
   await bestEffortFlushOrderSheetSync(id);
   return NextResponse.json(updated);
 }

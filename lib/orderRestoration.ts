@@ -194,15 +194,19 @@ export async function restoreCancelledOrder(input: {
             },
           },
         });
-        await enqueueOrderSheetSync(tx, order.id);
         const restored = await tx.customer_order.findUnique({
           where: { id: order.id },
         });
         if (!restored) throw new OrderRestorationError("ORDER_NOT_FOUND");
         return restored;
       },
-      { isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead }
+      { isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead, timeout: 15000 }
     );
+    try {
+      await enqueueOrderSheetSync(prisma, input.orderId);
+    } catch (e) {
+      console.warn("[order-sheet-sync] enqueue failed after restore:", e);
+    }
     await bestEffortFlushOrderSheetSync(input.orderId);
     return restored;
   } catch (error) {

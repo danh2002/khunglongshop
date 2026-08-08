@@ -125,7 +125,6 @@ export async function cancelOrder(input: {
         });
       }
 
-      await enqueueOrderSheetSync(tx, order.id);
       if (input.afterStatusChange) {
         await input.afterStatusChange(tx, {
           id: cancelled.id,
@@ -135,8 +134,13 @@ export async function cancelOrder(input: {
 
       return cancelled;
     },
-    { isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead }
+    { isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead, timeout: 15000 }
   );
+  try {
+    await enqueueOrderSheetSync(prisma, input.orderId);
+  } catch (e) {
+    console.warn("[order-sheet-sync] enqueue failed after cancellation:", e);
+  }
   await bestEffortFlushOrderSheetSync(input.orderId);
   return cancelled;
 }
