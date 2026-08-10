@@ -23,11 +23,27 @@ describe("PaymentQrPanel", () => {
     expect(source).toContain("font-semibold");
   });
 
-  it("copies the customer name, formatted total, and display order number", () => {
+  it("uses one composite transfer reference for display, copy, and confirmation", () => {
     expect(source).toContain(
-      "`${payment.name} ${payment.lastname} - ${formatVndTotal(payment.total)} - #${payment.orderNumber}`"
+      "const compositeRef = `${payment.name} ${payment.lastname} - ${formatVndTotal(payment.total)}đ - #${payment.orderNumber}`;"
     );
+    expect(source).toContain("{compositeRef}");
+    expect(source).toContain("const copyText = compositeRef;");
     expect(source).toContain("navigator.clipboard.writeText(copyText)");
+    expect(source).toContain("Mã tham chiếu: {payment.paymentRef}");
+  });
+
+  it("gates confirmation on an exact composite-reference match", () => {
+    expect(source).toContain('const [inputValue, setInputValue] = useState("");');
+    expect(source).toContain("const inputMatches = inputValue.trim() === compositeRef.trim();");
+    expect(source).toContain("placeholder={compositeRef}");
+    expect(source).toContain("disabled={!inputMatches || claiming}");
+    expect(source).toContain("border-red-500");
+    expect(source).toContain("border-green-500");
+    expect(source).toContain("Nội dung chưa khớp, vui lòng sao chép chính xác");
+    expect(source).toContain("✓ Nội dung khớp");
+    expect(source).toContain("✓ TÔI ĐÃ CHUYỂN KHOẢN XONG");
+    expect(source).toContain("claimedRef: inputValue.trim(),");
   });
 
   it("renders the shop payment QR asset", () => {

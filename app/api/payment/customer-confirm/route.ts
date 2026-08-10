@@ -12,7 +12,8 @@ export async function POST(request: Request) {
 
   const body = await request.json().catch(() => null);
   const orderId = typeof body?.orderId === "string" ? body.orderId : null;
-  if (!orderId) return NextResponse.json({ error: "INVALID_INPUT" }, { status: 400 });
+  const claimedRef = typeof body?.claimedRef === "string" ? body.claimedRef.trim() : null;
+  if (!orderId || !claimedRef) return NextResponse.json({ error: "INVALID_INPUT" }, { status: 400 });
 
   // Find order belonging to the current user (or legacy email owner)
   const order = await prisma.customer_order.findFirst({
@@ -43,7 +44,11 @@ export async function POST(request: Request) {
             paymentExpiredAt: null,
             paymentExpiresAt: { gt: now },
           },
-          data: { status: "PROCESSING" },
+          data: {
+            status: "PROCESSING",
+            customerClaimedAt: now,
+            customerClaimedRef: claimedRef,
+          },
         });
         if (updated.count !== 1) {
           throw new Error("ORDER_UPDATE_CONFLICT");

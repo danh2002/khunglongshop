@@ -41,8 +41,11 @@ export default function PaymentQrPanel({
   const [claiming, setClaiming] = useState(false);
   const [claimed, setClaimed] = useState(false);
   const [renewing, setRenewing] = useState(false);
+  const [inputValue, setInputValue] = useState("");
   const inFlightRef = useRef(false);
   const requestRef = useRef<AbortController | null>(null);
+  const compositeRef = `${payment.name} ${payment.lastname} - ${formatVndTotal(payment.total)}đ - #${payment.orderNumber}`;
+  const inputMatches = inputValue.trim() === compositeRef.trim();
 
   const poll = useCallback(async () => {
     if (inFlightRef.current) return;
@@ -191,12 +194,12 @@ export default function PaymentQrPanel({
           <div>
             <dt className="text-white/55">Nội dung chuyển khoản</dt>
             <dd className="mt-1 flex flex-wrap items-center gap-3 font-mono text-xl font-black">
-              {payment.paymentRef}
+              {compositeRef}
               <button
                 className="border border-white/20 px-3 py-1 text-xs uppercase"
                 onClick={() => {
                   if (payment.paymentRef) {
-                    const copyText = `${payment.name} ${payment.lastname} - ${formatVndTotal(payment.total)} - #${payment.orderNumber}`;
+                    const copyText = compositeRef;
                     void navigator.clipboard.writeText(copyText);
                     toast.success("Đã sao chép nội dung chuyển khoản.");
                   }
@@ -205,6 +208,9 @@ export default function PaymentQrPanel({
               >
                 Sao chép
               </button>
+              <p className="basis-full text-sm font-sans font-normal text-gray-400">
+                Mã tham chiếu: {payment.paymentRef}
+              </p>
             </dd>
           </div>
         </dl>
@@ -229,9 +235,36 @@ export default function PaymentQrPanel({
         {/* Customer-confirm button: shown only when awaiting payment, not expired, and not already claimed */}
         {payment.status === "PENDING_PAYMENT" && !payment.paidAt && remainingMs > 0 && !claimed && (
           <div className="mt-4">
+            <label className="mb-2 block text-sm font-semibold" htmlFor="payment-confirmation-reference">
+              Nhập nội dung chuyển khoản để xác nhận
+            </label>
+            <input
+              aria-invalid={inputValue.length > 0 && !inputMatches}
+              className={`w-full rounded-lg border bg-gray-900 px-4 py-3 font-mono text-white transition-colors ${
+                inputValue.length === 0
+                  ? "border-gray-700"
+                  : inputMatches
+                    ? "border-green-500"
+                    : "border-red-500"
+              }`}
+              id="payment-confirmation-reference"
+              onChange={(event) => setInputValue(event.target.value)}
+              placeholder={compositeRef}
+              type="text"
+              value={inputValue}
+            />
+            {inputValue.length > 0 && (
+              <p className={`mt-2 text-sm ${inputMatches ? "text-green-500" : "text-red-500"}`}>
+                {inputMatches ? "✓ Nội dung khớp" : "Nội dung chưa khớp, vui lòng sao chép chính xác"}
+              </p>
+            )}
             <button
-              className="w-full border border-orange-500 text-orange-400 hover:bg-orange-500/10 px-5 py-3 font-black uppercase bg-transparent disabled:opacity-50 transition-colors"
-              disabled={claiming}
+              className={`mt-4 w-full rounded-xl px-6 py-4 font-bold uppercase tracking-widest transition-all duration-200 ${
+                inputMatches && !claiming
+                  ? "bg-gradient-to-r from-orange-500 to-orange-600 text-white hover:from-orange-400 hover:to-orange-500 active:scale-95"
+                  : "cursor-not-allowed bg-zinc-800 text-gray-500"
+              }`}
+              disabled={!inputMatches || claiming}
               onClick={async () => {
                 const ok = window.confirm(
                   "Bạn xác nhận đã chuyển khoản thành công?\nĐơn hàng sẽ được chuyển sang trạng thái CHỜ XÁC NHẬN.\nChúng tôi sẽ kiểm tra và xác nhận trong thời gian sớm nhất."
@@ -242,7 +275,10 @@ export default function PaymentQrPanel({
                   const resp = await fetch(`/api/payment/customer-confirm`, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ orderId: payment.orderId }),
+                    body: JSON.stringify({
+                      orderId: payment.orderId,
+                      claimedRef: inputValue.trim(),
+                    }),
                   });
                   const body = await resp.json().catch(() => null);
                   if (!resp.ok) {
@@ -260,7 +296,11 @@ export default function PaymentQrPanel({
               }}
               type="button"
             >
-              {claiming ? "Đang gửi..." : "TÔI ĐÃ CHUYỂN KHOẢN XONG"}
+              {claiming
+                ? "Đang gửi..."
+                : inputMatches
+                  ? "✓ TÔI ĐÃ CHUYỂN KHOẢN XONG"
+                  : "TÔI ĐÃ CHUYỂN KHOẢN XONG"}
             </button>
           </div>
         )}

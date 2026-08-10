@@ -300,6 +300,8 @@ model Customer_order {
   paymentRef             String?                  @unique @db.VarChar(25)
   paymentExpiresAt       DateTime?
   paidAt                 DateTime?
+  customerClaimedAt      DateTime?
+  customerClaimedRef     String?
   paymentExpiredAt       DateTime?
   checkoutIdempotencyKey String?
   checkoutRequestHash    String?
