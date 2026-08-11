@@ -107,3 +107,25 @@ Plan 007 is deployed and verified on production. Future homepage performance wor
 | Plan | Status | Notes |
 |---|---|---|
 | [020 - Two-way Google Sheets order sync](020-two-way-google-sheets-order-sync.md) | DONE | Adds a managed one-row-per-order tab in the existing workbook, transactional/coalescing DB outbox state, signed Apps Script realtime status updates, cron retry/reconciliation, stable UUID identity, and PII-safe operations. DB remains authoritative for all fields except validated status edits from Sheet. Depends on Plan 019's payment/order mutation paths being operational. |
+
+## 2026-08-11 Vercel free-tier resource plans
+
+The Vercel usage snapshot reports exceeded Speed Insights data points, image cache writes/transformations, Blob transfer, and Fluid Active CPU. These plans were written non-interactively because the performance-audit request explicitly requires plans for every HIGH/MEDIUM-confidence finding with qualifying effort.
+
+| Priority | Plan | Status | Depends on |
+|---|---|---|---|
+| P1 | [021 - Disable Vercel Speed Insights collection](021-disable-vercel-speed-insights.md) | IMPLEMENTED — PENDING DB/DEPLOY | none |
+| P1 | [022 - Keep maintenance middleware off static/image requests](022-exclude-static-assets-from-maintenance-middleware.md) | TODO | none |
+| P1 | [023 - Constrain image variants and normalize Blob upload sources](023-constrain-image-optimizer-variants-and-upload-sources.md) | TODO | 022 |
+
+```text
+021 (stop Speed Insights points) ───────────── independent
+022 (remove static/image maintenance work) ──► 023 (measure image pipeline after middleware noise is removed)
+```
+
+### Considered and rejected in this audit
+
+- Missing `sizes` props: not a separate finding. The audited production `next/image` call sites already supply `sizes`, including product cards (`components/ProductItem.tsx:210-218`), hero (`components/Hero.tsx:496-502`), and account/admin thumbnails. Existing Plans 007 and 012 already cover first-row product-image priority.
+- Prisma client recreation: rejected. `utils/db.ts:22-30` uses a module/global singleton; no per-request instantiation was found.
+- Blob proxy/re-streaming: rejected. The only `@vercel/blob` use is direct upload in `app/api/admin/upload/route.ts`; no route fetches and streams Blob contents back to clients.
+- Broad public API cache-header retrofit: deferred. The public catalog routes already use `revalidate = 60`; authenticated/admin responses are request-specific. Add headers only after a route-by-route traffic and response-cacheability measurement.
