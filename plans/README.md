@@ -115,8 +115,8 @@ The Vercel usage snapshot reports exceeded Speed Insights data points, image cac
 | Priority | Plan | Status | Depends on |
 |---|---|---|---|
 | P1 | [021 - Disable Vercel Speed Insights collection](021-disable-vercel-speed-insights.md) | IMPLEMENTED — PENDING DB/DEPLOY | none |
-| P1 | [022 - Keep maintenance middleware off static/image requests](022-exclude-static-assets-from-maintenance-middleware.md) | TODO | none |
-| P1 | [023 - Constrain image variants and normalize Blob upload sources](023-constrain-image-optimizer-variants-and-upload-sources.md) | TODO | 022 |
+| P1 | [022 - Keep maintenance middleware off static/image requests](022-exclude-static-assets-from-maintenance-middleware.md) | IMPLEMENTED — PENDING DB/DEPLOY | none |
+| P1 | [023 - Constrain image variants and normalize Blob upload sources](023-constrain-image-optimizer-variants-and-upload-sources.md) | IMPLEMENTED — PENDING DB/DEPLOY | 022 |
 
 ```text
 021 (stop Speed Insights points) ───────────── independent

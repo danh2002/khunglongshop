@@ -2,6 +2,7 @@ import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { put } from "@vercel/blob";
 import { NextRequest, NextResponse } from "next/server";
+import { normalizeUploadImage } from "@/lib/imageUploadNormalization";
 import { requireAdminApi } from "@/utils/adminAuth";
 
 export const runtime = "nodejs";
@@ -80,12 +81,21 @@ export async function POST(request: NextRequest) {
   const uploadDirectory = path.join(process.cwd(), "public", "images", folder);
   const filename = `${Date.now()}-${crypto.randomUUID().slice(0, 8)}-${sanitizeFilename(file.name, file.type)}`;
   const fileBuffer = Buffer.from(await file.arrayBuffer());
+  let normalizedFilename = filename;
 
   try {
+    const normalizedImage = await normalizeUploadImage(
+      fileBuffer,
+      file.type,
+      filename,
+      folder
+    );
+    normalizedFilename = normalizedImage.filename;
+
     if (shouldUseBlobStorage()) {
-      const blob = await put(`images/${folder}/${filename}`, fileBuffer, {
+      const blob = await put(`images/${folder}/${normalizedImage.filename}`, normalizedImage.bytes, {
         access: "public",
-        contentType: file.type,
+        contentType: normalizedImage.contentType,
         cacheControlMaxAge: BLOB_CACHE_MAX_AGE,
       });
 
@@ -93,7 +103,7 @@ export async function POST(request: NextRequest) {
     }
 
     await mkdir(uploadDirectory, { recursive: true });
-    await writeFile(path.join(uploadDirectory, filename), fileBuffer);
+    await writeFile(path.join(uploadDirectory, normalizedImage.filename), normalizedImage.bytes);
   } catch {
     return NextResponse.json(
       {
@@ -106,5 +116,5 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  return NextResponse.json({ url: `/images/${folder}/${filename}` });
+  return NextResponse.json({ url: `/images/${folder}/${normalizedFilename}` });
 }

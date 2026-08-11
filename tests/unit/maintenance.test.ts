@@ -26,7 +26,10 @@ describe("maintenance allowlist", () => {
 
     expect(middleware).toContain("await getMaintenanceMode(req.url)");
     expect(middleware).toContain("createMaintenanceResponse(pathname)");
-    expect(middleware).toContain('matcher: ["/:path*"]');
+    expect(middleware).not.toContain('matcher: ["/:path*"]');
+    expect(middleware).toContain("_next/static");
+    expect(middleware).toContain("_next/image");
+    expect(middleware).toContain("favicon\\\\.ico");
   });
 
   it.each([

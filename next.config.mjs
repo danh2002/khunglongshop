@@ -9,6 +9,10 @@ const nextConfig = {
     },
     images: {
         formats: ['image/avif', 'image/webp'],
+        // Keep generated optimizer widths aligned with audited rendered image slots.
+        deviceSizes: [640, 750, 828, 1080, 1200, 1440, 1920],
+        imageSizes: [24, 38, 48, 52, 56, 60, 72, 80, 88, 120, 180, 200, 220, 260, 340, 360, 420],
+        qualities: [75],
         minimumCacheTTL: 60 * 60 * 24 * 30,
         unoptimized: process.env.NODE_ENV === "development",
         remotePatterns: [

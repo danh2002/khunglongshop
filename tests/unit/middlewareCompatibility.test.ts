@@ -35,7 +35,10 @@ describe("NextAuth v4 middleware compatibility", () => {
     expect(authorized({ token: null })).toBe(false);
     expect(authorized({ token: { id: "user-1" } })).toBe(true);
     expect(mocks.authOptions!.pages.signIn).toBe("/login");
-    expect(config.matcher).toEqual(["/:path*"]);
+    expect(config.matcher[0]).toContain("_next/static");
+    expect(config.matcher[0]).toContain("_next/image");
+    expect(config.matcher[0]).toContain("images");
+    expect(config.matcher[0]).toContain("favicon\\.ico");
   });
 
   it("redirects non-admin users and permits admins on protected admin routes", async () => {

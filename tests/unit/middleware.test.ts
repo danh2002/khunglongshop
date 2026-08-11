@@ -39,6 +39,9 @@ describe("authentication middleware", () => {
   });
 
   it("protects account, admin, and checkout routes", () => {
-    expect(config.matcher).toEqual(["/:path*"]);
+    expect(config.matcher[0]).toContain("_next/static");
+    expect(config.matcher[0]).toContain("_next/image");
+    expect(config.matcher[0]).toContain("images");
+    expect(config.matcher[0]).toContain("favicon\\.ico");
   });
 });

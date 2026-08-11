@@ -68,5 +68,7 @@ export default async function middleware(
 }
 
 export const config = {
-  matcher: ["/:path*"],
+  matcher: [
+    "/((?!_next/static(?:/|$)|_next/image(?:/|$)|images(?:/|$)|favicon\\.ico$|robots\\.txt$|sitemap\\.xml$|icon\\.png$).*)",
+  ],
 };
