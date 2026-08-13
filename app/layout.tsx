@@ -21,11 +21,6 @@ const displayFont = Saira_Condensed({
 export const metadata: Metadata = {
   title: "Khủng Long Shop",
   description: "Cửa hàng phụ kiện và merch khủng long.",
-  icons: {
-    icon: "/images/logo.png",
-    shortcut: "/images/logo.png",
-    apple: "/images/logo.png",
-  },
 };
 
 export default async function RootLayout({
