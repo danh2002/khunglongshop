@@ -58,6 +58,14 @@ export default async function RedemptionCodesPage({
     prisma.collectorSet.findMany({ orderBy: { name: "asc" } }),
   ]);
   const totalPages = Math.max(Math.ceil(total / PAGE_SIZE), 1);
+  const pageHref = (nextPage: number) => {
+    const hrefParams = new URLSearchParams();
+    if (search) hrefParams.set("search", search);
+    if (setId) hrefParams.set("set", setId);
+    if (status) hrefParams.set("status", status);
+    hrefParams.set("page", String(nextPage));
+    return `/admin/redemption-codes?${hrefParams.toString()}`;
+  };
 
   return (
     <AdminPage>
@@ -123,7 +131,7 @@ export default async function RedemptionCodesPage({
                   <div>{code.createdAt.toLocaleDateString("vi-VN")}</div>
                   {code.usedAt ? <div className="text-xs text-white/40">{code.usedAt.toLocaleDateString("vi-VN")}</div> : null}
                 </AdminTd>
-                <AdminTd>{code.status === "ACTIVE" ? <DisableCodeButton id={code.id} /> : null}</AdminTd>
+                <AdminTd>{code.status === "ACTIVE" || code.status === "REDEEMED" ? <DisableCodeButton id={code.id} /> : null}</AdminTd>
               </tr>
             ))}
           </tbody>
@@ -132,11 +140,11 @@ export default async function RedemptionCodesPage({
         <AdminEmptyState>Không có mã phù hợp.</AdminEmptyState>
       )}
       <nav className="mt-5 flex gap-4 text-sm text-[#e85d00]">
-        {page > 1 ? <Link href={`?page=${page - 1}`}>Trang trước</Link> : null}
+        {page > 1 ? <Link href={pageHref(page - 1)}>Trang trước</Link> : null}
         <span className="text-white/45">
           Trang {page}/{totalPages}
         </span>
-        {page < totalPages ? <Link href={`?page=${page + 1}`}>Trang sau</Link> : null}
+        {page < totalPages ? <Link href={pageHref(page + 1)}>Trang sau</Link> : null}
       </nav>
     </AdminPage>
   );

@@ -49,4 +49,19 @@ describe("collection ownership aggregation", () => {
 
     expect(ownership.get("vanie-1")?.ownedCount).toBe(10);
   });
+
+  it("ignores disabled codes even when they keep historical user ownership", () => {
+    const redeemedAt = new Date("2026-01-01T00:00:00.000Z");
+    const ownership = summarizeProductOwnership([
+      {
+        productId: "vanie-1",
+        status: "DISABLED",
+        usedAt: null,
+        createdAt: redeemedAt,
+        code: "REVOKED",
+      },
+    ]);
+
+    expect(ownership.has("vanie-1")).toBe(false);
+  });
 });

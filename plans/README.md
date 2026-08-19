@@ -117,6 +117,7 @@ The Vercel usage snapshot reports exceeded Speed Insights data points, image cac
 | P1 | [021 - Disable Vercel Speed Insights collection](021-disable-vercel-speed-insights.md) | IMPLEMENTED — PENDING DB/DEPLOY | none |
 | P1 | [022 - Keep maintenance middleware off static/image requests](022-exclude-static-assets-from-maintenance-middleware.md) | IMPLEMENTED — PENDING DB/DEPLOY | none |
 | P1 | [023 - Constrain image variants and normalize Blob upload sources](023-constrain-image-optimizer-variants-and-upload-sources.md) | IMPLEMENTED — PENDING DB/DEPLOY | 022 |
+| P1 | [024 - Remove blind-box allocation when admin revokes a redeemed code](024-admin-revoke-redeemed-code-removes-allocation.md) | DONE | none |
 
 ```text
 021 (stop Speed Insights points) ───────────── independent

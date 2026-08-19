@@ -128,6 +128,16 @@ describe("issue 5 redemption-code spec wiring", () => {
     expect(form).toContain("collectorOnly");
   });
 
+  it("lets admins revoke redeemed codes and remove tied blind-box allocations", () => {
+    const page = source("app/(dashboard)/admin/redemption-codes/page.tsx");
+    const route = source("app/api/admin/redemption-codes/[id]/disable/route.ts");
+
+    expect(page).toContain('code.status === "ACTIVE" || code.status === "REDEEMED"');
+    expect(route).toContain("prisma.$transaction");
+    expect(route).toContain("blindBoxAllocation.delete");
+    expect(route).toContain("allocationId: null");
+  });
+
   it("renders the shop visibility label without mojibake", () => {
     const form = source("components/AdminProductForm.tsx");
 
