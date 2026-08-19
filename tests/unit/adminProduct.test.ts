@@ -68,6 +68,33 @@ describe("adminProductSchema image fields", () => {
     }
   });
 
+  it("accepts Cloudflare R2 image URLs from production uploads", () => {
+    const previousR2PublicUrl = process.env.R2_PUBLIC_URL;
+    const r2PublicUrl = "https://pub-258d8a2ca72646a9bfce73ed7c30d097.r2.dev";
+    process.env.R2_PUBLIC_URL = r2PublicUrl;
+
+    try {
+      const imageUrl = `${r2PublicUrl}/images/products/main.webp`;
+      const result = adminProductSchema.safeParse({
+        ...validProduct,
+        mainImage: imageUrl,
+        images: [imageUrl],
+      });
+
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.mainImage).toBe(imageUrl);
+        expect(result.data.images).toEqual([imageUrl]);
+      }
+    } finally {
+      if (previousR2PublicUrl === undefined) {
+        delete process.env.R2_PUBLIC_URL;
+      } else {
+        process.env.R2_PUBLIC_URL = previousR2PublicUrl;
+      }
+    }
+  });
+
   it("accepts and normalizes legacy product image paths", () => {
     const result = adminProductSchema.safeParse({
       ...validProduct,

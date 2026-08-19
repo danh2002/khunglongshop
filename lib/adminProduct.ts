@@ -23,6 +23,9 @@ function normalizeAdminImagePath(value: string) {
 function isAllowedAdminImagePath(value: string) {
   if (LOCAL_IMAGE_PATH_PATTERN.test(value)) return true;
 
+  const r2PublicUrl = process.env.R2_PUBLIC_URL;
+  if (r2PublicUrl && value.startsWith(r2PublicUrl)) return true;
+
   try {
     const url = new URL(value);
     return url.protocol === "https:" && url.hostname.endsWith(VERCEL_BLOB_HOST_SUFFIX);
@@ -37,7 +40,7 @@ const adminImagePathSchema = z
   .pipe(
     z
       .string()
-      .refine(isAllowedAdminImagePath, "Ảnh phải là path trong /images hoặc URL Vercel Blob")
+      .refine(isAllowedAdminImagePath, "Ảnh phải là path trong /images hoặc URL ảnh đã cấu hình")
   );
 
 const galleryImagesSchema = z.preprocess((value) => {
