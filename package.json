@@ -32,6 +32,7 @@
     "db:reconcile:redemption-status": "node scripts/reconcile-redemption-status.js"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1113.0",
     "@headlessui/react": "^1.7.18",
     "@prisma/client": "6.19.3",
     "@tailwindcss/forms": "^0.5.7",

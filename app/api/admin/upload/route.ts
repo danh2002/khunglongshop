@@ -1,14 +1,14 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
-import { put } from "@vercel/blob";
+import { PutObjectCommand } from "@aws-sdk/client-s3";
 import { NextRequest, NextResponse } from "next/server";
 import { normalizeUploadImage } from "@/lib/imageUploadNormalization";
+import { r2Client, R2_BUCKET, R2_PUBLIC_URL } from "@/lib/r2";
 import { requireAdminApi } from "@/utils/adminAuth";
 
 export const runtime = "nodejs";
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024;
-const BLOB_CACHE_MAX_AGE = 60 * 60 * 24 * 30;
 const ALLOWED_IMAGE_TYPES = new Set([
   "image/jpeg",
   "image/png",
@@ -43,8 +43,14 @@ function sanitizeFilename(filename: string, mimeType: string) {
   return `${basename || "product"}${extension}`;
 }
 
-function shouldUseBlobStorage() {
-  return Boolean(process.env.BLOB_READ_WRITE_TOKEN || process.env.VERCEL || process.env.VERCEL_OIDC_TOKEN);
+function shouldUseR2Storage() {
+  return Boolean(
+    process.env.R2_ACCOUNT_ID &&
+      process.env.R2_ACCESS_KEY_ID &&
+      process.env.R2_SECRET_ACCESS_KEY &&
+      R2_BUCKET &&
+      R2_PUBLIC_URL
+  );
 }
 
 export async function POST(request: NextRequest) {
@@ -92,14 +98,19 @@ export async function POST(request: NextRequest) {
     );
     normalizedFilename = normalizedImage.filename;
 
-    if (shouldUseBlobStorage()) {
-      const blob = await put(`images/${folder}/${normalizedImage.filename}`, normalizedImage.bytes, {
-        access: "public",
-        contentType: normalizedImage.contentType,
-        cacheControlMaxAge: BLOB_CACHE_MAX_AGE,
-      });
+    if (shouldUseR2Storage()) {
+      await r2Client.send(
+        new PutObjectCommand({
+          Bucket: R2_BUCKET,
+          Key: `images/${folder}/${normalizedImage.filename}`,
+          Body: normalizedImage.bytes,
+          ContentType: normalizedImage.contentType,
+          CacheControl: "public, max-age=2592000",
+        })
+      );
+      const url = `${R2_PUBLIC_URL}/images/${folder}/${normalizedImage.filename}`;
 
-      return NextResponse.json({ url: blob.url });
+      return NextResponse.json({ url });
     }
 
     await mkdir(uploadDirectory, { recursive: true });
