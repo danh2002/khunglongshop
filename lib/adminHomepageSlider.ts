@@ -54,6 +54,9 @@ function normalizeSliderImagePath(value: string) {
 function isAllowedSliderImagePath(value: string) {
   if (LOCAL_IMAGE_PATH_PATTERN.test(value)) return true;
 
+  const r2PublicUrl = process.env.R2_PUBLIC_URL;
+  if (r2PublicUrl && value.startsWith(r2PublicUrl)) return true;
+
   try {
     const url = new URL(value);
     return url.protocol === "https:" && url.hostname.endsWith(VERCEL_BLOB_HOST_SUFFIX);
@@ -68,7 +71,7 @@ const sliderImagePathSchema = z
   .pipe(
     z
       .string()
-      .refine(isAllowedSliderImagePath, "Ảnh phải là path trong /images hoặc URL Vercel Blob")
+      .refine(isAllowedSliderImagePath, "Ảnh phải là path trong /images hoặc URL ảnh đã cấu hình")
   );
 
 export const nullableTextSchema = z
