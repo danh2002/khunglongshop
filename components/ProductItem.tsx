@@ -1,10 +1,10 @@
-import Image from "next/image";
 import Link from "next/link";
 import styled, { css, keyframes } from "styled-components";
 import { formatVnd } from "@/lib/currency";
 import type { HomepageProduct } from "@/lib/homepage-products";
 import { normalizeCatalogImage } from "@/lib/publicCatalog";
 import { sanitize } from "@/lib/sanitize";
+import ProductCardImage from "./ProductCardImage";
 import ProductQuickAdd from "./ProductQuickAdd";
 
 const glowPulse = keyframes`
@@ -187,12 +187,14 @@ export default function ProductItem({
   compact = false,
   viewOnly = false,
   imagePriority = false,
+  imageSizes,
 }: {
   product: HomepageProduct;
   compact?: boolean;
   color?: string;
   viewOnly?: boolean;
   imagePriority?: boolean;
+  imageSizes?: string;
 }) {
   const href = `/product/${product.slug}`;
   const available = viewOnly || product.inStock > 0;
@@ -207,11 +209,10 @@ export default function ProductItem({
           <CardSparkle key={i} $i={i} />
         ))}
         <ImageLink href={href} aria-label={sanitize(product.title)}>
-          <Image
+          <ProductCardImage
             src={normalizeCatalogImage(product.mainImage)}
             alt={sanitize(product.title) || "Hình ảnh sản phẩm"}
-            fill
-            sizes={compact ? "220px" : "(max-width: 768px) 50vw, 25vw"}
+            sizes={compact ? "220px" : imageSizes ?? "(max-width: 768px) 50vw, 25vw"}
             priority={imagePriority}
             loading={imagePriority ? "eager" : "lazy"}
             fetchPriority={imagePriority ? "high" : "auto"}

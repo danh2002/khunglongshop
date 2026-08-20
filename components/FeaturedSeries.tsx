@@ -4,6 +4,7 @@ import styled, { css, keyframes } from "styled-components";
 import type { HomepageProduct } from "@/lib/homepage-products";
 import { normalizeCatalogImage } from "@/lib/publicCatalog";
 import { revealSection } from "./homeStyles";
+import ProductCardImage from "./ProductCardImage";
 
 const Section = styled.section`
   ${revealSection(140)}
@@ -282,11 +283,10 @@ export default function FeaturedSeries({
                       {[0, 1, 2, 3].map((i) => (
                         <Sparkle key={i} $i={i + index} />
                       ))}
-                      <Image
+                      <ProductCardImage
                         src={normalizeCatalogImage(product.mainImage)}
                         alt={product.title}
-                        fill
-                        sizes="120px"
+                        sizes="(max-width: 520px) calc((100vw - 124px) / 2), 120px"
                         style={{ objectFit: "contain" }}
                       />
                     </>

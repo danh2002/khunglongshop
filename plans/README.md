@@ -130,3 +130,14 @@ The Vercel usage snapshot reports exceeded Speed Insights data points, image cac
 - Prisma client recreation: rejected. `utils/db.ts:22-30` uses a module/global singleton; no per-request instantiation was found.
 - Blob proxy/re-streaming: rejected. The only `@vercel/blob` use is direct upload in `app/api/admin/upload/route.ts`; no route fetches and streams Blob contents back to clients.
 - Broad public API cache-header retrofit: deferred. The public catalog routes already use `revalidate = 60`; authenticated/admin responses are request-specific. Add headers only after a route-by-route traffic and response-cacheability measurement.
+
+## Responsive product-card image plan
+
+| Priority | Plan | Status | Depends on |
+|---|---|---|---|
+| P1 | [025 - Make product-card images resilient and keep mobile grids consistent](025-fix-responsive-product-card-images.md) | DONE | none |
+
+Plan 025 is intentionally UI-only. It introduces a narrow product-card image
+fallback boundary, aligns the homepage random-slot `sizes` declaration with its
+mobile two-column layout, and makes `/shop` retain two columns below 500px. It
+does not migrate, upload, delete, or otherwise change Blob/R2 storage.

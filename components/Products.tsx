@@ -43,7 +43,7 @@ const Products = async ({ categorySlug, characterSlug }: ProductsProps = {}) => 
   });
 
   return (
-    <div className="grid grid-cols-3 justify-items-center gap-x-5 gap-y-8 max-[1300px]:grid-cols-3 max-lg:grid-cols-2 max-[500px]:grid-cols-1">
+    <div className="grid grid-cols-3 justify-items-center gap-x-5 gap-y-8 max-[1300px]:grid-cols-3 max-lg:grid-cols-2">
       {products.length > 0 ? (
         products.map((product, index) => (
           <ProductItem
@@ -52,6 +52,7 @@ const Products = async ({ categorySlug, characterSlug }: ProductsProps = {}) => 
             color="black"
             viewOnly={isCollectorGallery}
             imagePriority={index < 3}
+            imageSizes="(max-width: 1024px) calc((100vw - 52px) / 2), 33vw"
           />
         ))
       ) : (
