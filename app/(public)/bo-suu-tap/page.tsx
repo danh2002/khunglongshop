@@ -23,6 +23,7 @@ export default async function CollectionsPage({ searchParams }: CollectionsPageP
       {characterHero ? (
         <section className="relative h-[420px] w-full overflow-hidden bg-[#070707] md:h-[580px]">
           <Image
+            unoptimized={true}
             src={characterHero.image}
             alt={characterHero.title}
             fill
