@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import {
   type ChangeEvent,
   type DragEvent,
@@ -721,12 +720,10 @@ export default function AdminHomepageSliderPage() {
                 </DragHandle>
                 <Thumbnail type="button" onClick={() => selectSlide(slide)}>
                   {slide.imageUrl ? (
-                    <Image
+                    <img
                       src={normalizeImageForDisplay(slide.imageUrl)}
                       alt={slide.altText || slide.title}
-                      fill
-                      sizes="72px"
-                      style={{ objectFit: "cover" }}
+                      style={{ width: "100%", height: "100%", objectFit: "cover" }}
                     />
                   ) : (
                     <FaImage />
@@ -790,12 +787,10 @@ export default function AdminHomepageSliderPage() {
               <UploadContent>
                 {form.imageUrl ? (
                   <PreviewFrame>
-                    <Image
+                    <img
                       src={normalizeImageForDisplay(form.imageUrl)}
                       alt={form.altText || form.title || "Preview slide"}
-                      fill
-                      sizes="340px"
-                      style={{ objectFit: "cover" }}
+                      style={{ width: "100%", height: "100%", objectFit: "cover" }}
                     />
                   </PreviewFrame>
                 ) : (

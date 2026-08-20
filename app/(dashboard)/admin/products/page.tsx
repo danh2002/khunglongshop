@@ -1,7 +1,6 @@
 "use client";
 
 import { normalizeImageForDisplay } from "@/lib/adminProduct";
-import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
@@ -150,7 +149,7 @@ export default function DashboardProducts() {
                       <td className="px-4 py-4">
                         <div className="flex min-w-[260px] items-center gap-3">
                           <div className="relative h-12 w-12 overflow-hidden bg-white/5">
-                            <Image src={normalizeImageForDisplay(product.mainImage)} alt={product.title} fill sizes="48px" style={{ objectFit: "cover" }} />
+                            <img src={normalizeImageForDisplay(product.mainImage)} alt={product.title} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                           </div>
                           <div>
                             <p className="font-black text-white">{product.title}</p>

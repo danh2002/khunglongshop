@@ -1,7 +1,6 @@
 "use client";
 
 import { ChangeEvent, useRef, useState } from "react";
-import Image from "next/image";
 import styled, { keyframes } from "styled-components";
 import toast from "react-hot-toast";
 import { normalizeImageForDisplay } from "@/lib/adminProduct";
@@ -256,12 +255,10 @@ export default function ImageManager({
           <div>
             {mainImage ? (
               <Thumbnail $size={120}>
-                <Image
+                <img
                   src={normalizeImageForDisplay(mainImage)}
                   alt={title || "Ảnh chính sản phẩm"}
-                  fill
-                  sizes="120px"
-                  style={{ objectFit: "cover" }}
+                  style={{ width: "100%", height: "100%", objectFit: "cover" }}
                 />
                 {isMainUploading ? <Spinner aria-label="Đang tải ảnh" /> : null}
               </Thumbnail>
@@ -294,12 +291,10 @@ export default function ImageManager({
         <Gallery>
           {images.map((imageUrl, index) => (
             <Thumbnail $size={80} key={`${imageUrl}-${index}`}>
-              <Image
+              <img
                 src={normalizeImageForDisplay(imageUrl)}
                 alt={`${title || "Sản phẩm"} - ảnh phụ ${index + 1}`}
-                fill
-                sizes="80px"
-                style={{ objectFit: "cover" }}
+                style={{ width: "100%", height: "100%", objectFit: "cover" }}
               />
               <DeleteButton
                 type="button"

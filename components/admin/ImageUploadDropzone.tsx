@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import { type ChangeEvent, type DragEvent, type SVGProps, useRef, useState } from "react";
 import toast from "react-hot-toast";
 import { normalizeImageForDisplay } from "@/lib/adminProduct";
@@ -134,12 +133,10 @@ export default function ImageUploadDropzone({
         <span className="grid justify-items-center gap-2">
           {value ? (
             <span className="relative h-32 w-full max-w-[340px] overflow-hidden border border-white/10 bg-[#050505]">
-              <Image
+              <img
                 src={normalizeImageForDisplay(value)}
                 alt={alt || "Ảnh đã upload"}
-                fill
-                sizes="340px"
-                className="object-cover"
+                style={{ width: "100%", height: "100%", objectFit: "cover" }}
               />
             </span>
           ) : (

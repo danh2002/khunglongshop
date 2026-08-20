@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
 import {
@@ -274,12 +273,10 @@ export default function AdminFeaturedProductsPage() {
                 <AdminTd>
                   <div className="flex items-center gap-3">
                     <div className="relative h-14 w-14 overflow-hidden border border-white/10 bg-black">
-                      <Image
+                      <img
                         src={normalizeCatalogImage(item.product.mainImage)}
                         alt={item.product.title}
-                        fill
-                        sizes="56px"
-                        style={{ objectFit: "contain" }}
+                        style={{ width: "100%", height: "100%", objectFit: "contain" }}
                       />
                     </div>
                     <div>

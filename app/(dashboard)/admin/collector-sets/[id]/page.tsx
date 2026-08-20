@@ -1,4 +1,3 @@
-import Image from "next/image";
 import { notFound } from "next/navigation";
 import BlindBoxPoolEditorClient from "./BlindBoxPoolEditorClient";
 import { AdminMetric, AdminPage, AdminPageHeader } from "@/components/admin/AdminUi";
@@ -67,7 +66,7 @@ export default async function CollectorSetDetailPage({ params }: { params: Promi
               {product ? (
                 <>
                   <div className="relative aspect-square overflow-hidden bg-black">
-                    <Image src={product.mainImage} alt={product.title} fill className="object-contain" sizes="200px" />
+                    <img src={product.mainImage} alt={product.title} style={{ width: "100%", height: "100%", objectFit: "contain" }} />
                   </div>
                   <p className="mt-3 text-sm font-bold">{product.title}</p>
                 </>
