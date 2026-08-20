@@ -53,6 +53,7 @@ const Nav = styled.div`
 
   @media (max-width: 520px) {
     gap: 12px;
+    justify-content: space-between;
     padding: 0 12px;
   }
 `;
@@ -85,13 +86,16 @@ const Logo = styled(Link)`
 
 const LogoImage = styled.span`
   position: relative;
+  display: block;
   width: 38px;
   height: 38px;
+  flex: 0 0 38px;
   filter: drop-shadow(0 0 18px rgba(232, 93, 0, 0.34));
 
   @media (max-width: 520px) {
     width: 32px;
     height: 32px;
+    flex-basis: 32px;
   }
 `;
 
