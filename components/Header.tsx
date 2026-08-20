@@ -88,6 +88,11 @@ const LogoImage = styled.span`
   width: 38px;
   height: 38px;
   filter: drop-shadow(0 0 18px rgba(232, 93, 0, 0.34));
+
+  @media (max-width: 520px) {
+    width: 32px;
+    height: 32px;
+  }
 `;
 
 const Links = styled.nav`
@@ -731,7 +736,7 @@ export default function Header({
       <Nav>
         <Logo href="/" aria-label="Khủng Long Shop">
           <LogoImage>
-            <Image src="/images/logo.png" alt="" fill sizes="38px" style={{ objectFit: "contain" }} priority />
+            <Image unoptimized={true} src="/images/logo.png" alt="" fill sizes="(max-width: 520px) 32px, 38px" style={{ objectFit: "contain" }} priority />
           </LogoImage>
           <span>Khủng Long Shop</span>
         </Logo>
