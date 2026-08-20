@@ -646,6 +646,11 @@ export default function Header({
   const vanieSet = collectorSets.find((set) => set.slug === "vanie");
   const dynamicSets = collectorSets.filter((set) => set.slug !== "vanie");
 
+  const closeMobileMenu = () => {
+    setMobileOpen(false);
+    setMobileMenu(null);
+  };
+
   useEffect(() => {
     setMobileOpen(false);
     setOpenMenu(null);
@@ -685,25 +690,25 @@ export default function Header({
     searchButtonRef.current?.focus();
   };
 
-  const renderCategoryLinks = () => (
+  const renderCategoryLinks = (onNavigate?: () => void) => (
     <>
-      <DropdownLink href="/bo-suu-tap?category=hop-mu">
+      <DropdownLink href="/bo-suu-tap?category=hop-mu" onClick={onNavigate}>
         <DropdownText>Hộp mù</DropdownText>
       </DropdownLink>
-      <DropdownLink href="/bo-suu-tap" $divider>
+      <DropdownLink href="/bo-suu-tap" $divider onClick={onNavigate}>
         <DropdownText>Tất cả</DropdownText>
       </DropdownLink>
     </>
   );
 
-  const renderCharacterLinks = () => (
+  const renderCharacterLinks = (onNavigate?: () => void) => (
     <>
-      <DropdownLink href="/bo-suu-tap?nhanvat=vanie">
+      <DropdownLink href="/bo-suu-tap?nhanvat=vanie" onClick={onNavigate}>
         <DropdownText>Vanie</DropdownText>
         {vanieSet ? <SpecimenCode title={vanieSet.id}>SET · {vanieSet.slug}</SpecimenCode> : null}
       </DropdownLink>
       {dynamicSets.map((set) => (
-        <DropdownLink href={`/bo-suu-tap?nhanvat=${set.slug}`} key={set.id}>
+        <DropdownLink href={`/bo-suu-tap?nhanvat=${set.slug}`} key={set.id} onClick={onNavigate}>
           <DropdownText>
             {set.image ? (
               <ItemThumb>
@@ -715,7 +720,7 @@ export default function Header({
           <SpecimenCode title={set.id}>SET · {set.slug || shortSpecimenId(set.id)}</SpecimenCode>
         </DropdownLink>
       ))}
-      <DropdownLink href="/bo-suu-tap?nhanvat=all" $divider>
+      <DropdownLink href="/bo-suu-tap?nhanvat=all" $divider onClick={onNavigate}>
         <DropdownText>Tất cả</DropdownText>
       </DropdownLink>
     </>
@@ -844,13 +849,13 @@ export default function Header({
               <MobileTrigger type="button" $open={mobileMenu === "categories"} onClick={() => setMobileMenu((value) => value === "categories" ? null : "categories")}>
                 DANH MỤC <FaChevronDown />
               </MobileTrigger>
-              <MobileDropdown $open={mobileMenu === "categories"}>{renderCategoryLinks()}</MobileDropdown>
+              <MobileDropdown $open={mobileMenu === "categories"}>{renderCategoryLinks(closeMobileMenu)}</MobileDropdown>
               <MobileTrigger type="button" $open={mobileMenu === "characters"} onClick={() => setMobileMenu((value) => value === "characters" ? null : "characters")}>
                 NHÂN VẬT <FaChevronDown />
               </MobileTrigger>
-              <MobileDropdown $open={mobileMenu === "characters"}>{renderCharacterLinks()}</MobileDropdown>
-              <MobileLink href="/account/collection" prefetch={false}>BỘ SƯU TẬP</MobileLink>
-              <MobileLink href="/about">GIỚI THIỆU</MobileLink>
+              <MobileDropdown $open={mobileMenu === "characters"}>{renderCharacterLinks(closeMobileMenu)}</MobileDropdown>
+              <MobileLink href="/account/collection" prefetch={false} onClick={closeMobileMenu}>BỘ SƯU TẬP</MobileLink>
+              <MobileLink href="/about" onClick={closeMobileMenu}>GIỚI THIỆU</MobileLink>
             </MobilePanel>
           </>
         )}
