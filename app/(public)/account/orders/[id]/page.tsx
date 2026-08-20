@@ -245,7 +245,7 @@ export default function AccountOrderDetailPage({ params }: { params: Promise<{ i
                     <ProductRow key={product.id} href={`/product/${product.slug}`}>
                       <ProductImage>
                         {product.image ? (
-                          <Image src={normalizeCatalogImage(product.image)} alt={product.title} fill sizes="72px" style={{ objectFit: "cover" }} />
+                          <Image unoptimized={true} src={normalizeCatalogImage(product.image)} alt={product.title} fill sizes="72px" style={{ objectFit: "cover" }} />
                         ) : null}
                       </ProductImage>
                       <div>

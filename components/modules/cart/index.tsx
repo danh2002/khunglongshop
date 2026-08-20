@@ -252,6 +252,7 @@ export const CartModule = () => {
           {products.map((product) => (
             <CartRow key={product.id}>
               <Image
+                unoptimized={true}
                 width={192}
                 height={192}
                 src={normalizeCatalogImage(product.image)}

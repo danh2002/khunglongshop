@@ -33,6 +33,7 @@ const WishItem = ({ id, title, price, image, slug, stockAvailabillity, onRemove 
       <td>
         <Link href={`/product/${slug}`} className="inline-block">
           <Image
+            unoptimized={true}
             src={normalizeCatalogImage(image || "/images/logo.png")}
             width={72}
             height={72}

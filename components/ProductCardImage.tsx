@@ -32,6 +32,7 @@ export default function ProductCardImage({
 
   return (
     <Image
+      unoptimized={true}
       src={displaySrc}
       alt={alt}
       fill

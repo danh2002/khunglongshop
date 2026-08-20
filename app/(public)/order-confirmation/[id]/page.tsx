@@ -61,6 +61,7 @@ export default async function OrderConfirmationPage({
                   >
                     <div className="relative aspect-square bg-black">
                       <Image
+                        unoptimized={true}
                         src={normalizeCatalogImage(item.product.mainImage)}
                         alt={item.productTitle}
                         fill

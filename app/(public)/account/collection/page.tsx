@@ -680,6 +680,7 @@ export default function AccountCollectionPage() {
                           <ImageFrame>
                             {slot.product.image ? (
                               <Image
+                                unoptimized={true}
                                 src={normalizeCatalogImage(slot.product.image)}
                                 alt={slot.product.name}
                                 fill
@@ -704,6 +705,7 @@ export default function AccountCollectionPage() {
                           <LockedImageFrame>
                             {slot.product?.image ? (
                               <Image
+                                unoptimized={true}
                                 src={normalizeCatalogImage(slot.product.image)}
                                 alt={slot.product.name}
                                 fill

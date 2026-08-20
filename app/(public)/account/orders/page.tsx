@@ -243,7 +243,7 @@ export default function AccountOrdersPage() {
                   {order.productsPreview.map((product) => (
                     <Thumb key={product.id}>
                       {product.image ? (
-                        <Image src={normalizeCatalogImage(product.image)} alt={product.title} fill sizes="52px" style={{ objectFit: "cover" }} />
+                        <Image unoptimized={true} src={normalizeCatalogImage(product.image)} alt={product.title} fill sizes="52px" style={{ objectFit: "cover" }} />
                       ) : null}
                     </Thumb>
                   ))}

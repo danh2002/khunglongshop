@@ -512,6 +512,7 @@ export default function AccountCodesPage() {
                       <Thumbnail>
                         {item.product?.mainImage ? (
                           <Image
+                            unoptimized={true}
                             src={normalizeCatalogImage(item.product.mainImage)}
                             alt={item.product.title}
                             width={80}

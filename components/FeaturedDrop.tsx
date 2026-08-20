@@ -185,6 +185,7 @@ export default function FeaturedDrop({
         <Gallery>
           <MainImage>
             <Image
+              unoptimized={true}
               src={normalizeCatalogImage(selectedImage)}
               alt={product.title}
               fill
@@ -202,6 +203,7 @@ export default function FeaturedDrop({
                 aria-label={`Xem ảnh ${index + 1}`}
               >
                 <Image
+                  unoptimized={true}
                   src={normalizeCatalogImage(image)}
                   alt=""
                   fill

@@ -772,6 +772,7 @@ const CheckoutPage = () => {
               {products.map((product) => (
                 <ProductRow key={product.id}>
                   <ProductThumbnail
+                    unoptimized={true}
                     src={normalizeCatalogImage(product.image)}
                     alt={product.title}
                     width={64}

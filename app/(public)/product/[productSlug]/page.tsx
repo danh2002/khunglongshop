@@ -45,6 +45,7 @@ export default async function SingleProductPage({
       <section className="mx-auto grid max-w-screen-xl gap-10 px-5 py-12 lg:grid-cols-2">
         <div className="relative aspect-square overflow-hidden border border-orange-600/30 bg-[#111]">
           <Image
+            unoptimized={true}
             src={normalizeCatalogImage(product.mainImage)}
             alt={sanitize(product.title)}
             fill
@@ -96,6 +97,7 @@ export default async function SingleProductPage({
               >
                 <div className="relative aspect-square bg-white/5">
                   <Image
+                    unoptimized={true}
                     src={normalizeCatalogImage(url)}
                     alt={`Mẫu số ${index + 1}`}
                     fill
