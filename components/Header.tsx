@@ -78,7 +78,7 @@ const Logo = styled(Link)`
   @media (max-width: 520px) {
     gap: 0;
 
-    span {
+    > span:last-child {
       display: none;
     }
   }
