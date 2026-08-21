@@ -494,6 +494,7 @@ export default function Hero({ slides = null }: HeroProps) {
             >
               <ImageFrame>
                 <Image
+                  unoptimized={true}
                   src={normalizeCatalogImage(slide.imageUrl)}
                   alt={slide.altText}
                   fill
