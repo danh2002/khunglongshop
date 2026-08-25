@@ -1,5 +1,6 @@
 import { OrderStatus, Prisma } from "@prisma/client";
 import Link from "next/link";
+import OrderExportButton from "@/components/admin/OrderExportButton";
 import {
   AdminEmptyState,
   AdminPage,
@@ -95,6 +96,12 @@ export default async function OrdersPage({
         <button className={adminSecondaryButtonClass} type="submit">
           Lọc
         </button>
+        <OrderExportButton
+          search={search}
+          status={status}
+          dateFrom={dateFrom}
+          dateTo={dateTo}
+        />
       </form>
 
       {orders.length ? (

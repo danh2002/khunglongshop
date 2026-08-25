@@ -141,3 +141,14 @@ Plan 025 is intentionally UI-only. It introduces a narrow product-card image
 fallback boundary, aligns the homepage random-slot `sizes` declaration with its
 mobile two-column layout, and makes `/shop` retain two columns below 500px. It
 does not migrate, upload, delete, or otherwise change Blob/R2 storage.
+
+## Admin order Excel export plan
+
+| Priority | Plan | Status | Depends on |
+|---|---|---|---|
+| P2 | [026 - Export filtered admin orders to Excel](026-export-admin-orders-to-excel.md) | DONE | none |
+
+Plan 026 adds an admin-authenticated, unpaginated JSON export for the currently
+applied order filters and lazy client-side SheetJS generation. The workbook has
+separate order-detail and revenue-summary sheets; only completed orders count
+toward revenue.

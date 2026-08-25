@@ -62,6 +62,7 @@
     "slick-carousel": "^1.8.1",
     "styled-components": "^6.4.2",
     "svgmap": "^2.10.1",
+    "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz",
     "zod": "^3.22.4",
     "zustand": "^4.5.1"
   },
