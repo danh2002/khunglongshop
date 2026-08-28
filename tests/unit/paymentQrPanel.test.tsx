@@ -25,8 +25,13 @@ describe("PaymentQrPanel", () => {
 
   it("uses one composite transfer reference for display, copy, and confirmation", () => {
     expect(source).toContain(
-      "const compositeRef = `${payment.name} ${payment.lastname} - ${formatVndTotal(payment.total)}đ - #${payment.orderNumber}`;"
+      'const transferAmount = payment.total.toLocaleString("vi-VN");'
     );
+    expect(source).toContain(
+      "const compositeRef = `${payment.name} ${payment.lastname} - ${transferAmount} - #${payment.orderNumber}`;"
+    );
+    expect(source).not.toContain("${formatVndTotal(payment.total)}đ - #");
+    expect(source).toContain("{formatVndTotal(payment.total)}");
     expect(source).toContain("{compositeRef}");
     expect(source).toContain("const copyText = compositeRef;");
     expect(source).toContain("navigator.clipboard.writeText(copyText)");

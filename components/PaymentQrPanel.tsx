@@ -44,7 +44,8 @@ export default function PaymentQrPanel({
   const [inputValue, setInputValue] = useState("");
   const inFlightRef = useRef(false);
   const requestRef = useRef<AbortController | null>(null);
-  const compositeRef = `${payment.name} ${payment.lastname} - ${formatVndTotal(payment.total)}đ - #${payment.orderNumber}`;
+  const transferAmount = payment.total.toLocaleString("vi-VN");
+  const compositeRef = `${payment.name} ${payment.lastname} - ${transferAmount} - #${payment.orderNumber}`;
   const inputMatches = inputValue.trim() === compositeRef.trim();
 
   const poll = useCallback(async () => {
