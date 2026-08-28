@@ -48,11 +48,18 @@ export default function OrderExportButton({
         throw new Error(payload?.error?.message || "Không thể xuất đơn hàng.");
       }
 
-      const XLSX = await import("xlsx");
-      const workbook = buildAdminOrderWorkbook(XLSX, payload.items);
-      XLSX.writeFileXLSX(workbook, buildAdminOrderExportFilename(), {
-        compression: true,
+      const ExcelJS = await import("exceljs");
+      const workbook = buildAdminOrderWorkbook(ExcelJS, payload.items);
+      const buffer = await workbook.xlsx.writeBuffer();
+      const blob = new Blob([buffer], {
+        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
       });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = buildAdminOrderExportFilename();
+      link.click();
+      URL.revokeObjectURL(url);
       toast.success("Đã xuất danh sách đơn hàng.");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Không thể xuất đơn hàng.");
